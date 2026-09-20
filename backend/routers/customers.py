@@ -234,6 +234,68 @@ def get_customer(customer_id):
 
 
 # ---------------------------------------------------------------------------
+# PATCH /{customer_id} — update customer details (Admin + Manager)
+# ---------------------------------------------------------------------------
+
+@customers_bp.route("/<string:customer_id>", methods=["PATCH"])
+@require_roles(Config.ROLE_ADMIN, Config.ROLE_MANAGER)
+def update_customer(customer_id):
+    """
+    PATCH /api/customers/{customer_id}
+    Admin + Manager. JSON body with any subset of editable fields.
+    """
+    current = get_current_user_info()
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    db = SessionLocal()
+    try:
+        customer = db.query(Customer).filter(
+            Customer.customer_id == customer_id,
+            Customer.org_id == current["org_id"],
+        ).first()
+        if not customer:
+            return error_response("Customer not found", 404)
+
+        if "name" in data:
+            v = (data["name"] or "").strip()
+            if not v:
+                return error_response("Name cannot be empty")
+            customer.name = v
+        if "phone" in data:
+            v = (data["phone"] or "").strip()
+            if not v:
+                return error_response("Phone cannot be empty")
+            customer.phone = v
+        if "address" in data:
+            customer.address = (data["address"] or "").strip()
+        if "city" in data:
+            v = (data["city"] or "").strip()
+            if not v:
+                return error_response("City cannot be empty")
+            customer.city = v
+        if "state" in data:
+            customer.state = (data["state"] or "").strip()
+        if "pincode" in data:
+            customer.pincode = (data["pincode"] or "").strip()
+        if "aadhaar_number" in data:
+            customer.aadhaar = (data["aadhaar_number"] or "").strip()
+        if "pan_number" in data:
+            customer.pan = (data["pan_number"] or "").strip()
+        if "assigned_user_id" in data:
+            customer.user_id = data["assigned_user_id"] or None
+
+        db.commit()
+        return success_response(data=model_to_dict(customer), message="Customer updated successfully")
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
 # PATCH /{customer_id}/status
 # ---------------------------------------------------------------------------
 

@@ -105,11 +105,7 @@
                   <p>Click to upload photo<br><small>JPG, PNG or PDF, max 5MB</small></p>
                 </div>
                 <input type="file" id="photo-input" accept="image/jpeg,image/png,application/pdf" class="d-none">
-                <div id="photo-preview" class="d-none file-preview">
-                  <i class="bi bi-file-earmark-image text-primary" style="font-size:20px;"></i>
-                  <span id="photo-name"></span>
-                  <button type="button" class="btn btn-sm btn-outline-danger ms-auto" onclick="clearFile('photo')"><i class="bi bi-x"></i></button>
-                </div>
+                <div id="photo-preview" class="d-none"></div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
@@ -129,11 +125,7 @@
                   <p>Click to upload ID proof<br><small>JPG, PNG or PDF, max 5MB</small></p>
                 </div>
                 <input type="file" id="id-input" accept="image/jpeg,image/png,application/pdf" class="d-none">
-                <div id="id-preview" class="d-none file-preview">
-                  <i class="bi bi-file-earmark-image text-primary" style="font-size:20px;"></i>
-                  <span id="id-name"></span>
-                  <button type="button" class="btn btn-sm btn-outline-danger ms-auto" onclick="clearFile('id')"><i class="bi bi-x"></i></button>
-                </div>
+                <div id="id-preview" class="d-none"></div>
               </div>
             </div>
 
@@ -232,8 +224,7 @@
   function handleFileSelect(input, type) {
     const file = input.files[0];
     if (!file) return;
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (file.size > 5 * 1024 * 1024) {
       showToast('File size must be less than 5MB', 'danger');
       input.value = '';
       return;
@@ -244,27 +235,50 @@
       input.value = '';
       return;
     }
-    if (type === 'photo') {
-      photoFile = file;
-      document.getElementById('photo-name').textContent = file.name;
-      document.getElementById('photo-preview').classList.remove('d-none');
+
+    if (type === 'photo') { photoFile = file; } else { idProofFile = file; }
+
+    const zoneEl = document.getElementById(type === 'photo' ? 'photo-zone' : 'id-zone');
+    const previewEl = document.getElementById(type === 'photo' ? 'photo-preview' : 'id-preview');
+    const sizeKB = (file.size / 1024).toFixed(1);
+    const changeBtnHtml = `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearFile('${type}')"><i class="bi bi-arrow-repeat me-1"></i>Change</button>`;
+
+    if (file.type === 'application/pdf') {
+      previewEl.innerHTML = `
+        <div class="file-img-preview">
+          <i class="bi bi-file-earmark-pdf" style="font-size:52px;color:#DC2626;"></i>
+          <div class="file-img-name">${file.name}</div>
+          <div class="file-img-size">${sizeKB} KB · PDF</div>
+          ${changeBtnHtml}
+        </div>`;
+      zoneEl.classList.add('d-none');
+      previewEl.classList.remove('d-none');
     } else {
-      idProofFile = file;
-      document.getElementById('id-name').textContent = file.name;
-      document.getElementById('id-preview').classList.remove('d-none');
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        previewEl.innerHTML = `
+          <div class="file-img-preview">
+            <img src="${e.target.result}" alt="Preview">
+            <div class="file-img-name">${file.name}</div>
+            <div class="file-img-size">${sizeKB} KB</div>
+            ${changeBtnHtml}
+          </div>`;
+        zoneEl.classList.add('d-none');
+        previewEl.classList.remove('d-none');
+      };
+      reader.readAsDataURL(file);
     }
   }
 
   window.clearFile = function (type) {
-    if (type === 'photo') {
-      photoFile = null;
-      document.getElementById('photo-input').value = '';
-      document.getElementById('photo-preview').classList.add('d-none');
-    } else {
-      idProofFile = null;
-      document.getElementById('id-input').value = '';
-      document.getElementById('id-preview').classList.add('d-none');
-    }
+    const inputId = type === 'photo' ? 'photo-input' : 'id-input';
+    const zoneId  = type === 'photo' ? 'photo-zone'  : 'id-zone';
+    const prevId  = type === 'photo' ? 'photo-preview' : 'id-preview';
+    if (type === 'photo') { photoFile = null; } else { idProofFile = null; }
+    document.getElementById(inputId).value = '';
+    document.getElementById(prevId).classList.add('d-none');
+    document.getElementById(prevId).innerHTML = '';
+    document.getElementById(zoneId).classList.remove('d-none');
   };
 
   function goToStep1() {
