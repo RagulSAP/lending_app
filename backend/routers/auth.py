@@ -36,7 +36,7 @@ def login():
     try:
         user = db.query(User).filter(User.phone == phone).first()
         if not user or not check_password(password, user.password_hash):
-            return error_response("Invalid phone or password", 401)
+            return error_response("Invalid phone number or password", 400)
 
         if user.status != 1:
             return error_response("Account is inactive. Contact your administrator.", 403)

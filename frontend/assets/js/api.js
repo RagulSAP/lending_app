@@ -53,11 +53,17 @@
     return h;
   }
 
+  function isLoginPage() {
+    const p = window.location.pathname;
+    return p.endsWith('index.html') || p.endsWith('/frontend/') || p === '/';
+  }
+
   async function handleResponse(res) {
-    if (res.status === 401) {
+    if (res.status === 401 && !isLoginPage()) {
+      // Session expired on a protected page — clear and redirect to login
       auth.clearToken(); auth.clearUser();
       window.location.href = '/frontend/index.html';
-      throw new Error('Session expired. Please login again.');
+      throw new Error('Session expired. Please log in again.');
     }
     const ct = res.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
