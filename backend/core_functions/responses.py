@@ -6,7 +6,7 @@ from decimal import Decimal
 from datetime import date, datetime
 
 
-def success_response(data=None, message="", total=None, page=None, per_page=None):
+def success_response(data=None, message="", total=None, page=None, per_page=None, **extra):
     r = {"success": True}
     if data is not None:
         r["data"] = data
@@ -18,6 +18,7 @@ def success_response(data=None, message="", total=None, page=None, per_page=None
         r["page"] = page
     if per_page is not None:
         r["per_page"] = per_page
+    r.update(extra)
     return jsonify(r)
 
 

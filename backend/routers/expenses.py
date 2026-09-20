@@ -218,14 +218,14 @@ def create_expense():
 def list_expenses():
     """
     GET /api/expenses/
-    ADMIN / MANAGER / ACCOUNTANT / STAFF.
     Query params: category_id, date_from (YYYY-MM-DD), date_to, page, per_page.
-    Returns expense list with category_name and entered_by (user name).
+    Returns expense list with category_name, entered_by, and total_amount for the filter.
     """
     current = get_current_user_info()
     org_id = current["org_id"]
 
     from models import User
+    from sqlalchemy import func as sqlfunc
 
     category_id = request.args.get("category_id") or None
     date_from = parse_date(request.args.get("date_from"))
@@ -235,7 +235,7 @@ def list_expenses():
 
     db = SessionLocal()
     try:
-        q = (
+        base_q = (
             db.query(
                 Expense,
                 ExpenseCategory.name.label("category_name"),
@@ -246,18 +246,41 @@ def list_expenses():
             .filter(ExpenseCategory.org_id == org_id)
         )
         if category_id:
-            q = q.filter(Expense.category_id == category_id)
+            base_q = base_q.filter(Expense.category_id == category_id)
         if date_from:
-            q = q.filter(Expense.expense_date >= date_from)
+            base_q = base_q.filter(Expense.expense_date >= date_from)
         if date_to:
-            # Use end-of-day for date_to when filtering DateTime column
             from datetime import timedelta
             date_to_end = datetime.combine(date_to, datetime.max.time())
-            q = q.filter(Expense.expense_date <= date_to_end)
+            base_q = base_q.filter(Expense.expense_date <= date_to_end)
 
-        total = q.count()
+        total = base_q.count()
+
+        # Total amount across all filtered rows (not just the current page)
+        total_amount = db.query(sqlfunc.sum(Expense.expense_amount)).join(
+            ExpenseCategory, ExpenseCategory.category_id == Expense.category_id
+        ).filter(ExpenseCategory.org_id == org_id).scalar() or 0.0
+        if category_id:
+            total_amount_q = db.query(sqlfunc.sum(Expense.expense_amount)).join(
+                ExpenseCategory, ExpenseCategory.category_id == Expense.category_id
+            ).filter(ExpenseCategory.org_id == org_id, Expense.category_id == category_id)
+            if date_from:
+                total_amount_q = total_amount_q.filter(Expense.expense_date >= date_from)
+            if date_to:
+                total_amount_q = total_amount_q.filter(Expense.expense_date <= date_to_end)
+            total_amount = total_amount_q.scalar() or 0.0
+        elif date_from or date_to:
+            total_amount_q = db.query(sqlfunc.sum(Expense.expense_amount)).join(
+                ExpenseCategory, ExpenseCategory.category_id == Expense.category_id
+            ).filter(ExpenseCategory.org_id == org_id)
+            if date_from:
+                total_amount_q = total_amount_q.filter(Expense.expense_date >= date_from)
+            if date_to:
+                total_amount_q = total_amount_q.filter(Expense.expense_date <= date_to_end)
+            total_amount = total_amount_q.scalar() or 0.0
+
         rows = (
-            q.order_by(Expense.expense_date.desc(), Expense.created_at.desc())
+            base_q.order_by(Expense.expense_date.desc(), Expense.created_at.desc())
             .offset((page - 1) * per_page)
             .limit(per_page)
             .all()
@@ -270,6 +293,126 @@ def list_expenses():
             d["entered_by"] = user_name
             result.append(d)
 
-        return success_response(data=result, total=total, page=page, per_page=per_page)
+        return success_response(
+            data=result, total=total, page=page, per_page=per_page,
+            total_amount=round(float(total_amount), 2),
+        )
+    finally:
+        db.close()
+
+
+@expenses_bp.route("/<string:expense_id>", methods=["PATCH"])
+@require_roles(*_MANAGE_ROLES)
+def update_expense(expense_id):
+    """
+    PATCH /api/expenses/{expense_id}
+    ADMIN / MANAGER. Body: {category_id, expense_amount, expense_remark, expense_date}
+    Adjusts wallet balance by the delta (new_amount - old_amount).
+    """
+    current = get_current_user_info()
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    db = SessionLocal()
+    try:
+        expense = (
+            db.query(Expense)
+            .join(ExpenseCategory, ExpenseCategory.category_id == Expense.category_id)
+            .filter(Expense.expense_id == expense_id, ExpenseCategory.org_id == current["org_id"])
+            .first()
+        )
+        if not expense:
+            return error_response("Expense not found", 404)
+
+        old_amount = float(expense.expense_amount or 0)
+
+        if "category_id" in data:
+            cat = db.query(ExpenseCategory).filter(
+                ExpenseCategory.category_id == data["category_id"],
+                ExpenseCategory.org_id == current["org_id"],
+                ExpenseCategory.status == "ACTIVE",
+            ).first()
+            if not cat:
+                return error_response("Category not found or inactive", 404)
+            expense.category_id = data["category_id"]
+
+        if "expense_amount" in data:
+            try:
+                new_amount = float(data["expense_amount"])
+            except (TypeError, ValueError):
+                return error_response("expense_amount must be a number")
+            if new_amount <= 0:
+                return error_response("expense_amount must be greater than zero")
+            expense.expense_amount = round(new_amount, 2)
+        else:
+            new_amount = old_amount
+
+        if "expense_remark" in data:
+            expense.expense_remark = (data["expense_remark"] or "").strip()
+
+        if "expense_date" in data:
+            new_date = parse_date(str(data["expense_date"])) if data["expense_date"] else None
+            if not new_date:
+                return error_response("expense_date must be YYYY-MM-DD")
+            expense.expense_date = datetime.combine(new_date, datetime.min.time())
+
+        # Adjust wallet by delta
+        delta = new_amount - old_amount
+        if delta != 0:
+            wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+            if wallet:
+                wallet.balance = round(float(wallet.balance or 0) - delta, 2)
+
+        db.commit()
+
+        from models import User
+        user = db.query(User).filter(User.user_id == expense.user_id).first()
+        cat_obj = db.query(ExpenseCategory).filter(ExpenseCategory.category_id == expense.category_id).first()
+        result = model_to_dict(expense)
+        result["category_name"] = cat_obj.name if cat_obj else None
+        result["entered_by"] = user.name if user else None
+        return success_response(data=result, message="Expense updated successfully")
+
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()
+
+
+@expenses_bp.route("/<string:expense_id>", methods=["DELETE"])
+@require_roles(*_MANAGE_ROLES)
+def delete_expense(expense_id):
+    """
+    DELETE /api/expenses/{expense_id}
+    ADMIN / MANAGER. Reverses the wallet debit and deletes the expense record.
+    """
+    current = get_current_user_info()
+    db = SessionLocal()
+    try:
+        expense = (
+            db.query(Expense)
+            .join(ExpenseCategory, ExpenseCategory.category_id == Expense.category_id)
+            .filter(Expense.expense_id == expense_id, ExpenseCategory.org_id == current["org_id"])
+            .first()
+        )
+        if not expense:
+            return error_response("Expense not found", 404)
+
+        amount = float(expense.expense_amount or 0)
+
+        # Reverse wallet debit
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        if wallet:
+            wallet.balance = round(float(wallet.balance or 0) + amount, 2)
+
+        db.delete(expense)
+        db.commit()
+        return success_response(message="Expense deleted successfully")
+
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
     finally:
         db.close()

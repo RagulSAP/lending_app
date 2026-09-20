@@ -251,12 +251,12 @@
       }
       listEl.innerHTML = customerLoans.map(l => `
         <div class="col-md-6">
-          <div class="loan-card" onclick="selectLoan('${l.loan_id}')" style="cursor:pointer;">
+          <div class="loan-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div class="fw-600" style="font-size:13px;">Loan #${l.loan_id.slice(0, 8)}…</div>
               ${statusBadge(l.status)}
             </div>
-            <div class="row g-1" style="font-size:12.5px;">
+            <div class="row g-1 mb-3" style="font-size:12.5px;">
               <div class="col-6"><span style="color:#64748B;">Disbursed:</span> ${formatCurrency(l.disbursement_amount)}</div>
               <div class="col-6"><span style="color:#64748B;">Balance:</span>
                 <span class="fw-600 text-danger">${formatCurrency(l.balance_amount || 0)}</span>
@@ -264,9 +264,9 @@
               <div class="col-6"><span style="color:#64748B;">Rate:</span> ${l.interest_rate}% (${l.interest_type})</div>
               <div class="col-6"><span style="color:#64748B;">Type:</span> ${l.installment_type}</div>
             </div>
-            <div class="mt-2" style="font-size:11.5px;color:#94a3b8;">
-              <i class="bi bi-hand-index me-1"></i>Tap to collect payment
-            </div>
+            <button type="button" class="btn btn-success w-100" onclick="selectLoan('${l.loan_id}')">
+              <i class="bi bi-cash-coin me-2"></i>Collect Payment
+            </button>
           </div>
         </div>`).join('');
     } catch (err) {
