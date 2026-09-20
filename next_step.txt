@@ -1,0 +1,39 @@
+The full app is built. Here's a complete summary of what's ready:
+
+LendTrack v1 — Build Complete
+File count: 45 files across backend + frontend + db
+Backend (23 files) — backend/
+
+Foundation: config.py, database.py, models.py, app.py
+Core: auth.py, rbac.py, loan_calc.py, file_storage.py, dashboard_service.py, report_service.py, responses.py
+Routers: auth, organizations, users, customers, loans, payments, expenses, dashboard, reports
+Frontend (22 files) — frontend/
+
+Shared: styles.css, api.js, common.js
+Pages + JS: login, dashboard, organizations, users, user-onboard, customers, customer-onboard, collect-payment, expenses, reports
+Other: db/migrations/001_v1_updates.sql, passenger_wsgi.py
+
+To get running:
+Run DB migration — execute db/migrations/001_v1_updates.sql against your MySQL lending_db
+
+Update .env — replace JWT_SECRET_KEY and SECRET_KEY with strong random strings:
+
+
+python -c "import secrets; print(secrets.token_hex(32))"
+Install dependencies:
+
+
+cd backend
+pip install -r requirements.txt
+Create a Super Admin user in MySQL manually (or via a seed script):
+
+
+INSERT INTO users (user_id, org_id, name, phone, password_hash, role_id, status)
+VALUES (UUID(), '00000000-0000-0000-0000-000000000000', 'Super Admin', '9999999999', '<bcrypt-hash>', 0, 1);
+Run locally:
+
+
+python backend/app.py
+Then open http://localhost:5000/frontend/index.html
+
+GoDaddy deploy — upload everything, point cPanel Python App to passenger_wsgi.py

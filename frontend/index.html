@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="LendTrack">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sign In - LendTrack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body style="margin:0;padding:0;">
+  <div class="login-bg">
+    <div class="login-left">
+      <div class="login-logo">
+        <div class="login-logo-icon"><i class="bi bi-currency-rupee"></i></div>
+        <div class="login-logo-text">Lend<span>Track</span></div>
+      </div>
+      <div class="mb-4">
+        <h4 class="fw-700 mb-1" style="font-size:22px;color:#0F172A;">Welcome back</h4>
+        <p style="color:#64748B;font-size:14px;">Sign in to your account to continue</p>
+      </div>
+      <div id="error-alert" class="alert alert-danger d-none" role="alert" style="border-radius:8px;font-size:13.5px;"></div>
+      <form id="login-form" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="phone">Phone Number</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-phone"></i></span>
+            <input type="tel" class="form-control" id="phone" placeholder="Enter 10-digit phone number" maxlength="10" required>
+          </div>
+          <div class="invalid-feedback" id="phone-err">Please enter a valid 10-digit phone number.</div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock"></i></span>
+            <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
+            <button class="btn btn-outline-secondary" type="button" id="toggle-pass" tabindex="-1">
+              <i class="bi bi-eye" id="eye-icon"></i>
+            </button>
+          </div>
+          <div class="invalid-feedback" id="pass-err">Password is required.</div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100" id="signin-btn">
+          <span id="signin-text"><i class="bi bi-box-arrow-in-right me-1"></i> Sign In</span>
+          <span id="signin-loading" class="d-none"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Signing in...</span>
+        </button>
+      </form>
+      <p class="mt-4 text-center" style="font-size:12px;color:#94A3B8;">LendTrack v1.0 &bull; Microfinance Management System</p>
+    </div>
+    <div class="login-right">
+      <div class="login-hero-text">
+        <div style="font-size:64px;margin-bottom:24px;">&#x1F4B0;</div>
+        <h2>Microfinance<br>Made Simple</h2>
+        <p>Manage loans, collections, customers and reports from a single unified platform designed for modern lending operations.</p>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap;">
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:white;">Multi-Role</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.6);">RBAC System</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:white;">Real-time</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.6);">Collections</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;text-align:center;">
+            <div style="font-size:22px;font-weight:700;color:white;">Reports</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.6);">& Analytics</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
+  <script src="assets/js/api.js"></script>
+  <script>
+  (function() {
+    // Redirect if already logged in
+    if (auth.isLoggedIn()) {
+      const user = auth.getUser();
+      if (user && user.role_id === 0) window.location.href = 'organizations.html';
+      else window.location.href = 'dashboard.html';
+    }
+
+    // Toggle password visibility
+    document.getElementById('toggle-pass').addEventListener('click', function() {
+      const inp = document.getElementById('password');
+      const icon = document.getElementById('eye-icon');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+      } else {
+        inp.type = 'password';
+        icon.className = 'bi bi-eye';
+      }
+    });
+
+    // Phone: only digits
+    document.getElementById('phone').addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+    });
+
+    document.getElementById('login-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value;
+      const errAlert = document.getElementById('error-alert');
+      errAlert.classList.add('d-none');
+
+      // Validate
+      let valid = true;
+      if (!/^\d{10}$/.test(phone)) {
+        document.getElementById('phone').classList.add('is-invalid');
+        valid = false;
+      } else {
+        document.getElementById('phone').classList.remove('is-invalid');
+      }
+      if (!password) {
+        document.getElementById('password').classList.add('is-invalid');
+        valid = false;
+      } else {
+        document.getElementById('password').classList.remove('is-invalid');
+      }
+      if (!valid) return;
+
+      const btn = document.getElementById('signin-btn');
+      const txt = document.getElementById('signin-text');
+      const loading = document.getElementById('signin-loading');
+      btn.disabled = true;
+      txt.classList.add('d-none');
+      loading.classList.remove('d-none');
+
+      try {
+        const res = await api.post('/api/auth/login', { phone, password });
+        if (res.success && res.data) {
+          auth.setToken(res.data.access_token);
+          auth.setUser(res.data.user);
+          const role = res.data.user.role_id;
+          if (role === 0) window.location.href = 'organizations.html';
+          else window.location.href = 'dashboard.html';
+        } else {
+          throw new Error(res.message || 'Login failed');
+        }
+      } catch (err) {
+        errAlert.textContent = err.message || 'Login failed. Please check credentials.';
+        errAlert.classList.remove('d-none');
+        btn.disabled = false;
+        txt.classList.remove('d-none');
+        loading.classList.add('d-none');
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
