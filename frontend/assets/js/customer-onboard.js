@@ -89,7 +89,7 @@
             </div>
             <div class="d-flex gap-2 mt-4">
               <a href="customers.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Cancel</a>
-              <button class="btn btn-primary ms-auto" id="next-btn"><i class="bi bi-arrow-right me-1"></i>Next: KYC Documents</button>
+              <button type="button" class="btn btn-primary ms-auto" id="next-btn"><i class="bi bi-arrow-right me-1"></i>Next: KYC Documents</button>
             </div>
           </div>
 
@@ -139,7 +139,7 @@
 
             <!-- Optional Loan Section -->
             <div class="mt-4">
-              <button type="button" class="btn btn-outline-primary w-100" id="toggle-loan-btn">
+              <button type="button" class="btn btn-outline-primary w-100" id="toggle-loan-btn" style="min-height:44px;">
                 <i class="bi bi-plus-circle me-2"></i>Add Loan Details (Optional)
               </button>
               <div id="loan-section" class="d-none mt-3 p-3" style="background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;">
@@ -189,8 +189,8 @@
             </div>
 
             <div class="d-flex gap-2 mt-4">
-              <button class="btn btn-outline-secondary" id="back-btn"><i class="bi bi-arrow-left me-1"></i>Back</button>
-              <button class="btn btn-primary ms-auto" id="submit-btn">
+              <button type="button" class="btn btn-outline-secondary" id="back-btn"><i class="bi bi-arrow-left me-1"></i>Back</button>
+              <button type="button" class="btn btn-primary ms-auto" id="submit-btn">
                 <span id="submit-txt"><i class="bi bi-person-check me-1"></i>Submit</span>
                 <span id="submit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Submitting...</span>
               </button>
@@ -275,6 +275,14 @@
     document.getElementById('step-1-indicator').classList.remove('completed');
     document.getElementById('step-1-indicator').querySelector('.step-circle').textContent = '1';
     document.getElementById('step-2-indicator').classList.remove('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showStep1Error(msg) {
+    const errEl = document.getElementById('step1-error');
+    errEl.textContent = msg;
+    errEl.classList.remove('d-none');
+    errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   function goToStep2() {
@@ -287,12 +295,12 @@
     const pincode = document.getElementById('f-pincode').value.trim();
     const pan = document.getElementById('f-pan').value.trim();
 
-    if (!name) { errEl.textContent = 'Full name is required.'; errEl.classList.remove('d-none'); return; }
-    if (!/^\d{10}$/.test(phone)) { errEl.textContent = 'Phone must be exactly 10 digits.'; errEl.classList.remove('d-none'); return; }
-    if (!city) { errEl.textContent = 'City is required.'; errEl.classList.remove('d-none'); return; }
-    if (aadhaar && !/^\d{12}$/.test(aadhaar)) { errEl.textContent = 'Aadhaar must be exactly 12 digits.'; errEl.classList.remove('d-none'); return; }
-    if (pincode && !/^\d{6}$/.test(pincode)) { errEl.textContent = 'Pincode must be exactly 6 digits.'; errEl.classList.remove('d-none'); return; }
-    if (pan && pan.length !== 10) { errEl.textContent = 'PAN must be exactly 10 characters.'; errEl.classList.remove('d-none'); return; }
+    if (!name) { showStep1Error('Full name is required.'); return; }
+    if (!/^\d{10}$/.test(phone)) { showStep1Error('Phone must be exactly 10 digits.'); return; }
+    if (!city) { showStep1Error('City is required.'); return; }
+    if (aadhaar && !/^\d{12}$/.test(aadhaar)) { showStep1Error('Aadhaar must be exactly 12 digits.'); return; }
+    if (pincode && !/^\d{6}$/.test(pincode)) { showStep1Error('Pincode must be exactly 6 digits.'); return; }
+    if (pan && pan.length !== 10) { showStep1Error('PAN must be exactly 10 characters.'); return; }
 
     currentStep = 2;
     document.getElementById('step-1-content').classList.add('d-none');
@@ -301,6 +309,7 @@
     document.getElementById('step-1-indicator').classList.add('completed');
     document.getElementById('step-1-indicator').querySelector('.step-circle').innerHTML = '<i class="bi bi-check-lg"></i>';
     document.getElementById('step-2-indicator').classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function handleSubmit() {

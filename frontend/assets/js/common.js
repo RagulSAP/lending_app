@@ -55,6 +55,8 @@
 
     document.getElementById('logout-btn').addEventListener('click', async (e) => {
       e.preventDefault();
+      const confirmed = await confirmDialog('Are you sure you want to log out?');
+      if (!confirmed) return;
       try { await api.post('/api/auth/logout'); } catch {}
       auth.logout();
     });
