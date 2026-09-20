@@ -3,7 +3,10 @@ Loan management routes.
 Blueprint prefix: /api/loans
 """
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_IST = timezone(timedelta(hours=5, minutes=30))
+def _now_ist(): return datetime.now(_IST).replace(tzinfo=None)
 
 from flask import Blueprint, request
 
@@ -151,7 +154,7 @@ def create_loan():
             old_status=None,
             new_status="ACTIVE",
             changed_by=current["user_id"],
-            changed_at=datetime.utcnow(),
+            changed_at=_now_ist(),
             remarks="Loan disbursed",
         )
         db.add(history)

@@ -1,3 +1,10 @@
+from datetime import datetime as _dt, timezone as _tz, timedelta as _td
+
+_IST = _tz(_td(hours=5, minutes=30))
+
+def _now_ist():
+    return _dt.now(_IST).replace(tzinfo=None)
+
 from sqlalchemy import (
     Column, Integer, String, Numeric, Date, DateTime,
     ForeignKey, Text, func
@@ -13,8 +20,8 @@ class Organization(Base):
     address    = Column(String(100))
     phone      = Column(String(100))
     status     = Column(String(100), default="ACTIVE")
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class Role(Base):
@@ -34,8 +41,8 @@ class User(Base):
     role_id       = Column(Integer, ForeignKey("roles.id"), nullable=False)
     status        = Column(Integer, nullable=False, default=1)  # 1=active, 0=inactive
     last_login    = Column(DateTime)
-    created_at    = Column(DateTime, server_default=func.now())
-    updated_at    = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at    = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at    = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class Customer(Base):
@@ -52,12 +59,13 @@ class Customer(Base):
     aadhaar       = Column(String(100))
     pan           = Column(String(20))
     user_id       = Column(String(36), ForeignKey("users.user_id"))
+    created_by    = Column(String(36), ForeignKey("users.user_id"))
     photo         = Column(String(225))
     id_proof      = Column(String(225))
     id_proof_type = Column(String(10))  # PAN or AADHAAR
     status        = Column(String(20), default="ACTIVE")
-    created_at    = Column(DateTime, server_default=func.now())
-    updated_at    = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at    = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at    = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class Loan(Base):
@@ -80,8 +88,8 @@ class Loan(Base):
     status              = Column(String(100), default="ACTIVE")  # ACTIVE/OVERDUE/CLOSED
     remarks             = Column(String(100))
     created_by          = Column(String(100), ForeignKey("users.user_id"))
-    created_at          = Column(DateTime, server_default=func.now())
-    updated_at          = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at          = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at          = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class LoanInstallment(Base):
@@ -99,8 +107,8 @@ class LoanInstallment(Base):
     balance_amount     = Column(Numeric(12, 2))
     status             = Column(String(20), default="PENDING")  # PENDING/PARTIAL/PAID
     paid_date          = Column(Date)
-    created_at         = Column(DateTime, server_default=func.now())
-    updated_at         = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at         = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at         = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class Transaction(Base):
@@ -118,8 +126,8 @@ class Transaction(Base):
     payment_mode     = Column(String(100))  # CASH / UPI / BANK_TRANSFER / CHEQUE
     wallet_id        = Column(String(36), ForeignKey("wallet.wallet_id"))
     remarks          = Column(String(225))
-    created_at       = Column(DateTime, server_default=func.now())
-    updated_at       = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at       = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at       = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class Wallet(Base):
@@ -128,8 +136,8 @@ class Wallet(Base):
     wallet_id  = Column(String(36), unique=True, nullable=False)
     balance    = Column(Numeric(10, 2), nullable=False, default=0)
     org_id     = Column(String(36), ForeignKey("organizations.org_id"), nullable=False)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class ExpenseCategory(Base):
@@ -140,8 +148,8 @@ class ExpenseCategory(Base):
     name        = Column(String(100), nullable=False)
     description = Column(String(255))
     status      = Column(String(20), default="ACTIVE")
-    created_at  = Column(DateTime, server_default=func.now())
-    updated_at  = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at  = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at  = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class Expense(Base):
@@ -154,8 +162,8 @@ class Expense(Base):
     expense_amount = Column(Numeric(10, 2), nullable=False)
     wallet_id      = Column(String(36), ForeignKey("wallet.wallet_id"), nullable=False)
     expense_date   = Column(DateTime, nullable=False)
-    created_at     = Column(DateTime, server_default=func.now())
-    updated_at     = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at     = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at     = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class LoanStatusHistory(Base):

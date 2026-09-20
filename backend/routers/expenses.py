@@ -3,7 +3,10 @@ Expense management routes.
 Blueprint prefix: /api/expenses
 """
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_IST = timezone(timedelta(hours=5, minutes=30))
+def _now_ist(): return datetime.now(_IST).replace(tzinfo=None)
 
 from flask import Blueprint, request
 
@@ -143,7 +146,7 @@ def create_expense():
         return error_response("expense_amount must be greater than zero")
 
     expense_date = parse_date(str(expense_date_str)) if expense_date_str else None
-    expense_datetime = datetime.combine(expense_date, datetime.min.time()) if expense_date else datetime.utcnow()
+    expense_datetime = datetime.combine(expense_date, datetime.min.time()) if expense_date else _now_ist()
 
     db = SessionLocal()
     try:

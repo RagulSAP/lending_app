@@ -1,0 +1,54 @@
+-- ============================================================
+-- Migration 002 — add created_by to customers, fix timestamps
+-- Run once against the existing lending_db schema
+-- ============================================================
+
+-- 1. Add created_by column to customers (who onboarded the customer)
+ALTER TABLE customers
+  ADD COLUMN IF NOT EXISTS created_by VARCHAR(36) NULL
+  REFERENCES users(user_id);
+
+-- 2. Fix created_at / updated_at defaults on all tables
+--    (Needed when tables were created without DEFAULT CURRENT_TIMESTAMP)
+
+ALTER TABLE customers
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE users
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE organizations
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE loans
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE loan_installments
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE transaction
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE wallet
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE expense_categories
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+ALTER TABLE expense
+  MODIFY COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+
+-- 3. Back-fill NULL timestamps on existing rows using NOW() as a best-effort default
+UPDATE customers  SET created_at = NOW(), updated_at = NOW() WHERE created_at IS NULL;
+UPDATE users      SET created_at = NOW(), updated_at = NOW() WHERE created_at IS NULL;
+UPDATE loans      SET created_at = NOW(), updated_at = NOW() WHERE created_at IS NULL;
+UPDATE loan_installments SET created_at = NOW(), updated_at = NOW() WHERE created_at IS NULL;

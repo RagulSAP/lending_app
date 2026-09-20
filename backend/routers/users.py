@@ -138,6 +138,74 @@ def list_users():
         db.close()
 
 
+@users_bp.route("/<string:user_id>", methods=["PATCH"])
+@require_roles(Config.ROLE_ADMIN)
+def update_user(user_id):
+    """
+    PATCH /api/users/{user_id}
+    ADMIN only. Updates any combination of: name, phone, role_id, password.
+    All fields are optional; only provided fields are updated.
+    """
+    current = get_current_user_info()
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(
+            User.user_id == user_id,
+            User.org_id == current["org_id"],
+        ).first()
+        if not user:
+            return error_response("User not found", 404)
+
+        if "name" in data:
+            name = (data["name"] or "").strip()
+            if not name:
+                return error_response("name must be a non-empty string")
+            user.name = name
+
+        if "phone" in data:
+            phone = (data["phone"] or "").strip()
+            if not phone:
+                return error_response("phone must be a non-empty string")
+            duplicate = db.query(User).filter(
+                User.phone == phone,
+                User.user_id != user_id,
+            ).first()
+            if duplicate:
+                return error_response("Phone number is already in use by another user")
+            user.phone = phone
+
+        if "role_id" in data:
+            try:
+                role_id = int(data["role_id"])
+            except (TypeError, ValueError):
+                return error_response("role_id must be an integer")
+            if role_id not in _ALLOWED_ROLE_IDS:
+                return error_response(
+                    "Invalid role_id. Allowed: 1=ADMIN, 2=MANAGER, 3=STAFF, 4=COLLECTOR, 5=ACCOUNTANT"
+                )
+            user.role_id = role_id
+
+        if "password" in data:
+            password = data["password"] or ""
+            if password:
+                user.password_hash = hash_password(password)
+
+        db.commit()
+        return success_response(
+            data=model_to_dict(user, exclude=["password_hash"]),
+            message="User updated successfully",
+        )
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()
+
+
 @users_bp.route("/<string:user_id>/status", methods=["PATCH"])
 @require_roles(Config.ROLE_ADMIN)
 def update_user_status(user_id):

@@ -36,6 +36,26 @@ body {
   font-size: 14px;
   line-height: 1.6;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* iOS tap highlight — remove blue flash on all interactive elements */
+a, button, [role="button"], input, select, textarea, label,
+.nav-link, .btn, .bottom-nav-item, .file-upload-zone, .loan-card, .clickable {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove 300ms tap delay on iOS */
+button, a, .btn, .bottom-nav-item, .file-upload-zone, .clickable {
+  touch-action: manipulation;
+}
+
+/* Form elements: inherit font on iOS (Safari ignores body font for inputs by default) */
+input, textarea, select, button {
+  font-family: inherit;
+  font-size: inherit;
 }
 
 /* SIDEBAR */
@@ -46,9 +66,13 @@ body {
   height: 100vh;
   background-color: var(--sidebar-bg);
   overflow-y: auto; overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   z-index: 1040;
+  -webkit-transition: -webkit-transform 0.3s ease;
   transition: transform 0.3s ease;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
   flex-direction: column;
 }
 
@@ -186,9 +210,18 @@ body {
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   padding: 20px;
-  display: flex; align-items: center; gap: 16px;
+  display: -webkit-flex;
+  display: flex;
+  -webkit-align-items: center;
+  align-items: center;
+  gap: 16px;
+  -webkit-transition: var(--transition);
   transition: var(--transition);
 }
+
+/* gap fallback for iOS < 14.5 */
+.stat-card .stat-icon { margin-right: 16px; }
+@supports (gap: 1px) { .stat-card .stat-icon { margin-right: 0; } }
 
 .stat-card:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 
@@ -284,9 +317,19 @@ body {
 .btn {
   border-radius: var(--border-radius-sm);
   font-size: 13.5px; font-weight: 500;
-  padding: 9px 18px; transition: var(--transition);
-  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px;
+  -webkit-transition: var(--transition);
+  transition: var(--transition);
+  display: -webkit-inline-flex;
+  display: inline-flex;
+  -webkit-align-items: center;
+  align-items: center;
+  gap: 6px;
+  touch-action: manipulation;
 }
+/* gap fallback for iOS < 14.5: add right-margin to icons inside buttons */
+.btn > i { margin-right: 2px; }
+@supports (gap: 1px) { .btn > i { margin-right: 0; } }
 
 .btn-sm { padding: 5px 12px; font-size: 12.5px; }
 .btn-lg { padding: 12px 24px; font-size: 15px; }
@@ -362,10 +405,11 @@ body {
 
 /* LOADING OVERLAY */
 #loading-overlay {
-  position: fixed; inset: 0;
+  position: fixed; top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(255,255,255,0.85);
   z-index: 9998;
   display: none; align-items: center; justify-content: center;
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
 
@@ -551,7 +595,7 @@ body {
 
 /* SIDEBAR OVERLAY (mobile) */
 .sidebar-overlay {
-  display: none; position: fixed; inset: 0;
+  display: none; position: fixed; top: 0; right: 0; bottom: 0; left: 0;
   background: rgba(0,0,0,0.5); z-index: 1049;
 }
 .sidebar-overlay.show { display: block; }
@@ -578,9 +622,13 @@ body {
 
 .bottom-nav-item {
   flex: 1;
+  display: -webkit-flex;
   display: flex;
+  -webkit-flex-direction: column;
   flex-direction: column;
+  -webkit-align-items: center;
   align-items: center;
+  -webkit-justify-content: center;
   justify-content: center;
   gap: 3px;
   text-decoration: none;
@@ -590,16 +638,20 @@ body {
   padding: 6px 4px 4px;
   border-radius: 10px;
   margin: 6px 2px;
+  -webkit-transition: background 0.15s ease, color 0.15s ease;
   transition: background 0.15s ease, color 0.15s ease;
   cursor: pointer;
   border: none;
   background: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .bottom-nav-item i {
   font-size: 20px;
   line-height: 1;
+  margin-bottom: 2px; /* gap fallback for iOS < 14.5 */
+  -webkit-transition: -webkit-transform 0.15s ease;
   transition: transform 0.15s ease;
 }
 
@@ -618,8 +670,8 @@ body {
 /* ── MOBILE-FIRST TOUCH TARGETS ─────────────────────────────────────────── */
 @media (max-width: 767.98px) {
   /* Sidebar: slide off-screen; hamburger opens it */
-  #sidebar { transform: translateX(-100%); z-index: 1050; }
-  #sidebar.show { transform: translateX(0); }
+  #sidebar { -webkit-transform: translateX(-100%); transform: translateX(-100%); z-index: 1050; }
+  #sidebar.show { -webkit-transform: translateX(0); transform: translateX(0); }
   #topbar { left: 0; padding: 0 12px; }
   .topbar-hamburger { display: block; }
   .topbar-title { font-size: 15px; }
@@ -670,8 +722,8 @@ body {
   .card { padding: 14px; border-radius: 10px; }
 
   /* Modals: slide up from bottom (bottom sheet style) */
-  .modal.fade .modal-dialog { transform: translateY(60px); transition: transform 0.3s ease; }
-  .modal.show .modal-dialog { transform: translateY(0); }
+  .modal.fade .modal-dialog { -webkit-transform: translateY(60px); transform: translateY(60px); -webkit-transition: -webkit-transform 0.3s ease; transition: transform 0.3s ease; }
+  .modal.show .modal-dialog { -webkit-transform: translateY(0); transform: translateY(0); }
   .modal-dialog { margin: auto 0 0 0; max-width: 100%; }
   .modal-content {
     border-radius: 20px 20px 0 0;
@@ -679,6 +731,7 @@ body {
     border-bottom-right-radius: 0;
     max-height: 90vh;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: env(safe-area-inset-bottom, 8px);
   }
 

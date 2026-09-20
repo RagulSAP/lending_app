@@ -2,7 +2,10 @@
 Authentication routes: login, /me, /logout.
 Blueprint prefix: /api/auth
 """
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+
+_IST = timezone(timedelta(hours=5, minutes=30))
+def _now_ist(): return datetime.now(_IST).replace(tzinfo=None)
 
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required
@@ -45,7 +48,7 @@ def login():
         role_name = role.role_name if role else ""
 
         # Record login timestamp
-        user.last_login = datetime.utcnow()
+        user.last_login = _now_ist()
         db.commit()
 
         token = create_token(user)

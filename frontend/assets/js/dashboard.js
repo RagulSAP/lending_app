@@ -122,16 +122,29 @@
         <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon pink"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">${s.active_customers || 0}</div><div class="stat-label">Active Customers</div></div></div></div>`;
 
       // Chart
-      const ctx = document.getElementById('loan-chart').getContext('2d');
       const activeOnly = Math.max((s.total_active_loans || 0) - (s.overdue_count || 0), 0);
-      new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Active', 'Overdue'],
-          datasets: [{ data: [activeOnly, s.overdue_count || 0], backgroundColor: ['#2563EB','#DC2626'], borderWidth: 0, hoverOffset: 6 }]
-        },
-        options: { responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12, family: 'Inter' }, padding: 16 } } }, cutout: '68%' }
-      });
+      const overdueCount = s.overdue_count || 0;
+      const chartCard = document.getElementById('loan-chart').closest('.card');
+      if (typeof Chart !== 'undefined') {
+        const ctx = document.getElementById('loan-chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Active', 'Overdue'],
+            datasets: [{ data: [activeOnly, overdueCount], backgroundColor: ['#2563EB','#DC2626'], borderWidth: 0, hoverOffset: 6 }]
+          },
+          options: { responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12, family: 'Inter' }, padding: 16 } } }, cutout: '68%' }
+        });
+      } else {
+        chartCard.querySelector('div[style]').innerHTML = `
+          <div class="p-4 text-center" style="min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
+            <div style="font-size:36px;font-weight:700;color:#2563EB;">${activeOnly}</div>
+            <div style="font-size:13px;color:#64748B;">Active Loans</div>
+            <div style="width:60px;height:2px;background:#e2e8f0;"></div>
+            <div style="font-size:36px;font-weight:700;color:#DC2626;">${overdueCount}</div>
+            <div style="font-size:13px;color:#64748B;">Overdue Loans</div>
+          </div>`;
+      }
 
       // Recent transactions
       const txns = s.recent_transactions || [];

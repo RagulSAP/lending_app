@@ -16,7 +16,7 @@ from core_functions.responses import success_response, error_response, model_to_
 
 customers_bp = Blueprint("customers", __name__, url_prefix="/api/customers")
 
-_VALID_ID_PROOF_TYPES = {"PAN", "AADHAAR"}
+_VALID_ID_PROOF_TYPES = {"PAN", "AADHAAR", "VOTER_ID", "PASSPORT", "DL"}
 _VALID_STATUSES = {"ACTIVE", "INACTIVE"}
 
 _FULL_ACCESS_ROLES = (
@@ -43,16 +43,15 @@ def create_customer():
     """
     current = get_current_user_info()
 
-    # Validate required text fields
-    required = ["name", "phone", "address", "city", "state", "pincode",
-                "aadhaar_number", "pan_number", "id_proof_type"]
+    # Validate required text fields (address, state, pincode, aadhaar, pan are optional)
+    required = ["name", "phone", "city", "id_proof_type"]
     missing = [f for f in required if not request.form.get(f, "").strip()]
     if missing:
         return error_response(f"Missing required fields: {', '.join(missing)}")
 
     id_proof_type = request.form["id_proof_type"].strip().upper()
     if id_proof_type not in _VALID_ID_PROOF_TYPES:
-        return error_response("id_proof_type must be 'PAN' or 'AADHAAR'")
+        return error_response("Invalid id_proof_type")
 
     photo_file = request.files.get("photo")
     id_proof_file = request.files.get("id_proof")
@@ -81,13 +80,14 @@ def create_customer():
             org_id=current["org_id"],
             name=request.form["name"].strip(),
             phone=request.form["phone"].strip(),
-            address=request.form["address"].strip(),
+            address=request.form.get("address", "").strip(),
             city=request.form["city"].strip(),
-            state=request.form["state"].strip(),
-            pincode=request.form["pincode"].strip(),
-            aadhaar=request.form["aadhaar_number"].strip(),
-            pan=request.form["pan_number"].strip(),
+            state=request.form.get("state", "").strip(),
+            pincode=request.form.get("pincode", "").strip(),
+            aadhaar=request.form.get("aadhaar_number", "").strip(),
+            pan=request.form.get("pan_number", "").strip(),
             user_id=assigned_user_id,
+            created_by=current["user_id"],
             photo=photo_path,
             id_proof=id_proof_path,
             id_proof_type=id_proof_type,

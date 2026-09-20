@@ -365,7 +365,7 @@
         const amount = document.getElementById('l-amount').value;
         if (amount && parseFloat(amount) > 0) {
           try {
-            await api.post('/api/loans', {
+            await api.post('/api/loans/', {
               customer_id: customerId,
               disbursement_amount: parseFloat(amount),
               interest_type: document.getElementById('l-int-type').value,

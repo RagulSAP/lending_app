@@ -8,10 +8,12 @@
   let editingCustomerId = null;
   let collectors = [];
   let editModal = null;
+  let photoModal = null;
 
   async function init() {
     await initPage('Customers', [1, 2, 3, 4, 5]);
     currentUser = auth.getUser();
+    injectPhotoModal();
     if (currentUser.role_id === ROLES.COLLECTOR) {
       renderCollectorView();
     } else {
@@ -73,10 +75,18 @@
       }
       const c = customers[0];
       const initials = (c.name || 'C').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const photoUrl = c.photo ? `/api/kyc/${c.photo}` : null;
+      const safeName = (c.name || '').replace(/'/g, "\\'");
+      const avatarEl = photoUrl
+        ? `<img src="${photoUrl}" alt="${c.name}"
+            style="width:52px;height:52px;border-radius:50%;object-fit:cover;cursor:pointer;border:2px solid #e2e8f0;"
+            onclick="viewPhoto('${photoUrl}','${safeName}')"
+            onerror="this.outerHTML='<div class=\\'customer-avatar\\'>${initials}</div>'">`
+        : `<div class="customer-avatar">${initials}</div>`;
       resultEl.innerHTML = `
         <div class="search-result-card">
           <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="customer-avatar">${initials}</div>
+            ${avatarEl}
             <div>
               <div class="fw-600" style="font-size:15px;">${c.name}</div>
               <div style="font-size:13px;color:#64748B;">${c.phone}</div>
@@ -104,7 +114,12 @@
     document.getElementById('page-content').innerHTML = `
       <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
         <div><h1>Customers</h1><p>Manage and view all customer accounts and loans</p></div>
-        ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Onboard Customer</a>' : ''}
+        <div class="d-flex gap-2 flex-wrap">
+          <button type="button" class="btn btn-outline-success" id="export-btn">
+            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+          </button>
+          ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Onboard Customer</a>' : ''}
+        </div>
       </div>
       <div class="filter-bar">
         <div class="form-group">
@@ -150,6 +165,7 @@
 
     document.getElementById('search-btn').addEventListener('click', () => { currentPage = 1; loadCustomers(); });
     document.getElementById('f-search').addEventListener('keydown', e => { if (e.key === 'Enter') { currentPage = 1; loadCustomers(); } });
+    document.getElementById('export-btn').addEventListener('click', exportToExcel);
   }
 
   function injectEditModal() {
@@ -230,6 +246,34 @@
     editModal = new bootstrap.Modal(document.getElementById('edit-customer-modal'));
   }
 
+  function injectPhotoModal() {
+    if (document.getElementById('photo-view-modal')) return;
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="modal fade" id="photo-view-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width:360px;">
+          <div class="modal-content">
+            <div class="modal-header py-2 px-3">
+              <h6 class="modal-title fw-600" id="photo-modal-name" style="font-size:14px;"></h6>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2 text-center">
+              <img id="photo-modal-img" src="" alt="Customer Photo"
+                style="max-width:100%;max-height:420px;border-radius:8px;object-fit:contain;">
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(el.firstElementChild);
+    photoModal = new bootstrap.Modal(document.getElementById('photo-view-modal'));
+  }
+
+  window.viewPhoto = function (url, name) {
+    document.getElementById('photo-modal-name').textContent = name + ' — Photo';
+    document.getElementById('photo-modal-img').src = url;
+    photoModal.show();
+  };
+
   async function loadCustomers() {
     const search = document.getElementById('f-search').value.trim();
     const city = document.getElementById('f-city').value.trim();
@@ -254,6 +298,14 @@
       } else {
         tbody.innerHTML = customers.map((c, i) => {
           const initials = (c.name || 'C').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+          const safeName = (c.name || '').replace(/'/g, "\\'");
+          const photoUrl = c.photo ? `/api/kyc/${c.photo}` : null;
+          const avatarHtml = photoUrl
+            ? `<img src="${photoUrl}" alt="${c.name}" title="View photo"
+                style="width:32px;height:32px;border-radius:50%;object-fit:cover;cursor:pointer;flex-shrink:0;border:2px solid #e2e8f0;"
+                onclick="viewPhoto('${photoUrl}','${safeName}');event.stopPropagation();"
+                onerror="this.outerHTML='<div style=\\'width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#7C3AED);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;flex-shrink:0;\\'>${initials}</div>'">`
+            : `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#7C3AED);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;flex-shrink:0;">${initials}</div>`;
           const actionsCell = canEdit ? `
             <td onclick="event.stopPropagation()">
               <div class="d-flex gap-1">
@@ -273,7 +325,7 @@
             <td>${offset + i + 1}</td>
             <td>
               <div class="d-flex align-items-center gap-2">
-                <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#7C3AED);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;flex-shrink:0;">${initials}</div>
+                ${avatarHtml}
                 <div><div class="fw-600">${c.name}</div><div style="font-size:11px;color:#64748B;">#${c.customer_id}</div></div>
               </div>
             </td>
@@ -309,6 +361,71 @@
   }
 
   window.goPage = function (p) { if (p < 1 || p > totalPages) return; currentPage = p; loadCustomers(); };
+
+  async function exportToExcel() {
+    if (typeof XLSX === 'undefined') {
+      showToast('Excel library not loaded. Please refresh the page.', 'danger');
+      return;
+    }
+    const btn = document.getElementById('export-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Exporting...';
+
+    try {
+      const search = document.getElementById('f-search').value.trim();
+      const city = document.getElementById('f-city').value.trim();
+      const status = document.getElementById('f-status').value;
+
+      // Fetch all pages with current filters
+      let all = [];
+      let page = 1;
+      while (true) {
+        const res = await api.get('/api/customers', { search, city, status, page, per_page: 100 });
+        const batch = res.data || [];
+        all = all.concat(batch);
+        if (batch.length < 100 || all.length >= (res.total || 0)) break;
+        page++;
+      }
+
+      if (!all.length) { showToast('No customers to export.', 'warning'); return; }
+
+      const headers = [
+        '#', 'Name', 'Phone', 'City', 'State', 'Pincode',
+        'Aadhaar', 'PAN', 'ID Proof Type', 'Status',
+        'Assigned To', 'Created At'
+      ];
+      const rows = all.map((c, i) => [
+        i + 1,
+        c.name || '',
+        c.phone || '',
+        c.city || '',
+        c.state || '',
+        c.pincode || '',
+        c.aadhaar || '',
+        c.pan || '',
+        c.id_proof_type || '',
+        c.status || '',
+        c.assigned_user_name || c.assigned_to || '',
+        c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '',
+      ]);
+
+      const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      ws['!cols'] = [
+        { wch: 4 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
+        { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 16 },
+      ];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+      const filename = `Customers_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      showToast(`Exported ${all.length} customer${all.length !== 1 ? 's' : ''} to Excel`, 'success');
+    } catch (err) {
+      showToast('Export failed: ' + err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-file-earmark-excel me-1"></i>Export Excel';
+    }
+  }
 
   window.viewCustomer = function (customerId) {
     window.location.href = 'collect-payment.html?customer_id=' + customerId;

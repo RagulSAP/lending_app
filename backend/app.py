@@ -64,6 +64,11 @@ def create_app():
     def frontend_static(filename):
         return send_from_directory(frontend_dir, filename)
 
+    # ── Serve KYC files (UUID-named, not guessable) ───────────────────────────
+    @app.route("/api/kyc/<filename>")
+    def serve_kyc(filename):
+        return send_from_directory(Config.KYC_FOLDER, filename)
+
     # ── Health check ─────────────────────────────────────────────────────────
     @app.route("/api/health")
     def health():
