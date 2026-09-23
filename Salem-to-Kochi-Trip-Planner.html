@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salem → Kochi | 4-Day Family Road Trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal-deep:#0F4C4C;
+    --teal-line:#1B6B66;
+    --backwater-green:#3C6E47;
+    --gold:#C99A3E;
+    --sand:#F1E9D8;
+    --sand-card:#FBF7ED;
+    --charcoal:#22302C;
+    --clay:#B5563A;
+    --line:#D8CBA8;
+    font-size:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--sand);
+    color:var(--charcoal);
+    font-family:'Work Sans',sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  img,svg{max-width:100%;}
+
+  .wrap{max-width:880px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    background:linear-gradient(160deg,var(--teal-deep) 0%,#0B3838 100%);
+    color:var(--sand-card);
+    padding:64px 24px 56px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute;
+    right:-60px; top:-60px;
+    width:280px;height:280px;
+    border:1px solid rgba(241,233,216,0.18);
+    border-radius:50%;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    right:40px; top:60px;
+    width:160px;height:160px;
+    border:1px solid rgba(241,233,216,0.14);
+    border-radius:50%;
+  }
+  .hero-inner{max-width:832px;margin:0 auto;position:relative;z-index:1;}
+  .route-line{
+    display:flex; align-items:center; gap:10px;
+    font-size:0.95rem; letter-spacing:0.02em;
+    color:#CFE3DC; margin-bottom:22px; flex-wrap:wrap;
+  }
+  .route-line .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);}
+  .route-line .stop{opacity:0.9;}
+  .route-line .arrow{opacity:0.5;}
+  h1.title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(2.2rem,5vw,3.4rem);
+    line-height:1.06;
+    margin:0 0 18px;
+    max-width:640px;
+  }
+  .hero-sub{
+    font-size:1.08rem;
+    color:#D7E7E1;
+    max-width:520px;
+    margin:0 0 28px;
+  }
+  .hero-facts{
+    display:flex; gap:28px; flex-wrap:wrap;
+    padding-top:22px;
+    border-top:1px solid rgba(241,233,216,0.22);
+  }
+  .fact .num{font-family:'Fraunces',serif;font-size:1.7rem;color:var(--gold);font-weight:600;}
+  .fact .label{font-size:0.82rem;color:#BFD6CE;margin-top:2px;}
+
+  /* ---------- SECTION LABELS ---------- */
+  .section-head{
+    margin:64px 0 6px;
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+  }
+  .section-head .day-tag{
+    font-family:'Fraunces',serif;
+    font-size:2.6rem;
+    font-weight:600;
+    color:var(--teal-deep);
+    line-height:1;
+  }
+  .section-head .day-meta h2{
+    font-family:'Fraunces',serif;
+    font-size:1.5rem;
+    margin:0 0 4px;
+    font-weight:600;
+    color:var(--charcoal);
+  }
+  .section-head .day-meta p{
+    margin:0; font-size:0.92rem; color:var(--teal-line); font-weight:600;
+  }
+  .day-intro{
+    margin:14px 0 26px;
+    color:#4B564F;
+    max-width:640px;
+    font-size:0.98rem;
+  }
+
+  /* ---------- TIMELINE ---------- */
+  .timeline{
+    border-left:2px solid var(--line);
+    margin-left:6px;
+    padding-left:28px;
+  }
+  .stop{
+    position:relative;
+    padding-bottom:26px;
+  }
+  .stop:last-child{padding-bottom:4px;}
+  .stop::before{
+    content:"";
+    position:absolute;
+    left:-33px; top:4px;
+    width:10px;height:10px;
+    border-radius:50%;
+    background:var(--sand);
+    border:2px solid var(--backwater-green);
+  }
+  .stop .time{
+    font-weight:700;
+    font-size:0.82rem;
+    letter-spacing:0.03em;
+    color:var(--clay);
+    margin-bottom:3px;
+  }
+  .stop .what{
+    font-weight:600;
+    font-size:1.02rem;
+    color:var(--charcoal);
+    margin-bottom:4px;
+  }
+  .stop .desc{
+    font-size:0.94rem;
+    color:#51584F;
+    max-width:560px;
+  }
+  .stop .tag{
+    display:inline-block;
+    font-size:0.72rem;
+    font-weight:600;
+    padding:2px 9px;
+    border-radius:20px;
+    background:rgba(60,110,71,0.12);
+    color:var(--backwater-green);
+    margin-left:8px;
+    position:relative;
+    top:-1px;
+  }
+  .stop .tag.optional{background:rgba(201,154,62,0.16);color:#8A6A22;}
+
+  /* ---------- CARDS (hotel / food / tips) ---------- */
+  .card-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:16px;
+    margin-top:22px;
+  }
+  .card{
+    background:var(--sand-card);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px 22px;
+  }
+  .card h3{
+    font-family:'Fraunces',serif;
+    font-size:1.05rem;
+    margin:0 0 10px;
+    color:var(--teal-deep);
+    font-weight:600;
+  }
+  .pick{
+    padding:12px 0;
+    border-top:1px solid var(--line);
+  }
+  .pick:first-of-type{border-top:none;padding-top:2px;}
+  .pick .pick-top{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;flex-wrap:wrap;
+  }
+  .pick .pick-name{font-weight:600;font-size:0.98rem;}
+  .pick .pick-price{
+    font-size:0.82rem;font-weight:700;color:var(--backwater-green);white-space:nowrap;
+  }
+  .pick .pick-desc{font-size:0.88rem;color:#54594F;margin-top:3px;}
+  .note{
+    font-size:0.84rem;
+    color:#7A6F52;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--line);
+  }
+
+  /* ---------- BOX / TIP LIST ---------- */
+  .tip-box{
+    background:#EFF4EC;
+    border:1px solid #D3E0C9;
+    border-radius:4px;
+    padding:22px 24px;
+    margin-top:20px;
+  }
+  .tip-box h3{
+    font-family:'Fraunces',serif;
+    color:var(--backwater-green);
+    margin:0 0 12px;
+    font-size:1.05rem;
+  }
+  .tip-box ul{margin:0;padding-left:20px;}
+  .tip-box li{margin-bottom:8px;font-size:0.94rem;}
+  .tip-box li:last-child{margin-bottom:0;}
+
+  /* ---------- ROUTE STRIP ---------- */
+  .route-strip{
+    display:flex;
+    justify-content:space-between;
+    background:var(--teal-deep);
+    color:#EFEAD9;
+    border-radius:4px;
+    padding:16px 22px;
+    margin-top:22px;
+    font-size:0.86rem;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .route-strip .r-item{text-align:center;flex:1;min-width:80px;}
+  .route-strip .r-item .r-val{font-weight:700;color:var(--gold);font-family:'Fraunces',serif;font-size:1.1rem;}
+
+  hr.div{border:none;border-top:1px solid var(--line);margin:56px 0 0;}
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    text-align:center;
+    padding:40px 24px 60px;
+    color:#7C7259;
+    font-size:0.85rem;
+  }
+
+  @media (max-width:600px){
+    .hero{padding:48px 20px 44px;}
+    .section-head .day-tag{font-size:2rem;}
+    .card-grid{grid-template-columns:1fr;}
+    .timeline{padding-left:20px;}
+    .stop::before{left:-25px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="route-line">
+      <span class="stop">SALEM</span><span class="arrow">→</span>
+      <span class="stop">COIMBATORE</span><span class="arrow">→</span>
+      <span class="stop">PALAKKAD</span><span class="arrow">→</span>
+      <span class="stop">THRISSUR</span><span class="arrow">→</span>
+      <span class="stop">KOCHI</span>
+    </div>
+    <h1 class="title">A slow, family-paced road trip to Kochi</h1>
+    <p class="hero-sub">4 days, 3 nights &mdash; one travel day down through the Palakkad Gap, two easy days exploring Kochi, and a relaxed drive home. Built for a 4-year-old's pace, not a highway record.</p>
+    <div class="hero-facts">
+      <div class="fact"><div class="num">~360 km</div><div class="label">Salem to Kochi</div></div>
+      <div class="fact"><div class="num">4</div><div class="label">Days</div></div>
+      <div class="fact"><div class="num">3</div><div class="label">Nights in Kochi</div></div>
+      <div class="fact"><div class="num">3</div><div class="label">Travelling as</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= DAY 1 ================= -->
+  <div class="section-head">
+    <div class="day-tag">01</div>
+    <div class="day-meta">
+      <h2>Salem to Kochi</h2>
+      <p>The drive day &mdash; via Coimbatore, Palakkad &amp; Thrissur</p>
+    </div>
+  </div>
+  <p class="day-intro">This is the longest day, so keep it light on sightseeing and heavy on breaks. The nicest stretch is the Walayar / Palakkad Gap through the Western Ghats &mdash; slow down and enjoy it rather than treating it as a bottleneck.</p>
+
+  <div class="timeline">
+    <div class="stop">
+      <div class="time">10:00 AM</div>
+      <div class="what">Depart Salem</div>
+      <div class="desc">Start with a full tank, a charged phone for maps, and snacks/water within arm's reach for your daughter. Keep a diaper bag / spare clothes handy even if she's mostly toilet-trained &mdash; long drives are unpredictable.</div>
+    </div>
+    <div class="stop">
+      <div class="time">11:30 AM &middot; ~68 km</div>
+      <div class="what">Coimbatore <span class="tag optional">stretch break</span></div>
+      <div class="desc">Quick washroom + tea/coffee stop. Skip sightseeing here to save energy for Kochi &mdash; Coimbatore is best done as its own trip another time.</div>
+    </div>
+    <div class="stop">
+      <div class="time">1:00 PM &middot; ~55 km</div>
+      <div class="what">Walayar Ghat &amp; Palakkad Gap</div>
+      <div class="desc">The most scenic driving stretch of the day &mdash; hills on both sides as you cross from Tamil Nadu into Kerala. A good photo-stop if there's a safe layby.</div>
+    </div>
+    <div class="stop">
+      <div class="time">1:30 &ndash; 2:30 PM</div>
+      <div class="what">Palakkad <span class="tag">lunch stop</span></div>
+      <div class="desc">Sit-down lunch here rather than rushing &mdash; this is roughly the halfway point. If your daughter needs to nap in the car afterwards, this is a good place for it to happen. Palakkad Fort is right in town if she's still awake and up for a 20-minute walk.</div>
+    </div>
+    <div class="stop">
+      <div class="time">3:45 PM &middot; ~55 km</div>
+      <div class="what">Thrissur <span class="tag optional">tea break</span></div>
+      <div class="desc">Short break for tea/snacks. If everyone's still fresh, a quick 15-minute drive-by of the Vadakkunnathan Temple grounds and Thrissur Round is worth it &mdash; otherwise, push on to Kochi.</div>
+    </div>
+    <div class="stop">
+      <div class="time">6:30 &ndash; 7:00 PM &middot; ~80 km</div>
+      <div class="what">Arrive Kochi</div>
+      <div class="desc">Check in, let your daughter run off the car energy, then head out for a relaxed dinner nearby. Don't plan anything else for tonight.</div>
+    </div>
+  </div>
+
+  <div class="route-strip">
+    <div class="r-item"><div class="r-val">~360 km</div>total distance</div>
+    <div class="r-item"><div class="r-val">~7.5 hrs</div>drive time</div>
+    <div class="r-item"><div class="r-val">3</div>major breaks</div>
+    <div class="r-item"><div class="r-val">9 hrs</div>door to door incl. stops</div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= DAY 2 ================= -->
+  <div class="section-head">
+    <div class="day-tag">02</div>
+    <div class="day-meta">
+      <h2>Fort Kochi Heritage Day</h2>
+      <p>Walkable, shaded-in-parts, and full of things a 4-year-old actually finds interesting</p>
+    </div>
+  </div>
+  <p class="day-intro">Fort Kochi's sights sit close together, so this day is more strolling than driving. Go early to beat the heat, and treat the afternoon as flexible nap/rest time.</p>
+
+  <div class="timeline">
+    <div class="stop">
+      <div class="time">8:30 AM</div>
+      <div class="what">Breakfast, then head to Fort Kochi</div>
+      <div class="desc">A Kerala breakfast of appam/puttu with egg or chicken curry is a good start if she'll try it, otherwise stick to something familiar.</div>
+    </div>
+    <div class="stop">
+      <div class="time">9:30 AM</div>
+      <div class="what">Chinese Fishing Nets &amp; Fort Kochi Beach</div>
+      <div class="desc">The giant cantilevered nets are genuinely fun for kids to watch in action, and there's open beach space for her to run around.</div>
+    </div>
+    <div class="stop">
+      <div class="time">10:30 AM</div>
+      <div class="what">St. Francis Church &amp; Santa Cruz Basilica</div>
+      <div class="desc">Two short, cool, quiet stops on the way &mdash; good for a breather between the beach and the palace.</div>
+    </div>
+    <div class="stop">
+      <div class="time">11:15 AM</div>
+      <div class="what">Mattancherry (Dutch) Palace</div>
+      <div class="desc">Famous for its murals; a 4-year-old may move through it fast, so treat it as a 20-minute stop rather than a full museum visit.</div>
+    </div>
+    <div class="stop">
+      <div class="time">12:00 PM</div>
+      <div class="what">Jew Town &amp; Paradesi Synagogue</div>
+      <div class="desc">Colourful lanes with spice, antique and curio shops &mdash; nice for a slow wander and easy photo ops.</div>
+    </div>
+    <div class="stop">
+      <div class="time">1:00 PM</div>
+      <div class="what">Lunch in Fort Kochi <span class="tag optional">see food picks below</span></div>
+    </div>
+    <div class="stop">
+      <div class="time">2:30 &ndash; 5:00 PM</div>
+      <div class="what">Rest / nap block at the hotel</div>
+      <div class="desc">Build this in deliberately &mdash; the midday heat isn't kind to sightseeing with a toddler, and everyone will enjoy the evening more for it.</div>
+    </div>
+    <div class="stop">
+      <div class="time">6:00 PM</div>
+      <div class="what">Kathakali &amp; Kalaripayattu show</div>
+      <div class="desc">The Kerala Kathakali Centre and Cochin Cultural Centre both run evening shows near Fort Kochi &mdash; the bright makeup, costumes and martial arts routines tend to hold a child's attention well. Arrive 30 minutes early for the make-up demonstration.</div>
+    </div>
+    <div class="stop">
+      <div class="time">8:00 PM</div>
+      <div class="what">Dinner <span class="tag optional">see food picks below</span></div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= DAY 3 ================= -->
+  <div class="section-head">
+    <div class="day-tag">03</div>
+    <div class="day-meta">
+      <h2>Backwaters &amp; Beach Day</h2>
+      <p>Slower, water-themed, and the best day to just let the trip breathe</p>
+    </div>
+  </div>
+  <p class="day-intro">Instead of a long drive out to Alleppey, this day stays local &mdash; a short backwater cruise in the morning and a beach in the afternoon, both under an hour from your hotel.</p>
+
+  <div class="timeline">
+    <div class="stop">
+      <div class="time">9:00 AM</div>
+      <div class="what">Kochi backwater cruise</div>
+      <div class="desc">A 1.5&ndash;2 hour boat ride around Bolgatty Island, Willingdon Island and the harbour (book through KTDC or a local operator at Marine Drive/Sea Lord jetty). Gentle, shaded, and a nice change of pace from walking.</div>
+    </div>
+    <div class="stop">
+      <div class="time">11:30 AM</div>
+      <div class="what">Bolgatty Palace grounds <span class="tag optional">optional</span></div>
+      <div class="desc">If the cruise drops you near it and energy allows, the palace gardens are a pleasant short walk.</div>
+    </div>
+    <div class="stop">
+      <div class="time">1:00 PM</div>
+      <div class="what">Lunch</div>
+    </div>
+    <div class="stop">
+      <div class="time">2:30 PM &middot; ~40 km / 1 hr</div>
+      <div class="what">Cherai Beach</div>
+      <div class="desc">A calmer, cleaner, more child-friendly beach than Fort Kochi's &mdash; good sand for digging, gentler waves, and a few shacks for coconut water and snacks. Budget 2&ndash;3 hours here.</div>
+    </div>
+    <div class="stop">
+      <div class="time">6:00 PM &middot; back in Kochi</div>
+      <div class="what">Marine Drive sunset walk</div>
+      <div class="desc">Wide promenade, food carts, and boats on the water &mdash; an easy, unstructured way to close the day. If the beach felt like enough for your daughter, this can also be swapped for early dinner and an early night.</div>
+    </div>
+    <div class="stop">
+      <div class="time">8:00 PM</div>
+      <div class="what">Dinner <span class="tag optional">see food picks below</span></div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h3>If you'd rather stay indoors that afternoon</h3>
+    <ul>
+      <li><strong>Lulu Mall</strong> has a large indoor play zone and food court &mdash; an easy reset if the beach heat gets to be too much.</li>
+      <li><strong>Hill Palace Museum</strong>, Tripunithura, is a quieter, shaded alternative to a second heritage site if Day 2 left some Fort Kochi sights unseen.</li>
+    </ul>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= DAY 4 ================= -->
+  <div class="section-head">
+    <div class="day-tag">04</div>
+    <div class="day-meta">
+      <h2>Checkout &amp; Departure</h2>
+      <p>An easy morning before the drive back</p>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="stop">
+      <div class="time">8:00 AM</div>
+      <div class="what">Breakfast at the hotel</div>
+    </div>
+    <div class="stop">
+      <div class="time">9:00 AM</div>
+      <div class="what">Last-minute shopping <span class="tag optional">optional</span></div>
+      <div class="desc">Jew Town for spices/antiques, or Lulu Mall if you'd rather do it all in one air-conditioned stop.</div>
+    </div>
+    <div class="stop">
+      <div class="time">10:30 AM</div>
+      <div class="what">Check out &amp; depart Kochi</div>
+      <div class="desc">Same route back via Thrissur &ndash; Palakkad &ndash; Coimbatore, with breaks wherever your daughter needs them.</div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= STAY ================= -->
+  <div class="section-head" style="margin-top:56px;">
+    <div class="day-meta" style="max-width:100%;">
+      <h2 style="font-size:1.9rem;">Where to stay in Kochi</h2>
+      <p>Budget family rooms, roughly ₹1,000&ndash;2,000 a night</p>
+    </div>
+  </div>
+  <p class="day-intro">Fort Kochi puts you next to Day 2's sights and near the jetty for Day 3's cruise, but is quieter at night; Ernakulam (Marine Drive / MG Road side) is livelier, closer to Lulu Mall, and usually has a wider spread of budget chain hotels. Either works well for this itinerary &mdash; pick based on which vibe you'd rather wake up to.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>Budget picks</h3>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">FabHotel / Treebo properties, Ernakulam</div>
+          <div class="pick-price">₹1,200&ndash;1,800</div>
+        </div>
+        <div class="pick-desc">Reliable budget chains with several properties around Kaloor, MG Road and Edappally. AC rooms, free breakfast, and family/triple-occupancy rooms are usually available &mdash; book through their own app for the best rate.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Grand Hotel, Ernakulam (Padma Junction)</div>
+          <div class="pick-price">₹1,800&ndash;2,200</div>
+        </div>
+        <div class="pick-desc">An old, well-known budget-to-mid hotel right in the centre of town &mdash; a fixed, dependable option rather than a rotating chain listing, with its own in-house restaurant for easy late dinners with a tired toddler.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">OYO Townhouse stays, Fort Kochi</div>
+          <div class="pick-price">₹1,500&ndash;2,000</div>
+        </div>
+        <div class="pick-desc">Several budget stays sit within walking distance of the Chinese Fishing Nets and Mattancherry &mdash; handy if you'd rather not drive for most of Day 2.</div>
+      </div>
+      <div class="note">Budget hotel prices in Kochi swing with season and how far ahead you book. Search OYO, FabHotel, Treebo or MakeMyTrip closer to your travel date, filter for "family room" or triple occupancy, and confirm AC + free cancellation before booking.</div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= FOOD ================= -->
+  <div class="section-head" style="margin-top:56px;">
+    <div class="day-meta" style="max-width:100%;">
+      <h2 style="font-size:1.9rem;">Where to eat &mdash; non-veg picks</h2>
+      <p>Family-friendly spots with good seafood, biryani &amp; Kerala classics</p>
+    </div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Kayees Rahmathulla Hotel &mdash; Mattancherry</div>
+        </div>
+        <div class="pick-desc">A Kochi institution since the 1950s, best known for its Malabar chicken and mutton biryani. Simple, no-frills, budget-friendly, and an easy lunch stop on your Day 2 heritage walk.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Paragon Restaurant</div>
+        </div>
+        <div class="pick-desc">A well-known multi-cuisine favourite with outlets across the city &mdash; famous for biryani and seafood, with a big enough menu that a fussy 4-year-old will usually find something too.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Fort House Restaurant &mdash; Fort Kochi jetty</div>
+        </div>
+        <div class="pick-desc">Open-air waterfront seating, seafood-heavy menu (crab, prawns, fish), and a nice spot for a relaxed Day 2 dinner with a harbour view.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Dhe Puttu</div>
+        </div>
+        <div class="pick-desc">Kerala's puttu done dozens of ways, including chicken and beef versions &mdash; a fun, informal choice for breakfast or an early dinner, and something a child can pick and choose from.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Kerala Cafe, Fort Kochi</div>
+        </div>
+        <div class="pick-desc">Traditional Kerala thalis and seafood in a casual, heritage-styled setting &mdash; good for a relaxed sit-down lunch between sightseeing stops.</div>
+      </div>
+      <div class="note">Kochi's seafood is best fresh and simply cooked &mdash; karimeen (pearl spot fish) pollichathu and prawn/chemmeen roast are worth trying at any of the above if your family enjoys seafood.</div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= TIPS ================= -->
+  <div class="section-head" style="margin-top:56px;">
+    <div class="day-meta" style="max-width:100%;">
+      <h2 style="font-size:1.9rem;">Travelling with a 4-year-old</h2>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h3>Before you leave</h3>
+    <ul>
+      <li>Carry a small bag of snacks, water, wet wipes, a change of clothes and any comfort item (toy/blanket) in the front of the car, not the boot.</li>
+      <li>Keep a basic child first-aid kit &mdash; fever medicine, ORS sachets, motion-sickness remedy if the ghat roads tend to affect her.</li>
+      <li>Screen-load a few offline shows/songs for the car &mdash; network patches thin out briefly around the Walayar ghat stretch.</li>
+    </ul>
+  </div>
+
+  <div class="tip-box" style="margin-top:14px;">
+    <h3>On the road</h3>
+    <ul>
+      <li>Build in a stop every 60&ndash;90 minutes on Day 1 regardless of how the drive is going &mdash; it's easier on everyone than pushing through.</li>
+      <li>Aim to be off the road and checked in before it gets dark; the Thrissur&ndash;Kochi stretch is fine at night but arriving relaxed matters more with a tired toddler.</li>
+      <li>Fuel up in Coimbatore or Palakkad &mdash; rates and station spacing are more predictable there than deeper into Kerala's smaller towns.</li>
+    </ul>
+  </div>
+
+  <div class="tip-box" style="margin-top:14px;">
+    <h3>In Kochi</h3>
+    <ul>
+      <li>Mornings (before 11) and evenings (after 4:30) are the most comfortable times to be outdoors &mdash; the itinerary above is built around that.</li>
+      <li>Carry mosquito repellent for the backwater cruise and Cherai Beach evenings.</li>
+      <li>Fort Kochi's lanes are cobbled/uneven in places &mdash; a stroller helps less than you'd expect; a carrier or just holding hands works better for a 4-year-old there.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  Salem &rarr; Kochi &middot; 4 days, 3 nights &middot; built for a family of three
+</footer>
+
+</body>
+</html>
