@@ -29,7 +29,11 @@ def get_wallet():
     try:
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
-            return error_response("Wallet not found", 404)
+            return success_response(data={
+                "wallet": {"wallet_id": None, "balance": 0, "org_id": current["org_id"]},
+                "transactions": [],
+                "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0},
+            })
 
         txns = (
             db.query(Transaction)
@@ -103,7 +107,13 @@ def topup_wallet():
     try:
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
-            return error_response("Wallet not found", 404)
+            wallet = Wallet(
+                wallet_id=str(uuid.uuid4()),
+                org_id=current["org_id"],
+                balance=0,
+            )
+            db.add(wallet)
+            db.flush()
 
         if partner_id:
             partner = db.query(Partner).filter(
