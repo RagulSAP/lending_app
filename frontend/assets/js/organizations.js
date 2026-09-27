@@ -72,11 +72,21 @@
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Password <span class="text-danger">*</span></label>
-                  <input type="password" class="form-control" id="admin-pass" placeholder="Min 6 characters" required>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="admin-pass" placeholder="Min 6 characters" required>
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePass('admin-pass', this)" tabindex="-1">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                  <input type="password" class="form-control" id="admin-pass2" placeholder="Repeat password" required>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="admin-pass2" placeholder="Repeat password" required>
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePass('admin-pass2', this)" tabindex="-1">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -124,7 +134,7 @@
           <td><span class="fw-600">${o.user_count || 0}</span></td>
           <td><span class="fw-600">${o.borrower_count || 0}</span></td>
           <td>${statusBadge(o.status || 'ACTIVE')}</td>
-          <td><button class="btn btn-sm btn-outline-secondary" onclick="viewOrg(${o.org_id})"><i class="bi bi-eye"></i></button></td>
+          <td><button class="btn btn-sm btn-outline-secondary" onclick="viewOrg('${o.org_id}')"><i class="bi bi-eye"></i></button></td>
         </tr>`).join('');
     } catch (err) {
       document.getElementById('org-tbody').innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
@@ -171,6 +181,18 @@
       document.getElementById('save-org-load').classList.add('d-none');
     }
   }
+
+  window.togglePass = function(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  };
 
   window.viewOrg = function(orgId) {
     const org = orgList.find(o => o.org_id === orgId);
