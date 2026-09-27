@@ -145,41 +145,42 @@
                 <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Loan Details</h6>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">Disbursement Amount (&#8377;)</label>
-                    <input type="number" class="form-control" id="l-amount" placeholder="0.00" min="0" step="0.01">
+                    <label class="form-label">Loan Amount (&#8377;) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="l-amount" placeholder="e.g. 10000" min="1" step="1">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Interest Type</label>
-                    <select class="form-select" id="l-int-type">
-                      <option value="FLAT">Flat</option>
-                      <option value="REDUCING">Reducing</option>
-                    </select>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Interest Rate (% p.a.)</label>
-                    <input type="number" class="form-control" id="l-rate" placeholder="e.g. 12" min="0" step="0.01">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Processing Fee (&#8377;)</label>
-                    <input type="number" class="form-control" id="l-fee" placeholder="0.00" min="0" step="0.01">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Disbursement Date</label>
-                    <input type="date" class="form-control" id="l-date">
-                  </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Installment Type</label>
+                    <label class="form-label">Installment Type <span class="text-danger">*</span></label>
                     <select class="form-select" id="l-inst-type">
-                      <option value="DAILY">Daily</option>
                       <option value="WEEKLY">Weekly</option>
+                      <option value="DAILY">Daily</option>
                       <option value="MONTHLY">Monthly</option>
                     </select>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Number of Installments</label>
-                    <input type="number" class="form-control" id="l-num-inst" placeholder="e.g. 12" min="1">
+                    <label class="form-label">Number of Installments <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="l-num-inst" placeholder="e.g. 12" min="1" step="1">
                   </div>
                   <div class="col-md-6">
+                    <label class="form-label">Collection Amount / Installment (&#8377;) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="l-collection" placeholder="e.g. 1000" min="1" step="1">
+                  </div>
+                  <div class="col-12" id="l-summary" style="display:none;">
+                    <div class="row g-0 text-center" style="background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;overflow:hidden;">
+                      <div class="col-4 p-2" style="border-right:1px solid #BFDBFE;">
+                        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
+                        <div id="l-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">&#8377; 0</div>
+                      </div>
+                      <div class="col-4 p-2" style="border-right:1px solid #BFDBFE;">
+                        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
+                        <div id="l-interest" style="font-size:15px;font-weight:700;color:#16A34A;">&#8377; 0</div>
+                      </div>
+                      <div class="col-4 p-2">
+                        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Disbursement Date</div>
+                        <input type="date" class="form-control form-control-sm text-center p-1" id="l-date" style="font-size:12px;">
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-12">
                     <label class="form-label">Remarks</label>
                     <input type="text" class="form-control" id="l-remarks" placeholder="Optional remarks">
                   </div>
@@ -230,6 +231,26 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('l-date').value = today;
       }
+    });
+
+    // Live loan summary calculation
+    function updateLoanSummary() {
+      const amount = parseFloat(document.getElementById('l-amount').value) || 0;
+      const n = parseInt(document.getElementById('l-num-inst').value) || 0;
+      const col = parseFloat(document.getElementById('l-collection').value) || 0;
+      const summary = document.getElementById('l-summary');
+      if (amount > 0 && n > 0 && col > 0) {
+        const total = col * n;
+        const interest = total - amount;
+        document.getElementById('l-total').textContent = '₹ ' + total.toLocaleString('en-IN');
+        document.getElementById('l-interest').textContent = '₹ ' + interest.toLocaleString('en-IN');
+        summary.style.display = 'block';
+      } else {
+        summary.style.display = 'none';
+      }
+    }
+    ['l-amount', 'l-num-inst', 'l-collection'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateLoanSummary);
     });
   }
 
@@ -375,18 +396,18 @@
       // Optional loan creation
       const loanSection = document.getElementById('loan-section');
       if (!loanSection.classList.contains('d-none') && customerId) {
-        const amount = document.getElementById('l-amount').value;
-        if (amount && parseFloat(amount) > 0) {
+        const amount = parseFloat(document.getElementById('l-amount').value) || 0;
+        const numInst = parseInt(document.getElementById('l-num-inst').value) || 0;
+        const colAmt = parseFloat(document.getElementById('l-collection').value) || 0;
+        if (amount > 0 && numInst > 0 && colAmt > 0) {
           try {
             await api.post('/api/loans/', {
               customer_id: customerId,
-              disbursement_amount: parseFloat(amount),
-              interest_type: document.getElementById('l-int-type').value,
-              interest_rate: parseFloat(document.getElementById('l-rate').value) || 0,
-              processing_fee: parseFloat(document.getElementById('l-fee').value) || 0,
-              disbursement_date: document.getElementById('l-date').value,
+              disbursement_amount: amount,
               installment_type: document.getElementById('l-inst-type').value,
-              num_installments: parseInt(document.getElementById('l-num-inst').value) || 1,
+              num_installments: numInst,
+              collection_amount: colAmt,
+              disbursement_date: document.getElementById('l-date').value || null,
               remarks: document.getElementById('l-remarks').value.trim()
             });
           } catch (le) {

@@ -82,7 +82,8 @@ class Loan(Base):
     disbursement_date   = Column(Date)
     due_date            = Column(Date)
     installment_type    = Column(String(100))   # DAILY / WEEKLY / MONTHLY
-    installment_amount  = Column(Numeric(10, 2))
+    num_installments    = Column(Integer)
+    installment_amount  = Column(Numeric(10, 2))  # collection amount per installment
     total_payable       = Column(Numeric(10, 2))
     total_paid          = Column(Numeric(10, 2), default=0)
     balance_amount      = Column(Numeric(10, 2))

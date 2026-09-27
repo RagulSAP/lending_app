@@ -155,6 +155,53 @@ def calculate_loan(
         raise ValueError(f"Unknown interest_type: {interest_type}")
 
 
+def calculate_loan_simple(
+    principal: float,
+    collection_amount: float,
+    installment_type: str,
+    num_installments: int,
+    disbursement_date: date,
+) -> dict:
+    """
+    Simple loan model: borrower receives `principal`, pays `collection_amount`
+    each period for `num_installments` periods.
+    Interest is implicit: total_payable - principal.
+    """
+    n = num_installments
+    total_payable = round(collection_amount * n, 2)
+    total_interest = round(total_payable - principal, 2)
+
+    per_principal = round(principal / n, 2)
+    schedule = []
+    balance = round(principal, 2)
+    cumulative_principal = 0.0
+
+    for i in range(1, n + 1):
+        due = _get_due_date(disbursement_date, installment_type, i)
+        if i < n:
+            p = per_principal
+        else:
+            p = round(principal - cumulative_principal, 2)
+        it = round(collection_amount - p, 2)
+        balance = round(max(balance - p, 0.0), 2)
+        schedule.append({
+            "installment_number": i,
+            "due_date": due.isoformat(),
+            "principal_amount": p,
+            "interest_amount": it,
+            "total_amount": round(collection_amount, 2),
+            "balance_amount": balance,
+        })
+        cumulative_principal += p
+
+    return {
+        "installment_amount": round(collection_amount, 2),
+        "total_interest": total_interest,
+        "total_payable": total_payable,
+        "schedule": schedule,
+    }
+
+
 def get_num_installments(installment_type: str, disbursement_date: date, due_date: date) -> int:
     """
     Calculate the number of installments from the date range.

@@ -89,13 +89,14 @@ CREATE TABLE IF NOT EXISTS `loans` (
   `customer_id`         VARCHAR(36)   NOT NULL,
   `org_id`              VARCHAR(36)   NOT NULL,
   `disbursement_amount` NUMERIC(10,2) NOT NULL,
-  `interest_type`       VARCHAR(100),                       -- FLAT / REDUCING
-  `interest_rate`       NUMERIC(10,2),                      -- annual %
+  `interest_type`       VARCHAR(100),                       -- FLAT / REDUCING (legacy)
+  `interest_rate`       NUMERIC(10,2),                      -- annual % (legacy)
   `processing_fee`      NUMERIC(10,2)   DEFAULT 0,
   `disbursement_date`   DATE,
   `due_date`            DATE,
   `installment_type`    VARCHAR(100),                       -- DAILY / WEEKLY / MONTHLY
-  `installment_amount`  NUMERIC(10,2),
+  `num_installments`    INT,
+  `installment_amount`  NUMERIC(10,2),                      -- collection amount per installment
   `total_payable`       NUMERIC(10,2),
   `total_paid`          NUMERIC(10,2)   DEFAULT 0,
   `balance_amount`      NUMERIC(10,2),
