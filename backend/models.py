@@ -53,6 +53,7 @@ class Customer(Base):
     name          = Column(String(100), nullable=False)
     phone         = Column(String(100))
     address       = Column(String(255))
+    area          = Column(String(100))
     city          = Column(String(100))
     state         = Column(String(100))
     pincode       = Column(String(6))

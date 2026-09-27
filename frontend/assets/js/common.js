@@ -287,14 +287,9 @@
   window.renderTopbar = renderTopbar;
   window.renderBottomNav = renderBottomNav;
 
-  window.lookupPincode = async function (pincode, cityId, stateId, feedbackId, areaWrapperId, areaSelectId, addressId) {
+  window.lookupPincode = async function (pincode, cityId, stateId, feedbackId, areaId) {
     const feedbackEl = feedbackId ? document.getElementById(feedbackId) : null;
-    const areaWrapper = areaWrapperId ? document.getElementById(areaWrapperId) : null;
-    const areaSelect = areaSelectId ? document.getElementById(areaSelectId) : null;
-
-    if (areaWrapper) areaWrapper.style.display = 'none';
     if (feedbackEl) { feedbackEl.textContent = 'Looking up...'; feedbackEl.style.color = '#64748B'; }
-
     try {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const json = await res.json();
@@ -303,20 +298,15 @@
         const po = offices[0];
         document.getElementById(cityId).value = po.District || '';
         document.getElementById(stateId).value = po.State || '';
-
-        if (areaSelect && areaWrapper) {
-          areaSelect.innerHTML = '<option value="">— Select Area —</option>' +
-            offices.map(o => `<option value="${o.Name}">${o.Name}</option>`).join('');
-          areaWrapper.style.display = '';
-          if (addressId) {
-            areaSelect.onchange = function () {
-              const addrEl = document.getElementById(addressId);
-              if (addrEl && this.value) addrEl.value = this.value;
-            };
-          }
+        if (areaId) {
+          const areaEl = document.getElementById(areaId);
+          const datalistId = areaId + '-list';
+          let dl = document.getElementById(datalistId);
+          if (!dl) { dl = document.createElement('datalist'); dl.id = datalistId; areaEl.setAttribute('list', datalistId); areaEl.parentNode.appendChild(dl); }
+          dl.innerHTML = offices.map(o => `<option value="${o.Name}">`).join('');
+          if (!areaEl.value) areaEl.value = offices[0].Name;
         }
-
-        if (feedbackEl) { feedbackEl.textContent = '✓ City & State filled'; feedbackEl.style.color = '#16a34a'; }
+        if (feedbackEl) { feedbackEl.textContent = '✓ Filled'; feedbackEl.style.color = '#16a34a'; }
       } else {
         if (feedbackEl) { feedbackEl.textContent = 'Pincode not found'; feedbackEl.style.color = '#dc2626'; }
       }

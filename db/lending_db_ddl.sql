@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `name`          VARCHAR(100) NOT NULL,
   `phone`         VARCHAR(100),
   `address`       VARCHAR(255),
+  `area`          VARCHAR(100),
   `city`          VARCHAR(100),
   `state`         VARCHAR(100),
   `pincode`       VARCHAR(6),

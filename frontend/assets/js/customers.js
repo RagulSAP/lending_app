@@ -192,27 +192,26 @@
                   <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="e-phone" placeholder="10-digit phone" maxlength="10">
                 </div>
-                <div class="col-12">
-                  <label class="form-label">Address</label>
-                  <textarea class="form-control" id="e-address" rows="2" placeholder="Full residential address"></textarea>
+                <div class="col-md-3">
+                  <label class="form-label">Pincode</label>
+                  <input type="text" class="form-control" id="e-pincode" placeholder="6-digit" maxlength="6">
+                  <span id="e-pincode-feedback" style="font-size:12px;"></span>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                  <label class="form-label">Area / Locality</label>
+                  <input type="text" class="form-control" id="e-area" placeholder="Area">
+                </div>
+                <div class="col-md-3">
                   <label class="form-label">City <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="e-city" placeholder="City">
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <label class="form-label">State</label>
                   <input type="text" class="form-control" id="e-state" placeholder="State">
                 </div>
-                <div class="col-md-4">
-                  <label class="form-label">Pincode</label>
-                  <input type="text" class="form-control" id="e-pincode" placeholder="6-digit pincode" maxlength="6">
-                  <span id="e-pincode-feedback" style="font-size:12px;"></span>
-                </div>
-                <div class="col-md-4" id="e-area-wrapper" style="display:none;">
-                  <label class="form-label">Area / Locality</label>
-                  <select class="form-select" id="e-area"></select>
-                  <span style="font-size:11px;color:#64748B;">Selecting area pre-fills the address</span>
+                <div class="col-12">
+                  <label class="form-label">Address</label>
+                  <textarea class="form-control" id="e-address" rows="2" placeholder="Full residential address"></textarea>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Aadhaar Number</label>
@@ -249,7 +248,7 @@
       this.value = this.value.replace(/\D/g, '').slice(0, 6);
       const fb = document.getElementById('e-pincode-feedback');
       if (fb) fb.textContent = '';
-      if (this.value.length === 6) lookupPincode(this.value, 'e-city', 'e-state', 'e-pincode-feedback', 'e-area-wrapper', 'e-area', 'e-address');
+      if (this.value.length === 6) lookupPincode(this.value, 'e-city', 'e-state', 'e-pincode-feedback', 'e-area');
     });
     document.getElementById('e-pan').addEventListener('input', function () { this.value = this.value.toUpperCase().slice(0, 10); });
     document.getElementById('save-edit-btn').addEventListener('click', saveCustomerEdit);
@@ -464,10 +463,11 @@
 
       document.getElementById('e-name').value = c.name || '';
       document.getElementById('e-phone').value = c.phone || '';
-      document.getElementById('e-address').value = c.address || '';
+      document.getElementById('e-pincode').value = c.pincode || '';
+      document.getElementById('e-area').value = c.area || '';
       document.getElementById('e-city').value = c.city || '';
       document.getElementById('e-state').value = c.state || '';
-      document.getElementById('e-pincode').value = c.pincode || '';
+      document.getElementById('e-address').value = c.address || '';
       document.getElementById('e-aadhaar').value = c.aadhaar || '';
       document.getElementById('e-pan').value = c.pan || '';
       sel.value = c.user_id || '';
@@ -507,10 +507,11 @@
       await api.patch(`/api/customers/${editingCustomerId}`, {
         name,
         phone,
-        address: document.getElementById('e-address').value.trim(),
+        pincode,
+        area: document.getElementById('e-area').value.trim(),
         city,
         state: document.getElementById('e-state').value.trim(),
-        pincode,
+        address: document.getElementById('e-address').value.trim(),
         aadhaar_number: aadhaar,
         pan_number: pan,
         assigned_user_id: document.getElementById('e-collector').value || null,

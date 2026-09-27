@@ -81,6 +81,7 @@ def create_customer():
             name=request.form["name"].strip(),
             phone=request.form["phone"].strip(),
             address=request.form.get("address", "").strip(),
+            area=request.form.get("area", "").strip(),
             city=request.form["city"].strip(),
             state=request.form.get("state", "").strip(),
             pincode=request.form.get("pincode", "").strip(),
@@ -270,6 +271,8 @@ def update_customer(customer_id):
             customer.phone = v
         if "address" in data:
             customer.address = (data["address"] or "").strip()
+        if "area" in data:
+            customer.area = (data["area"] or "").strip()
         if "city" in data:
             v = (data["city"] or "").strip()
             if not v:
