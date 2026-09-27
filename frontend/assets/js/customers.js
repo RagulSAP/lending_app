@@ -209,6 +209,11 @@
                   <input type="text" class="form-control" id="e-pincode" placeholder="6-digit pincode" maxlength="6">
                   <span id="e-pincode-feedback" style="font-size:12px;"></span>
                 </div>
+                <div class="col-md-4" id="e-area-wrapper" style="display:none;">
+                  <label class="form-label">Area / Locality</label>
+                  <select class="form-select" id="e-area"></select>
+                  <span style="font-size:11px;color:#64748B;">Selecting area pre-fills the address</span>
+                </div>
                 <div class="col-md-6">
                   <label class="form-label">Aadhaar Number</label>
                   <input type="text" class="form-control" id="e-aadhaar" placeholder="12-digit Aadhaar" maxlength="12">
@@ -244,7 +249,7 @@
       this.value = this.value.replace(/\D/g, '').slice(0, 6);
       const fb = document.getElementById('e-pincode-feedback');
       if (fb) fb.textContent = '';
-      if (this.value.length === 6) lookupPincode(this.value, 'e-city', 'e-state', 'e-pincode-feedback');
+      if (this.value.length === 6) lookupPincode(this.value, 'e-city', 'e-state', 'e-pincode-feedback', 'e-area-wrapper', 'e-area', 'e-address');
     });
     document.getElementById('e-pan').addEventListener('input', function () { this.value = this.value.toUpperCase().slice(0, 10); });
     document.getElementById('save-edit-btn').addEventListener('click', saveCustomerEdit);

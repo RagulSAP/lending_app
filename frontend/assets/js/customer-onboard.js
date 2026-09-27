@@ -55,6 +55,11 @@
                 <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                 <input type="tel" class="form-control" id="f-phone" placeholder="10-digit phone" maxlength="10">
               </div>
+              <div class="col-md-4">
+                <label class="form-label">Pincode</label>
+                <input type="text" class="form-control" id="f-pincode" placeholder="6-digit pincode" maxlength="6">
+                <span id="f-pincode-feedback" style="font-size:12px;"></span>
+              </div>
               <div class="col-12">
                 <label class="form-label">Address</label>
                 <textarea class="form-control" id="f-address" rows="2" placeholder="Full residential address"></textarea>
@@ -67,10 +72,10 @@
                 <label class="form-label">State</label>
                 <input type="text" class="form-control" id="f-state" placeholder="State">
               </div>
-              <div class="col-md-4">
-                <label class="form-label">Pincode</label>
-                <input type="text" class="form-control" id="f-pincode" placeholder="6-digit pincode" maxlength="6">
-                <span id="f-pincode-feedback" style="font-size:12px;"></span>
+              <div class="col-md-4" id="f-area-wrapper" style="display:none;">
+                <label class="form-label">Area / Locality</label>
+                <select class="form-select" id="f-area"></select>
+                <span style="font-size:11px;color:#64748B;">Selecting area pre-fills the address</span>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Aadhaar Number</label>
@@ -199,7 +204,7 @@
       this.value = this.value.replace(/\D/g, '').slice(0, 6);
       const fb = document.getElementById('f-pincode-feedback');
       if (fb) fb.textContent = '';
-      if (this.value.length === 6) lookupPincode(this.value, 'f-city', 'f-state', 'f-pincode-feedback');
+      if (this.value.length === 6) lookupPincode(this.value, 'f-city', 'f-state', 'f-pincode-feedback', 'f-area-wrapper', 'f-area', 'f-address');
     });
     document.getElementById('f-pan').addEventListener('input', function () { this.value = this.value.toUpperCase().slice(0, 10); });
 

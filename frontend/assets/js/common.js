@@ -287,16 +287,35 @@
   window.renderTopbar = renderTopbar;
   window.renderBottomNav = renderBottomNav;
 
-  window.lookupPincode = async function (pincode, cityId, stateId, feedbackId) {
+  window.lookupPincode = async function (pincode, cityId, stateId, feedbackId, areaWrapperId, areaSelectId, addressId) {
     const feedbackEl = feedbackId ? document.getElementById(feedbackId) : null;
+    const areaWrapper = areaWrapperId ? document.getElementById(areaWrapperId) : null;
+    const areaSelect = areaSelectId ? document.getElementById(areaSelectId) : null;
+
+    if (areaWrapper) areaWrapper.style.display = 'none';
     if (feedbackEl) { feedbackEl.textContent = 'Looking up...'; feedbackEl.style.color = '#64748B'; }
+
     try {
       const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
       const json = await res.json();
       if (json[0]?.Status === 'Success' && json[0].PostOffice?.length) {
-        const po = json[0].PostOffice[0];
+        const offices = json[0].PostOffice;
+        const po = offices[0];
         document.getElementById(cityId).value = po.District || '';
         document.getElementById(stateId).value = po.State || '';
+
+        if (areaSelect && areaWrapper) {
+          areaSelect.innerHTML = '<option value="">— Select Area —</option>' +
+            offices.map(o => `<option value="${o.Name}">${o.Name}</option>`).join('');
+          areaWrapper.style.display = '';
+          if (addressId) {
+            areaSelect.onchange = function () {
+              const addrEl = document.getElementById(addressId);
+              if (addrEl && this.value) addrEl.value = this.value;
+            };
+          }
+        }
+
         if (feedbackEl) { feedbackEl.textContent = '✓ City & State filled'; feedbackEl.style.color = '#16a34a'; }
       } else {
         if (feedbackEl) { feedbackEl.textContent = 'Pincode not found'; feedbackEl.style.color = '#dc2626'; }
