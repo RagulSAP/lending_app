@@ -10,7 +10,7 @@ from database import SessionLocal
 from models import Organization, Wallet, User, Customer
 from config import Config
 from core_functions.rbac import require_roles
-from core_functions.auth import hash_password
+from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, model_to_dict
 
 orgs_bp = Blueprint("organizations", __name__, url_prefix="/api/organizations")
@@ -71,7 +71,7 @@ def create_org():
             org_id=org_id,
             name=admin_name,
             phone=admin_phone,
-            password_hash=hash_password(admin_password),
+            password=admin_password,
             role_id=Config.ROLE_ADMIN,
             status=1,
         )
@@ -85,7 +85,7 @@ def create_org():
             data={
                 "org": model_to_dict(org),
                 "wallet": model_to_dict(wallet),
-                "admin_user": model_to_dict(admin_user, exclude=["password_hash"]),
+                "admin_user": model_to_dict(admin_user, exclude=["password"]),
             },
             message="Organization created successfully",
         ), 201

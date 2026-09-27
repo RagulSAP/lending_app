@@ -1,18 +1,7 @@
 """
-Authentication helpers: password hashing, JWT creation, and claim extraction.
+Authentication helpers: JWT creation and claim extraction.
 """
-from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, get_jwt, get_jwt_identity
-
-
-def hash_password(plain: str) -> str:
-    """Hash a plaintext password using Werkzeug's PBKDF2."""
-    return generate_password_hash(plain)
-
-
-def check_password(plain: str, hashed: str) -> bool:
-    """Verify a plaintext password against a stored hash."""
-    return check_password_hash(hashed, plain)
 
 
 def create_token(user) -> str:

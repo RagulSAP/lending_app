@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `org_id`        VARCHAR(36)  NOT NULL,
   `name`          VARCHAR(100) NOT NULL,
   `phone`         VARCHAR(100),
-  `password_hash` VARCHAR(225) NOT NULL,
+  `password`      VARCHAR(225) NOT NULL,
   `role_id`       INT          NOT NULL,
   `status`        INT          NOT NULL DEFAULT 1,   -- 1=active, 0=inactive
   `last_login`    DATETIME,

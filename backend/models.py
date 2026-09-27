@@ -37,7 +37,7 @@ class User(Base):
     org_id        = Column(String(36), ForeignKey("organizations.org_id"), nullable=False)
     name          = Column(String(100), nullable=False)
     phone         = Column(String(100))
-    password_hash = Column(String(225), nullable=False)
+    password = Column(String(225), nullable=False)
     role_id       = Column(Integer, ForeignKey("roles.id"), nullable=False)
     status        = Column(Integer, nullable=False, default=1)  # 1=active, 0=inactive
     last_login    = Column(DateTime)

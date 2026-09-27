@@ -12,7 +12,7 @@ from flask_jwt_extended import jwt_required
 
 from database import SessionLocal
 from models import User, Role
-from core_functions.auth import check_password, create_token, get_current_user_info
+from core_functions.auth import create_token, get_current_user_info
 from core_functions.responses import success_response, error_response
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
@@ -38,7 +38,7 @@ def login():
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.phone == phone).first()
-        if not user or not check_password(password, user.password_hash):
+        if not user or user.password != password:
             return error_response("Invalid phone number or password", 400)
 
         if user.status != 1:

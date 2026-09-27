@@ -7,7 +7,7 @@ wrong assumptions, and confirm the RBAC matrix before implementation starts.
 
 - **Backend**: FastAPI (Python), MySQL (existing DB, DDL in `db/lending_db_ddl.sql`)
 - **DB Access**: SQLAlchemy (core or ORM) + PyMySQL driver
-- **Auth**: JWT (phone + password login), bcrypt password hashing
+- **Auth**: JWT (phone + password login)
 - **Frontend**: Static HTML + CSS + Bootstrap 5 + vanilla JavaScript (fetch API), Chart.js for dashboard charts
 - **Exports**: `openpyxl` for Excel, `reportlab` for PDF
 - **Config**: `.env` at repo root (already created with placeholders, gitignored)
@@ -22,7 +22,7 @@ backend/
   models.py                  # SQLAlchemy models (mirrors DDL + new columns)
   schemas/                   # Pydantic request/response models
   core_functions/
-    auth.py                  # password hashing, JWT create/verify, get_current_user dependency
+    auth.py                  # JWT create/verify, get_current_user dependency
     rbac.py                  # role-based permission checks/decorators
     loan_calc.py             # installment schedule + interest calculations
     dashboard_service.py     # aggregation queries per role

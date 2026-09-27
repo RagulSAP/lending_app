@@ -10,7 +10,7 @@ from database import SessionLocal
 from models import User, Role
 from config import Config
 from core_functions.rbac import require_roles
-from core_functions.auth import hash_password, get_current_user_info
+from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, model_to_dict
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
@@ -72,7 +72,7 @@ def create_user():
             org_id=current["org_id"],
             name=name,
             phone=phone,
-            password_hash=hash_password(password),
+            password=password,
             role_id=role_id,
             status=1,
         )
@@ -80,7 +80,7 @@ def create_user():
         db.commit()
 
         return success_response(
-            data=model_to_dict(user, exclude=["password_hash"]),
+            data=model_to_dict(user, exclude=["password"]),
             message="User created successfully",
         ), 201
 
@@ -129,7 +129,7 @@ def list_users():
         role_map = {r.id: r.role_name for r in db.query(Role).all()}
         result = []
         for u in users:
-            d = model_to_dict(u, exclude=["password_hash"])
+            d = model_to_dict(u, exclude=["password"])
             d["role_name"] = role_map.get(u.role_id, "")
             result.append(d)
 
@@ -192,11 +192,11 @@ def update_user(user_id):
         if "password" in data:
             password = data["password"] or ""
             if password:
-                user.password_hash = hash_password(password)
+                user.password = password
 
         db.commit()
         return success_response(
-            data=model_to_dict(user, exclude=["password_hash"]),
+            data=model_to_dict(user, exclude=["password"]),
             message="User updated successfully",
         )
     except Exception as exc:
