@@ -97,8 +97,10 @@
       const res = await fetch(url, { method: 'PATCH', headers: getAuthHeaders(), body: JSON.stringify(body) });
       return handleResponse(res);
     },
-    async delete(url) {
-      const res = await fetch(url, { method: 'DELETE', headers: getAuthHeaders() });
+    async delete(url, body = null) {
+      const opts = { method: 'DELETE', headers: getAuthHeaders() };
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(url, opts);
       return handleResponse(res);
     },
     async postForm(url, formData) {

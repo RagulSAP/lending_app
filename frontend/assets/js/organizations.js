@@ -35,6 +35,80 @@
         </div>
       </div>
 
+      <!-- Edit Org Modal -->
+      <div class="modal fade" id="editOrgModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h6 class="modal-title fw-600"><i class="bi bi-pencil me-2 text-primary"></i>Edit Organization</h6>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div id="edit-org-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
+              <input type="hidden" id="edit-org-id">
+              <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">Organization Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit-org-name" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input type="tel" class="form-control" id="edit-org-phone" maxlength="10">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Status</label>
+                  <select class="form-select" id="edit-org-status">
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Address</label>
+                  <textarea class="form-control" id="edit-org-address" rows="2"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="save-edit-org-btn">
+                <span id="save-edit-txt"><i class="bi bi-check-lg me-1"></i>Save Changes</span>
+                <span id="save-edit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delete Confirmation Modal -->
+      <div class="modal fade" id="deleteOrgModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h6 class="modal-title fw-600"><i class="bi bi-exclamation-triangle me-2"></i>Delete Organization</h6>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <div id="del-org-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
+              <input type="hidden" id="del-org-id">
+              <p class="mb-1">You are about to permanently delete <strong id="del-org-name"></strong>.</p>
+              <p class="text-danger mb-3" style="font-size:13px;"><i class="bi bi-exclamation-circle me-1"></i>This will delete all users, customers, loans, transactions, expenses and wallets belonging to this organization. This action cannot be undone.</p>
+              <label class="form-label">Enter your password to confirm <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="password" class="form-control" id="del-org-password" placeholder="Your password">
+                <button type="button" class="btn btn-outline-secondary" onclick="togglePass('del-org-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-danger" id="confirm-del-btn">
+                <span id="confirm-del-txt"><i class="bi bi-trash me-1"></i>Delete</span>
+                <span id="confirm-del-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Deleting...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Add Org Modal -->
       <div class="modal fade" id="addOrgModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -105,8 +179,11 @@
       new bootstrap.Modal(document.getElementById('addOrgModal')).show();
     });
     document.getElementById('save-org-btn').addEventListener('click', saveOrg);
+    document.getElementById('save-edit-org-btn').addEventListener('click', saveEditOrg);
+    document.getElementById('confirm-del-btn').addEventListener('click', confirmDelete);
     document.getElementById('org-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
     document.getElementById('admin-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
+    document.getElementById('edit-org-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
   }
 
   async function loadOrgs() {
@@ -134,7 +211,10 @@
           <td><span class="fw-600">${o.user_count || 0}</span></td>
           <td><span class="fw-600">${o.borrower_count || 0}</span></td>
           <td>${statusBadge(o.status || 'ACTIVE')}</td>
-          <td><button class="btn btn-sm btn-outline-secondary" onclick="viewOrg('${o.org_id}')"><i class="bi bi-eye"></i></button></td>
+          <td class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" title="Edit" onclick="editOrg('${o.org_id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteOrg('${o.org_id}')"><i class="bi bi-trash"></i></button>
+          </td>
         </tr>`).join('');
     } catch (err) {
       document.getElementById('org-tbody').innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
@@ -194,11 +274,85 @@
     }
   };
 
-  window.viewOrg = function(orgId) {
+  window.editOrg = function(orgId) {
     const org = orgList.find(o => o.org_id === orgId);
     if (!org) return;
-    showToast(`${org.name}: ${org.user_count || 0} users, ${org.borrower_count || 0} borrowers`, 'info');
+    document.getElementById('edit-org-id').value = org.org_id;
+    document.getElementById('edit-org-name').value = org.name || '';
+    document.getElementById('edit-org-phone').value = org.phone || '';
+    document.getElementById('edit-org-address').value = org.address || '';
+    document.getElementById('edit-org-status').value = org.status || 'ACTIVE';
+    document.getElementById('edit-org-error').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('editOrgModal')).show();
   };
+
+  async function saveEditOrg() {
+    const orgId = document.getElementById('edit-org-id').value;
+    const name = document.getElementById('edit-org-name').value.trim();
+    const phone = document.getElementById('edit-org-phone').value.trim();
+    const address = document.getElementById('edit-org-address').value.trim();
+    const status = document.getElementById('edit-org-status').value;
+    const errEl = document.getElementById('edit-org-error');
+    errEl.classList.add('d-none');
+
+    if (!name) { errEl.textContent = 'Organization name is required.'; errEl.classList.remove('d-none'); return; }
+    if (phone && !/^\d{10}$/.test(phone)) { errEl.textContent = 'Phone must be 10 digits.'; errEl.classList.remove('d-none'); return; }
+
+    const btn = document.getElementById('save-edit-org-btn');
+    btn.disabled = true;
+    document.getElementById('save-edit-txt').classList.add('d-none');
+    document.getElementById('save-edit-load').classList.remove('d-none');
+    try {
+      await api.patch(`/api/organizations/${orgId}`, { name, phone, address, status });
+      bootstrap.Modal.getInstance(document.getElementById('editOrgModal')).hide();
+      showToast('Organization updated successfully!', 'success');
+      await loadOrgs();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('save-edit-txt').classList.remove('d-none');
+      document.getElementById('save-edit-load').classList.add('d-none');
+    }
+  }
+
+  window.deleteOrg = function(orgId) {
+    const org = orgList.find(o => o.org_id === orgId);
+    if (!org) return;
+    document.getElementById('del-org-id').value = org.org_id;
+    document.getElementById('del-org-name').textContent = org.name;
+    document.getElementById('del-org-password').value = '';
+    document.getElementById('del-org-error').classList.add('d-none');
+    new bootstrap.Modal(document.getElementById('deleteOrgModal')).show();
+  };
+
+  async function confirmDelete() {
+    const orgId = document.getElementById('del-org-id').value;
+    const password = document.getElementById('del-org-password').value;
+    const errEl = document.getElementById('del-org-error');
+    errEl.classList.add('d-none');
+
+    if (!password) { errEl.textContent = 'Password is required.'; errEl.classList.remove('d-none'); return; }
+
+    const btn = document.getElementById('confirm-del-btn');
+    btn.disabled = true;
+    document.getElementById('confirm-del-txt').classList.add('d-none');
+    document.getElementById('confirm-del-load').classList.remove('d-none');
+    try {
+      await api.delete(`/api/organizations/${orgId}`, { password });
+      bootstrap.Modal.getInstance(document.getElementById('deleteOrgModal')).hide();
+      showToast('Organization deleted successfully.', 'success');
+      await loadOrgs();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('confirm-del-txt').classList.remove('d-none');
+      document.getElementById('confirm-del-load').classList.add('d-none');
+    }
+  }
 
   init();
 })();

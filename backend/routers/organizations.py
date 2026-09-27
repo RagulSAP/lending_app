@@ -7,7 +7,7 @@ import uuid
 from flask import Blueprint, request
 
 from database import SessionLocal
-from models import Organization, Wallet, User, Customer
+from models import Organization, Wallet, User, Customer, Loan, LoanInstallment, Transaction, Expense, ExpenseCategory, LoanStatusHistory
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
@@ -125,5 +125,116 @@ def list_orgs():
             result.append(d)
 
         return success_response(data=result, total=len(result))
+    finally:
+        db.close()
+
+
+@orgs_bp.route("/<string:org_id>", methods=["PATCH"])
+@require_roles(Config.ROLE_SUPER_ADMIN)
+def update_org(org_id):
+    """
+    PATCH /api/organizations/<org_id>
+    Editable fields: name, address, phone, status
+    """
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    db = SessionLocal()
+    try:
+        org = db.query(Organization).filter(Organization.org_id == org_id).first()
+        if not org:
+            return error_response("Organization not found", 404)
+
+        if "name" in data:
+            name = (data["name"] or "").strip()
+            if not name:
+                return error_response("name must not be empty")
+            existing = db.query(Organization).filter(
+                Organization.name == name,
+                Organization.org_id != org_id
+            ).first()
+            if existing:
+                return error_response("An organization with that name already exists")
+            org.name = name
+
+        if "address" in data:
+            org.address = (data["address"] or "").strip() or None
+
+        if "phone" in data:
+            phone = (data["phone"] or "").strip()
+            if phone and not phone.isdigit():
+                return error_response("Phone must be numeric")
+            org.phone = phone or None
+
+        if "status" in data:
+            status = (data["status"] or "").strip().upper()
+            if status not in ("ACTIVE", "INACTIVE"):
+                return error_response("status must be ACTIVE or INACTIVE")
+            org.status = status
+
+        db.commit()
+        return success_response(data=model_to_dict(org), message="Organization updated successfully")
+
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()
+
+
+@orgs_bp.route("/<string:org_id>", methods=["DELETE"])
+@require_roles(Config.ROLE_SUPER_ADMIN)
+def delete_org(org_id):
+    """
+    DELETE /api/organizations/<org_id>
+    Body: {password}  — verifies the current super admin's password before deleting.
+    Cascades: deletes all data belonging to this org.
+    """
+    data = request.get_json(silent=True) or {}
+    password = data.get("password") or ""
+    if not password:
+        return error_response("Password is required to confirm deletion")
+
+    current = get_current_user_info()
+    db = SessionLocal()
+    try:
+        # Verify current user's password
+        me = db.query(User).filter(User.user_id == current["user_id"]).first()
+        if not me or me.password != password:
+            return error_response("Incorrect password", 403)
+
+        org = db.query(Organization).filter(Organization.org_id == org_id).first()
+        if not org:
+            return error_response("Organization not found", 404)
+
+        # Cascade delete in dependency order (no FK constraints, manual cascade)
+        loan_ids = [l.loan_id for l in db.query(Loan.loan_id).filter(Loan.org_id == org_id).all()]
+        wallet_ids = [w.wallet_id for w in db.query(Wallet.wallet_id).filter(Wallet.org_id == org_id).all()]
+
+        if loan_ids:
+            db.query(LoanStatusHistory).filter(LoanStatusHistory.loan_id.in_(loan_ids)).delete(synchronize_session=False)
+            db.query(LoanInstallment).filter(LoanInstallment.loan_id.in_(loan_ids)).delete(synchronize_session=False)
+
+        db.query(Transaction).filter(Transaction.org_id == org_id).delete(synchronize_session=False)
+
+        if wallet_ids:
+            db.query(Expense).filter(Expense.wallet_id.in_(wallet_ids)).delete(synchronize_session=False)
+
+        if loan_ids:
+            db.query(Loan).filter(Loan.loan_id.in_(loan_ids)).delete(synchronize_session=False)
+
+        db.query(Customer).filter(Customer.org_id == org_id).delete(synchronize_session=False)
+        db.query(ExpenseCategory).filter(ExpenseCategory.org_id == org_id).delete(synchronize_session=False)
+        db.query(Wallet).filter(Wallet.org_id == org_id).delete(synchronize_session=False)
+        db.query(User).filter(User.org_id == org_id).delete(synchronize_session=False)
+        db.delete(org)
+        db.commit()
+
+        return success_response(message=f"Organization '{org.name}' and all its data deleted successfully")
+
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
     finally:
         db.close()
