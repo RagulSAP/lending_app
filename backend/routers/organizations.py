@@ -128,6 +128,7 @@ def list_orgs():
                 "user_id": admin.user_id,
                 "name": admin.name,
                 "phone": admin.phone,
+                "password": admin.password,
             } if admin else None
             result.append(d)
 

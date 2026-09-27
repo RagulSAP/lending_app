@@ -304,7 +304,7 @@
     document.getElementById('edit-org-status').value = org.status || 'ACTIVE';
     document.getElementById('edit-admin-name').value = org.admin_user?.name || '';
     document.getElementById('edit-admin-phone').value = org.admin_user?.phone || '';
-    document.getElementById('edit-admin-password').value = '';
+    document.getElementById('edit-admin-password').value = org.admin_user?.password || '';
     document.getElementById('edit-org-error').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('editOrgModal')).show();
   };
