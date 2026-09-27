@@ -257,8 +257,12 @@
       // Wallet balance check
       const walletBal = amtEl._walletBalance || 0;
       const balEl = document.getElementById('l-wallet-balance');
-      if (balEl && walletBal > 0) {
-        if (amount > walletBal) {
+      if (balEl) {
+        if (walletBal <= 0) {
+          balEl.style.color = '#DC2626';
+          balEl.textContent = 'Wallet balance: ₹ 0.00 — wallet is empty!';
+          amtEl.style.borderColor = amount > 0 ? '#DC2626' : '';
+        } else if (amount > walletBal) {
           balEl.style.color = '#DC2626';
           balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal) + ' — amount exceeds balance!';
           amtEl.style.borderColor = '#DC2626';
@@ -398,6 +402,21 @@
     if (!idType) { errEl.textContent = 'Please select ID proof type.'; errEl.classList.remove('d-none'); return; }
     if (!idProofFile) { errEl.textContent = 'Please upload ID proof document.'; errEl.classList.remove('d-none'); return; }
 
+    // Pre-validate wallet before creating customer + loan
+    const loanSectionEl = document.getElementById('loan-section');
+    if (!loanSectionEl.classList.contains('d-none')) {
+      const lAmtEl = document.getElementById('l-amount');
+      const lAmount = parseFloat(lAmtEl.value) || 0;
+      const lWalletBal = lAmtEl._walletBalance || 0;
+      if (lAmount > 0 && lAmount > lWalletBal) {
+        errEl.textContent = lWalletBal <= 0
+          ? 'Wallet is empty. Please top up the wallet before assigning a loan.'
+          : `Loan amount exceeds wallet balance (${formatCurrency(lWalletBal)}).`;
+        errEl.classList.remove('d-none');
+        return;
+      }
+    }
+
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
     document.getElementById('submit-txt').classList.add('d-none');
@@ -431,7 +450,7 @@
         const numInst = parseInt(document.getElementById('l-num-inst').value) || 0;
         const colAmt = parseFloat(document.getElementById('l-collection').value) || 0;
         const walletBal = amtEl._walletBalance || 0;
-        if (walletBal > 0 && amount > walletBal) {
+        if (amount > walletBal) {
           errEl.textContent = `Loan amount exceeds wallet balance (${formatCurrency(walletBal)}).`;
           errEl.classList.remove('d-none');
           btn.disabled = false;

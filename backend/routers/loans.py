@@ -110,6 +110,15 @@ def create_loan():
         if customer.status != "ACTIVE":
             return error_response("Cannot disburse loan to an inactive customer")
 
+        # Validate wallet balance before proceeding
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        wallet_balance = round(float(wallet.balance or 0), 2) if wallet else 0.0
+        if not wallet or wallet_balance < principal:
+            return error_response(
+                f"Insufficient wallet balance. Available: ₹ {wallet_balance:,.2f}, Required: ₹ {principal:,.2f}",
+                400,
+            )
+
         # Calculate schedule
         try:
             if use_simple:
@@ -190,8 +199,7 @@ def create_loan():
         )
         db.add(history)
 
-        # Deduct disbursement from wallet
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        # Deduct disbursement from wallet (wallet already validated above)
         if wallet:
             wallet.balance = round(float(wallet.balance or 0) - principal, 2)
             disbursement_txn = Transaction(

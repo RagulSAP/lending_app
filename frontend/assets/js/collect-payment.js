@@ -565,8 +565,12 @@
       // Wallet balance live check
       const walletBal = amtEl._walletBalance || 0;
       const balEl = document.getElementById('al-wallet-balance');
-      if (balEl && walletBal > 0 && amount > 0) {
-        if (amount > walletBal) {
+      if (balEl) {
+        if (walletBal <= 0) {
+          balEl.textContent = 'Wallet balance: ₹ 0.00 — wallet is empty!';
+          balEl.style.color = '#DC2626';
+          amtEl.style.borderColor = amount > 0 ? '#DC2626' : '';
+        } else if (amount > walletBal) {
           balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal) + ' — exceeds balance!';
           balEl.style.color = '#DC2626';
           amtEl.style.borderColor = '#DC2626';
@@ -616,8 +620,17 @@
     amtEl._walletBalance = balance;
     const balEl = document.getElementById('al-wallet-balance');
     if (balEl) {
-      balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
-      balEl.style.color = balance > 0 ? '#16A34A' : '#DC2626';
+      if (balance <= 0) {
+        balEl.textContent = 'Wallet balance: ₹ 0.00 — wallet is empty!';
+        balEl.style.color = '#DC2626';
+        const errEl = document.getElementById('al-error');
+        errEl.textContent = 'Wallet is empty. Please top up the wallet before creating a loan.';
+        errEl.classList.remove('d-none');
+        document.getElementById('al-save-btn').disabled = true;
+      } else {
+        balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
+        balEl.style.color = '#16A34A';
+      }
     }
   };
 
@@ -632,7 +645,7 @@
     const walletBal = document.getElementById('al-amount')._walletBalance || 0;
     if (!selectedCustomer) { errEl.textContent = 'No customer selected.'; errEl.classList.remove('d-none'); return; }
     if (amount <= 0) { errEl.textContent = 'Enter a valid loan amount.'; errEl.classList.remove('d-none'); return; }
-    if (walletBal > 0 && amount > walletBal) { errEl.textContent = `Loan amount exceeds wallet balance (${formatCurrency(walletBal)}).`; errEl.classList.remove('d-none'); return; }
+    if (amount > walletBal) { errEl.textContent = walletBal <= 0 ? 'Wallet is empty. Please top up the wallet before creating a loan.' : `Loan amount exceeds wallet balance (${formatCurrency(walletBal)}).`; errEl.classList.remove('d-none'); return; }
     if (numInst < 1) { errEl.textContent = 'Enter number of installments.'; errEl.classList.remove('d-none'); return; }
     if (colAmt <= 0) { errEl.textContent = 'Enter a valid collection amount.'; errEl.classList.remove('d-none'); return; }
     if (colAmt * numInst < amount) { errEl.textContent = 'Total collections must be ≥ loan amount.'; errEl.classList.remove('d-none'); return; }
