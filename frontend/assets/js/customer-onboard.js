@@ -232,16 +232,17 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('l-date').value = today;
         // Show wallet balance
+        let balance = 0;
         try {
           const wres = await api.get('/api/wallet');
-          const balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.balance || 0) : 0;
-          const balEl = document.getElementById('l-wallet-balance');
-          if (balEl) {
-            balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
-            balEl.style.color = balance > 0 ? '#16A34A' : '#DC2626';
-          }
-          document.getElementById('l-amount')._walletBalance = balance;
+          balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.balance || 0) : 0;
         } catch (_) {}
+        const balEl = document.getElementById('l-wallet-balance');
+        if (balEl) {
+          balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
+          balEl.style.color = balance > 0 ? '#16A34A' : '#DC2626';
+        }
+        document.getElementById('l-amount')._walletBalance = balance;
       }
     });
 
