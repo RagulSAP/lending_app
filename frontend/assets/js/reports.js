@@ -235,6 +235,7 @@
       if (el) el.classList.toggle('d-none', t !== tab);
       if (link) link.classList.toggle('active', t === tab);
     });
+    fetchReportData(tab);
   };
 
   window.searchReport = async function (tab) {
