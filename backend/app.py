@@ -44,6 +44,7 @@ def create_app():
     from routers.reports       import reports_bp
     from routers.wallet        import wallet_bp
     from routers.partners      import partners_bp
+    from routers.audit         import audit_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(orgs_bp)
@@ -56,6 +57,7 @@ def create_app():
     app.register_blueprint(reports_bp)
     app.register_blueprint(wallet_bp)
     app.register_blueprint(partners_bp)
+    app.register_blueprint(audit_bp)
 
     # ── Audit logging (after_request hook) ───────────────────────────────────
     from core_functions.audit import audit_after_request
