@@ -54,9 +54,14 @@
       <div class="card d-none" id="step2-card">
         <div class="card-header-flex">
           <h6 class="card-title"><span class="badge bg-primary me-2">2</span>Select Loan</h6>
-          <button type="button" class="btn btn-sm btn-outline-secondary" id="change-cust-btn">
-            <i class="bi bi-arrow-left me-1"></i>Change Customer
-          </button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary d-none" id="add-loan-btn">
+              <i class="bi bi-plus-circle me-1"></i>Add Loan
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="change-cust-btn">
+              <i class="bi bi-arrow-left me-1"></i>Change Customer
+            </button>
+          </div>
         </div>
         <div id="loans-list" class="row g-3"></div>
       </div>`;
@@ -69,6 +74,7 @@
       if (e.key === 'Enter') searchCustomer();
     });
     document.getElementById('change-cust-btn').addEventListener('click', resetToStep1);
+    document.getElementById('add-loan-btn').addEventListener('click', openAddLoanModal);
   }
 
   // ---------------------------------------------------------------------------
@@ -241,15 +247,21 @@
       step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
       const listEl = document.getElementById('loans-list');
+      const addLoanBtn = document.getElementById('add-loan-btn');
       if (!customerLoans.length) {
+        if (addLoanBtn) addLoanBtn.classList.remove('d-none');
         listEl.innerHTML = `
-          <div class="col-12">
-            <div class="alert alert-info" style="font-size:13px;">
-              <i class="bi bi-info-circle me-2"></i>No active loans found for this customer.
-            </div>
+          <div class="col-12 text-center py-3">
+            <div style="font-size:32px;margin-bottom:8px;">💳</div>
+            <div style="font-size:14px;font-weight:600;color:#334155;margin-bottom:4px;">No active loans</div>
+            <div style="font-size:13px;color:#64748B;margin-bottom:16px;">This customer has no active or pending loans.</div>
+            <button type="button" class="btn btn-primary" onclick="openAddLoanModal()">
+              <i class="bi bi-plus-circle me-2"></i>Add Loan
+            </button>
           </div>`;
         return;
       }
+      if (addLoanBtn) addLoanBtn.classList.remove('d-none');
       listEl.innerHTML = customerLoans.map(l => `
         <div class="col-md-6">
           <div class="loan-card">
@@ -465,6 +477,158 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Add Loan modal
+  // ---------------------------------------------------------------------------
+  let addLoanModal = null;
+
+  function injectAddLoanModal() {
+    if (document.getElementById('add-loan-modal')) return;
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="modal fade" id="add-loan-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-600" style="font-size:16px;">
+                <i class="bi bi-plus-circle me-2 text-primary"></i>Add Loan
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div id="al-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Loan Amount (₹) <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="al-amount" placeholder="e.g. 10000" min="1" step="1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Installment Type <span class="text-danger">*</span></label>
+                  <select class="form-select" id="al-inst-type">
+                    <option value="WEEKLY">Weekly</option>
+                    <option value="DAILY">Daily</option>
+                    <option value="MONTHLY">Monthly</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Number of Installments <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="al-num-inst" placeholder="e.g. 12" min="1" step="1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Collection Amount / Installment (₹) <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="al-collection" placeholder="e.g. 1000" min="1" step="1">
+                </div>
+                <div class="col-12" id="al-summary" style="display:none;">
+                  <div class="row g-0 text-center" style="background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;overflow:hidden;">
+                    <div class="col-4 p-2" style="border-right:1px solid #BFDBFE;">
+                      <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
+                      <div id="al-total" style="font-size:14px;font-weight:700;color:#1D4ED8;">₹ 0</div>
+                    </div>
+                    <div class="col-4 p-2" style="border-right:1px solid #BFDBFE;">
+                      <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
+                      <div id="al-interest" style="font-size:14px;font-weight:700;color:#16A34A;">₹ 0</div>
+                    </div>
+                    <div class="col-4 p-2">
+                      <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Disbursement Date</div>
+                      <input type="date" class="form-control form-control-sm text-center p-1" id="al-date" style="font-size:12px;">
+                    </div>
+                  </div>
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Remarks</label>
+                  <input type="text" class="form-control" id="al-remarks" placeholder="Optional">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" id="al-save-btn">
+                <span id="al-save-txt"><i class="bi bi-check-lg me-1"></i>Create Loan</span>
+                <span id="al-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Creating...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(el.firstElementChild);
+    addLoanModal = new bootstrap.Modal(document.getElementById('add-loan-modal'));
+
+    document.getElementById('al-save-btn').addEventListener('click', submitAddLoan);
+
+    function updateSummary() {
+      const amount = parseFloat(document.getElementById('al-amount').value) || 0;
+      const n = parseInt(document.getElementById('al-num-inst').value) || 0;
+      const col = parseFloat(document.getElementById('al-collection').value) || 0;
+      const summaryEl = document.getElementById('al-summary');
+      if (amount > 0 && n > 0 && col > 0) {
+        document.getElementById('al-total').textContent = '₹ ' + (col * n).toLocaleString('en-IN');
+        document.getElementById('al-interest').textContent = '₹ ' + (col * n - amount).toLocaleString('en-IN');
+        summaryEl.style.display = 'block';
+      } else {
+        summaryEl.style.display = 'none';
+      }
+    }
+    ['al-amount', 'al-num-inst', 'al-collection'].forEach(id => {
+      document.getElementById(id).addEventListener('input', updateSummary);
+    });
+  }
+
+  window.openAddLoanModal = function () {
+    injectAddLoanModal();
+    document.getElementById('al-amount').value = '';
+    document.getElementById('al-num-inst').value = '';
+    document.getElementById('al-collection').value = '';
+    document.getElementById('al-remarks').value = '';
+    document.getElementById('al-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('al-summary').style.display = 'none';
+    document.getElementById('al-error').classList.add('d-none');
+    document.getElementById('al-save-btn').disabled = false;
+    document.getElementById('al-save-txt').classList.remove('d-none');
+    document.getElementById('al-save-load').classList.add('d-none');
+    addLoanModal.show();
+  };
+
+  async function submitAddLoan() {
+    const errEl = document.getElementById('al-error');
+    errEl.classList.add('d-none');
+
+    const amount = parseFloat(document.getElementById('al-amount').value) || 0;
+    const numInst = parseInt(document.getElementById('al-num-inst').value) || 0;
+    const colAmt = parseFloat(document.getElementById('al-collection').value) || 0;
+
+    if (!selectedCustomer) { errEl.textContent = 'No customer selected.'; errEl.classList.remove('d-none'); return; }
+    if (amount <= 0) { errEl.textContent = 'Enter a valid loan amount.'; errEl.classList.remove('d-none'); return; }
+    if (numInst < 1) { errEl.textContent = 'Enter number of installments.'; errEl.classList.remove('d-none'); return; }
+    if (colAmt <= 0) { errEl.textContent = 'Enter a valid collection amount.'; errEl.classList.remove('d-none'); return; }
+    if (colAmt * numInst < amount) { errEl.textContent = 'Total collections must be ≥ loan amount.'; errEl.classList.remove('d-none'); return; }
+
+    const btn = document.getElementById('al-save-btn');
+    btn.disabled = true;
+    document.getElementById('al-save-txt').classList.add('d-none');
+    document.getElementById('al-save-load').classList.remove('d-none');
+
+    try {
+      await api.post('/api/loans/', {
+        customer_id: selectedCustomer.customer_id,
+        disbursement_amount: amount,
+        installment_type: document.getElementById('al-inst-type').value,
+        num_installments: numInst,
+        collection_amount: colAmt,
+        disbursement_date: document.getElementById('al-date').value || null,
+        remarks: document.getElementById('al-remarks').value.trim(),
+      });
+      addLoanModal.hide();
+      showToast('Loan created successfully!', 'success');
+      await loadLoans(selectedCustomer.customer_id);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      document.getElementById('al-save-txt').classList.remove('d-none');
+      document.getElementById('al-save-load').classList.add('d-none');
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Reset
   // ---------------------------------------------------------------------------
   function resetToStep1() {
@@ -476,6 +640,8 @@
     document.getElementById('customer-result').innerHTML = '';
     document.getElementById('cust-phone').value = '';
     document.getElementById('step2-card').classList.add('d-none');
+    const addLoanBtn = document.getElementById('add-loan-btn');
+    if (addLoanBtn) addLoanBtn.classList.add('d-none');
   }
 
   init();
