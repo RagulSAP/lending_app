@@ -116,12 +116,19 @@ def list_orgs():
         result = []
         for org in orgs:
             d = model_to_dict(org)
-            d["user_count"] = (
-                db.query(User).filter(User.org_id == org.org_id).count()
+            d["user_count"] = db.query(User).filter(User.org_id == org.org_id).count()
+            d["borrower_count"] = db.query(Customer).filter(Customer.org_id == org.org_id).count()
+            admin = (
+                db.query(User)
+                .filter(User.org_id == org.org_id, User.role_id == Config.ROLE_ADMIN)
+                .order_by(User.id)
+                .first()
             )
-            d["borrower_count"] = (
-                db.query(Customer).filter(Customer.org_id == org.org_id).count()
-            )
+            d["admin_user"] = {
+                "user_id": admin.user_id,
+                "name": admin.name,
+                "phone": admin.phone,
+            } if admin else None
             result.append(d)
 
         return success_response(data=result, total=len(result))
@@ -134,7 +141,8 @@ def list_orgs():
 def update_org(org_id):
     """
     PATCH /api/organizations/<org_id>
-    Editable fields: name, address, phone, status
+    Org fields: name, address, phone, status
+    Admin user fields: admin_name, admin_phone, admin_password
     """
     data = request.get_json(silent=True)
     if not data:
@@ -146,6 +154,7 @@ def update_org(org_id):
         if not org:
             return error_response("Organization not found", 404)
 
+        # --- Org fields ---
         if "name" in data:
             name = (data["name"] or "").strip()
             if not name:
@@ -172,6 +181,44 @@ def update_org(org_id):
             if status not in ("ACTIVE", "INACTIVE"):
                 return error_response("status must be ACTIVE or INACTIVE")
             org.status = status
+
+        # --- Admin user fields ---
+        admin_fields = {"admin_name", "admin_phone", "admin_password"} & data.keys()
+        if admin_fields:
+            admin = (
+                db.query(User)
+                .filter(User.org_id == org_id, User.role_id == Config.ROLE_ADMIN)
+                .order_by(User.id)
+                .first()
+            )
+            if not admin:
+                return error_response("No admin user found for this organization")
+
+            if "admin_name" in data:
+                admin_name = (data["admin_name"] or "").strip()
+                if not admin_name:
+                    return error_response("Admin name must not be empty")
+                admin.name = admin_name
+
+            if "admin_phone" in data:
+                admin_phone = (data["admin_phone"] or "").strip()
+                if admin_phone:
+                    if not admin_phone.isdigit():
+                        return error_response("Admin phone must be numeric")
+                    duplicate = db.query(User).filter(
+                        User.phone == admin_phone,
+                        User.user_id != admin.user_id
+                    ).first()
+                    if duplicate:
+                        return error_response("Admin phone number is already in use")
+                admin.phone = admin_phone or None
+
+            if "admin_password" in data:
+                pwd = data["admin_password"] or ""
+                if pwd:
+                    if len(pwd) < 6:
+                        return error_response("Password must be at least 6 characters")
+                    admin.password = pwd
 
         db.commit()
         return success_response(data=model_to_dict(org), message="Organization updated successfully")

@@ -46,6 +46,7 @@
             <div class="modal-body">
               <div id="edit-org-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <input type="hidden" id="edit-org-id">
+              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Organization Details</h6>
               <div class="row g-3">
                 <div class="col-12">
                   <label class="form-label">Organization Name <span class="text-danger">*</span></label>
@@ -65,6 +66,24 @@
                 <div class="col-12">
                   <label class="form-label">Address</label>
                   <textarea class="form-control" id="edit-org-address" rows="2"></textarea>
+                </div>
+              </div>
+              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Admin User Details</h6>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Admin Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="edit-admin-name">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Admin Phone</label>
+                  <input type="tel" class="form-control" id="edit-admin-phone" maxlength="10">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">New Password <span style="font-size:12px;color:#64748B;">(leave blank to keep current)</span></label>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="edit-admin-password" placeholder="Min 6 characters">
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePass('edit-admin-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -184,6 +203,7 @@
     document.getElementById('org-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
     document.getElementById('admin-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
     document.getElementById('edit-org-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
+    document.getElementById('edit-admin-phone').addEventListener('input', function() { this.value = this.value.replace(/\D/g,'').slice(0,10); });
   }
 
   async function loadOrgs() {
@@ -282,6 +302,9 @@
     document.getElementById('edit-org-phone').value = org.phone || '';
     document.getElementById('edit-org-address').value = org.address || '';
     document.getElementById('edit-org-status').value = org.status || 'ACTIVE';
+    document.getElementById('edit-admin-name').value = org.admin_user?.name || '';
+    document.getElementById('edit-admin-phone').value = org.admin_user?.phone || '';
+    document.getElementById('edit-admin-password').value = '';
     document.getElementById('edit-org-error').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('editOrgModal')).show();
   };
@@ -292,18 +315,27 @@
     const phone = document.getElementById('edit-org-phone').value.trim();
     const address = document.getElementById('edit-org-address').value.trim();
     const status = document.getElementById('edit-org-status').value;
+    const admin_name = document.getElementById('edit-admin-name').value.trim();
+    const admin_phone = document.getElementById('edit-admin-phone').value.trim();
+    const admin_password = document.getElementById('edit-admin-password').value;
     const errEl = document.getElementById('edit-org-error');
     errEl.classList.add('d-none');
 
     if (!name) { errEl.textContent = 'Organization name is required.'; errEl.classList.remove('d-none'); return; }
-    if (phone && !/^\d{10}$/.test(phone)) { errEl.textContent = 'Phone must be 10 digits.'; errEl.classList.remove('d-none'); return; }
+    if (!admin_name) { errEl.textContent = 'Admin name is required.'; errEl.classList.remove('d-none'); return; }
+    if (phone && !/^\d{10}$/.test(phone)) { errEl.textContent = 'Organization phone must be 10 digits.'; errEl.classList.remove('d-none'); return; }
+    if (admin_phone && !/^\d{10}$/.test(admin_phone)) { errEl.textContent = 'Admin phone must be 10 digits.'; errEl.classList.remove('d-none'); return; }
+    if (admin_password && admin_password.length < 6) { errEl.textContent = 'Password must be at least 6 characters.'; errEl.classList.remove('d-none'); return; }
+
+    const payload = { name, phone, address, status, admin_name, admin_phone };
+    if (admin_password) payload.admin_password = admin_password;
 
     const btn = document.getElementById('save-edit-org-btn');
     btn.disabled = true;
     document.getElementById('save-edit-txt').classList.add('d-none');
     document.getElementById('save-edit-load').classList.remove('d-none');
     try {
-      await api.patch(`/api/organizations/${orgId}`, { name, phone, address, status });
+      await api.patch(`/api/organizations/${orgId}`, payload);
       bootstrap.Modal.getInstance(document.getElementById('editOrgModal')).hide();
       showToast('Organization updated successfully!', 'success');
       await loadOrgs();
