@@ -12,6 +12,7 @@
     await initPage('Reports', [1, 2, 5]);
     await loadCategories();
     renderPage();
+    await fetchReportData(activeTab);
   }
 
   async function loadCategories() {
@@ -25,8 +26,6 @@
 
   function renderPage() {
     const today = new Date().toISOString().split('T')[0];
-    const d = new Date();
-    const firstOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
     const catOpts = '<option value="">All Categories</option>' +
       expenseCategories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
 
@@ -60,7 +59,7 @@
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
             <label class="form-label">Date From <span class="text-danger">*</span></label>
-            <input type="date" class="form-control" id="txn-from" value="${firstOfMonth}">
+            <input type="date" class="form-control" id="txn-from" value="${today}">
           </div>
           <div class="form-group">
             <label class="form-label">Date To <span class="text-danger">*</span></label>
@@ -107,10 +106,10 @@
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Date</th><th>Customer</th><th>Loan #</th><th>Amount</th><th>Mode</th><th>Type</th></tr>
+                <tr><th>#</th><th>Date</th><th>Customer</th><th>Onboarded By</th><th>Loan</th><th>Amount</th><th>Mode</th><th>Type</th></tr>
               </thead>
               <tbody id="txn-tbody">
-                <tr><td colspan="7" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="8" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
               </tbody>
             </table>
           </div>
@@ -123,7 +122,7 @@
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
             <label class="form-label">Date From</label>
-            <input type="date" class="form-control" id="loan-from" value="${firstOfMonth}">
+            <input type="date" class="form-control" id="loan-from" value="${today}">
           </div>
           <div class="form-group">
             <label class="form-label">Date To</label>
@@ -166,7 +165,7 @@
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Customer</th><th>Loan #</th><th>Disbursed</th><th>Outstanding</th><th>Rate</th><th>Int. Type</th><th>Status</th><th>Date</th></tr>
+                <tr><th>#</th><th>Customer</th><th>Onboarded By</th><th>Disbursed</th><th>Outstanding</th><th># Instalments</th><th>Collection Amt</th><th>Status</th><th>Date</th></tr>
               </thead>
               <tbody id="loan-tbody">
                 <tr><td colspan="9" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
@@ -182,7 +181,7 @@
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
             <label class="form-label">Date From</label>
-            <input type="date" class="form-control" id="rep-exp-from" value="${firstOfMonth}">
+            <input type="date" class="form-control" id="rep-exp-from" value="${today}">
           </div>
           <div class="form-group">
             <label class="form-label">Date To</label>
@@ -254,7 +253,7 @@
         params.date_to = document.getElementById('txn-to').value;
         params.payment_mode = document.getElementById('txn-mode').value;
         params.transaction_type = document.getElementById('txn-type').value;
-        tbodyId = 'txn-tbody'; colCount = 7; pagId = 'txn-pag'; countId = 'txn-count';
+        tbodyId = 'txn-tbody'; colCount = 8; pagId = 'txn-pag'; countId = 'txn-count';
       } else if (tab === 'loans') {
         params.date_from = document.getElementById('loan-from').value;
         params.date_to = document.getElementById('loan-to').value;
@@ -290,24 +289,21 @@
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date || r.created_at)}</td>
           <td>${r.customer_name || '-'}</td>
-          <td>#${r.loan_id || '-'}</td>
+          <td style="font-size:12px;color:#64748B;">${r.onboarded_by || '-'}</td>
+          <td style="font-size:12px;">${r.loan_id ? r.loan_id.slice(0, 8) + '…' : '-'}</td>
           <td class="fw-600">${formatCurrency(r.amount)}</td>
           <td><span class="badge bg-light text-dark">${r.payment_mode || '-'}</span></td>
-          <td>
-            <span class="badge ${r.transaction_type === 'PAYMENT' ? 'bg-success bg-opacity-10 text-success' : 'bg-info bg-opacity-10 text-info'}">
-              ${r.transaction_type || '-'}
-            </span>
-          </td>
+          <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${r.transaction_type || '-'}</span></td>
         </tr>`).join('');
       } else if (tab === 'loans') {
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${r.customer_name || '-'}</td>
-          <td>#${r.loan_id}</td>
+          <td style="font-size:12px;color:#64748B;">${r.onboarded_by || '-'}</td>
           <td>${formatCurrency(r.disbursement_amount)}</td>
           <td class="fw-600 text-danger">${formatCurrency(r.outstanding_amount || r.balance_amount || 0)}</td>
-          <td>${r.interest_rate || 0}%</td>
-          <td><span class="badge bg-light text-dark">${r.interest_type || '-'}</span></td>
+          <td class="fw-600">${r.num_installments || '-'}</td>
+          <td class="fw-600">${r.installment_amount ? formatCurrency(r.installment_amount) : '-'}</td>
           <td>${statusBadge(r.status)}</td>
           <td>${formatDate(r.disbursement_date || r.created_at)}</td>
         </tr>`).join('');

@@ -5,6 +5,7 @@ import io
 from datetime import datetime
 
 from sqlalchemy import func
+from sqlalchemy.orm import aliased
 
 from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory
 
@@ -84,14 +85,18 @@ def get_transactions_report(
     Returns (records_list, total_count) for transactions within the given org and date range.
     Joins Customer and User to provide human-readable names.
     """
+    CollectorUser = aliased(User)
+    CreatorUser = aliased(User)
     q = (
         db.query(
             Transaction,
             Customer.name.label("customer_name"),
-            User.name.label("user_name"),
+            CollectorUser.name.label("user_name"),
+            CreatorUser.name.label("onboarded_by"),
         )
         .join(Customer, Customer.customer_id == Transaction.customer_id, isouter=True)
-        .join(User, User.user_id == Transaction.user_id, isouter=True)
+        .join(CollectorUser, CollectorUser.user_id == Transaction.user_id, isouter=True)
+        .join(CreatorUser, CreatorUser.user_id == Customer.created_by, isouter=True)
         .filter(
             Transaction.org_id == org_id,
             Transaction.transaction_date >= date_from,
@@ -114,11 +119,12 @@ def get_transactions_report(
     )
 
     records = []
-    for txn, customer_name, user_name in rows:
+    for txn, customer_name, user_name, onboarded_by in rows:
         records.append({
             "transaction_id": txn.transaction_id,
             "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
             "customer_name": customer_name,
+            "onboarded_by": onboarded_by,
             "amount": float(txn.amount) if txn.amount is not None else 0.0,
             "payment_mode": txn.payment_mode,
             "transaction_type": txn.transaction_type,
@@ -141,9 +147,11 @@ def get_loans_report(
     per_page: int = 50,
 ):
     """Returns (records_list, total_count) for loans matching the given filters."""
+    LoanCreator = aliased(User)
     q = (
-        db.query(Loan, Customer.name.label("customer_name"))
+        db.query(Loan, Customer.name.label("customer_name"), LoanCreator.name.label("onboarded_by"))
         .join(Customer, Customer.customer_id == Loan.customer_id, isouter=True)
+        .join(LoanCreator, LoanCreator.user_id == Customer.created_by, isouter=True)
         .filter(Loan.org_id == org_id)
     )
     if date_from:
@@ -164,13 +172,14 @@ def get_loans_report(
     )
 
     records = []
-    for loan, customer_name in rows:
+    for loan, customer_name, onboarded_by in rows:
         records.append({
             "loan_id": loan.loan_id,
             "customer_name": customer_name,
+            "onboarded_by": onboarded_by,
             "disbursement_amount": float(loan.disbursement_amount) if loan.disbursement_amount else 0.0,
-            "interest_rate": float(loan.interest_rate) if loan.interest_rate else 0.0,
-            "interest_type": loan.interest_type,
+            "num_installments": loan.num_installments,
+            "installment_amount": float(loan.installment_amount) if loan.installment_amount else 0.0,
             "installment_type": loan.installment_type,
             "total_payable": float(loan.total_payable) if loan.total_payable else 0.0,
             "total_paid": float(loan.total_paid) if loan.total_paid else 0.0,
