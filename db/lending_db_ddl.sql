@@ -249,8 +249,18 @@ INSERT IGNORE INTO `wallet` (id, wallet_id, balance, org_id, created_at, updated
 VALUES (0, '00000000-0000-0000-0000-000000000001', 0.00,
         '00000000-0000-0000-0000-000000000000', NOW(), NOW());
 
-------
-
-ALTER TABLE `transaction` ADD COLUMN `partner_id` VARCHAR(36) AFTER `wallet_id`;
-CREATE TABLE IF NOT EXISTS `partners` (...);  -- from the DDL
-ALTER TABLE `loans` ADD COLUMN `num_installments` INT AFTER `installment_type`;
+-- ----------------------------------------------------------------
+-- Default expense categories
+-- Replace '<YOUR_ORG_ID>' with the actual org_id from the organizations table
+-- ----------------------------------------------------------------
+INSERT IGNORE INTO `expense_categories` (category_id, org_id, name, description, status) VALUES
+  (UUID(), '<YOUR_ORG_ID>', 'Office Rent',           'Monthly rent for office or branch premises',           'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Staff Salaries',        'Monthly salaries and wages for all staff',             'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Travel & Transport',    'Fuel, vehicle hire and field collection travel costs', 'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Utilities',             'Electricity, water and internet bills',                'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Stationery & Printing', 'Paper, forms, receipts and printing expenses',         'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Legal & Compliance',    'Legal fees, audit charges and regulatory filings',     'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Bank Charges',          'Bank service fees, transaction charges and penalties', 'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Vehicle Maintenance',   'Servicing and repairs for office or field vehicles',   'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Marketing',             'Advertising, pamphlets and promotional activities',    'ACTIVE'),
+  (UUID(), '<YOUR_ORG_ID>', 'Miscellaneous',         'Other operational expenses not covered above',         'ACTIVE');

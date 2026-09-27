@@ -85,17 +85,25 @@
   async function loadAll() {
     try {
       showLoading();
-      const [walletRes, partnerRes] = await Promise.all([
+      const [walletResult, partnerResult] = await Promise.allSettled([
         api.get('/api/wallet'),
         api.get('/api/partners'),
       ]);
-      walletData = walletRes.data;
-      partners = partnerRes.data || [];
-      renderStats(walletData);
+
+      if (partnerResult.status === 'fulfilled') {
+        partners = partnerResult.value.data || [];
+      }
       renderPartners();
-      renderTransactions(walletData.transactions || []);
+
+      if (walletResult.status === 'fulfilled') {
+        walletData = walletResult.value.data;
+        renderStats(walletData);
+        renderTransactions(walletData.transactions || []);
+      } else {
+        renderTransactions([]);
+      }
     } catch (err) {
-      showToast('Failed to load wallet data: ' + err.message, 'danger');
+      showToast('Failed to load data: ' + err.message, 'danger');
     } finally {
       hideLoading();
     }
