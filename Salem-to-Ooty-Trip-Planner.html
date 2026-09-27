@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salem → Ooty | 2-Day Family Trip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pine-deep:#22422C;
+    --pine-line:#3A6146;
+    --tea-green:#5C7A3F;
+    --gold:#C08A3E;
+    --mist:#F0EEE3;
+    --mist-card:#FAF9F2;
+    --charcoal:#22302C;
+    --clay:#A8532F;
+    --line:#D9D3BE;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--mist);
+    color:var(--charcoal);
+    font-family:'Work Sans',sans-serif;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- HERO ---------- */
+  .hero{
+    background:linear-gradient(160deg,var(--pine-deep) 0%,#152B1B 100%);
+    color:var(--mist-card);
+    padding:64px 24px 56px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute;
+    right:-50px; top:-70px;
+    width:260px;height:260px;
+    border:1px solid rgba(240,238,227,0.16);
+    border-radius:50%;
+  }
+  .hero::after{
+    content:"";
+    position:absolute;
+    right:50px; top:50px;
+    width:150px;height:150px;
+    border:1px solid rgba(240,238,227,0.13);
+    border-radius:50%;
+  }
+  .hero-inner{max-width:832px;margin:0 auto;position:relative;z-index:1;}
+  .route-line{
+    display:flex; align-items:center; gap:10px;
+    font-size:0.95rem; letter-spacing:0.02em;
+    color:#D6E2C9; margin-bottom:22px; flex-wrap:wrap;
+  }
+  .route-line .arrow{opacity:0.5;}
+  h1.title{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:clamp(2.2rem,5vw,3.4rem);
+    line-height:1.06;
+    margin:0 0 18px;
+    max-width:600px;
+  }
+  .hero-sub{
+    font-size:1.08rem;
+    color:#DEE5D2;
+    max-width:520px;
+    margin:0 0 28px;
+  }
+  .hero-facts{
+    display:flex; gap:28px; flex-wrap:wrap;
+    padding-top:22px;
+    border-top:1px solid rgba(240,238,227,0.2);
+  }
+  .fact .num{font-family:'Fraunces',serif;font-size:1.7rem;color:var(--gold);font-weight:600;}
+  .fact .label{font-size:0.82rem;color:#C3D0B4;margin-top:2px;}
+
+  /* ---------- SECTION LABELS ---------- */
+  .section-head{
+    margin:64px 0 6px;
+    display:flex;
+    align-items:baseline;
+    gap:14px;
+  }
+  .section-head .day-tag{
+    font-family:'Fraunces',serif;
+    font-size:2.6rem;
+    font-weight:600;
+    color:var(--pine-deep);
+    line-height:1;
+  }
+  .section-head .day-meta h2{
+    font-family:'Fraunces',serif;
+    font-size:1.5rem;
+    margin:0 0 4px;
+    font-weight:600;
+    color:var(--charcoal);
+  }
+  .section-head .day-meta p{
+    margin:0; font-size:0.92rem; color:var(--pine-line); font-weight:600;
+  }
+  .day-intro{
+    margin:14px 0 26px;
+    color:#4B564F;
+    max-width:640px;
+    font-size:0.98rem;
+  }
+
+  /* ---------- TIMELINE ---------- */
+  .timeline{
+    border-left:2px solid var(--line);
+    margin-left:6px;
+    padding-left:28px;
+  }
+  .stop{position:relative;padding-bottom:26px;}
+  .stop:last-child{padding-bottom:4px;}
+  .stop::before{
+    content:"";
+    position:absolute;
+    left:-33px; top:4px;
+    width:10px;height:10px;
+    border-radius:50%;
+    background:var(--mist);
+    border:2px solid var(--tea-green);
+  }
+  .stop .time{
+    font-weight:700;font-size:0.82rem;letter-spacing:0.03em;
+    color:var(--clay);margin-bottom:3px;
+  }
+  .stop .what{font-weight:600;font-size:1.02rem;color:var(--charcoal);margin-bottom:4px;}
+  .stop .desc{font-size:0.94rem;color:#51584F;max-width:560px;}
+  .stop .tag{
+    display:inline-block;font-size:0.72rem;font-weight:600;
+    padding:2px 9px;border-radius:20px;
+    background:rgba(92,122,63,0.14);color:var(--tea-green);
+    margin-left:8px;position:relative;top:-1px;
+  }
+  .stop .tag.optional{background:rgba(192,138,62,0.18);color:#8A5F1F;}
+
+  /* ---------- CARDS ---------- */
+  .card-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:22px;}
+  .card{
+    background:var(--mist-card);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px 22px;
+  }
+  .pick{padding:12px 0;border-top:1px solid var(--line);}
+  .pick:first-of-type{border-top:none;padding-top:2px;}
+  .pick .pick-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+  .pick .pick-name{font-weight:600;font-size:0.98rem;}
+  .pick .pick-price{font-size:0.82rem;font-weight:700;color:var(--tea-green);white-space:nowrap;}
+  .pick .pick-desc{font-size:0.88rem;color:#54594F;margin-top:3px;}
+  .note{
+    font-size:0.84rem;color:#7A6F52;margin-top:14px;
+    padding-top:12px;border-top:1px dashed var(--line);
+  }
+
+  /* ---------- TIP BOX ---------- */
+  .tip-box{
+    background:#EEF0E4;
+    border:1px solid #D6D9C4;
+    border-radius:4px;
+    padding:22px 24px;
+    margin-top:20px;
+  }
+  .tip-box h3{
+    font-family:'Fraunces',serif;
+    color:var(--tea-green);
+    margin:0 0 12px;
+    font-size:1.05rem;
+  }
+  .tip-box ul{margin:0;padding-left:20px;}
+  .tip-box li{margin-bottom:8px;font-size:0.94rem;}
+  .tip-box li:last-child{margin-bottom:0;}
+
+  /* ---------- ROUTE STRIP ---------- */
+  .route-strip{
+    display:flex;justify-content:space-between;
+    background:var(--pine-deep);color:#EEEAD8;
+    border-radius:4px;padding:16px 22px;margin-top:22px;
+    font-size:0.86rem;flex-wrap:wrap;gap:10px;
+  }
+  .route-strip .r-item{text-align:center;flex:1;min-width:80px;}
+  .route-strip .r-item .r-val{font-weight:700;color:var(--gold);font-family:'Fraunces',serif;font-size:1.1rem;}
+
+  hr.div{border:none;border-top:1px solid var(--line);margin:56px 0 0;}
+
+  footer{text-align:center;padding:40px 24px 60px;color:#7C7259;font-size:0.85rem;}
+
+  @media (max-width:600px){
+    .hero{padding:48px 20px 44px;}
+    .section-head .day-tag{font-size:2rem;}
+    .timeline{padding-left:20px;}
+    .stop::before{left:-25px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="route-line">
+      <span>SALEM</span><span class="arrow">→</span>
+      <span>ERODE</span><span class="arrow">→</span>
+      <span>COIMBATORE</span><span class="arrow">→</span>
+      <span>METTUPALAYAM</span><span class="arrow">→</span>
+      <span>OOTY</span>
+    </div>
+    <h1 class="title">A quick hill-station escape to Ooty</h1>
+    <p class="hero-sub">2 days, 1 night &mdash; down through Erode and Coimbatore, up the Nilgiri ghat road, a relaxed evening and morning in Ooty, and back before dark. A longer drive than it looks on the map, so this plan paces it accordingly.</p>
+    <div class="hero-facts">
+      <div class="fact"><div class="num">~217 km</div><div class="label">Salem to Ooty</div></div>
+      <div class="fact"><div class="num">2</div><div class="label">Days</div></div>
+      <div class="fact"><div class="num">1</div><div class="label">Night in Ooty</div></div>
+      <div class="fact"><div class="num">3</div><div class="label">Travelling as</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ================= DAY 1 ================= -->
+  <div class="section-head">
+    <div class="day-tag">01</div>
+    <div class="day-meta">
+      <h2>Salem to Ooty</h2>
+      <p>Drive up, settle in, and see the lake &amp; gardens by evening</p>
+    </div>
+  </div>
+  <p class="day-intro">It's a longer drive than the map distance suggests &mdash; plan on roughly 5 hours of actual driving before the ghat section even begins, so an early start matters more than it would for a short trip.</p>
+
+  <div class="timeline">
+    <div class="stop">
+      <div class="time">6:30 AM</div>
+      <div class="what">Depart Salem</div>
+      <div class="desc">An early start keeps the whole afternoon free in Ooty and gets you up the ghat before it's crowded. Let your daughter sleep through the first stretch if she wants to &mdash; the flat highway section to Erode/Coimbatore is the easiest part to nap through.</div>
+    </div>
+    <div class="stop">
+      <div class="time">8:00 AM &middot; ~65 km</div>
+      <div class="what">Erode <span class="tag optional">breakfast stop</span></div>
+      <div class="desc">A natural first break on NH544 &mdash; washroom, breakfast, fuel.</div>
+    </div>
+    <div class="stop">
+      <div class="time">9:45 AM &middot; ~100 km</div>
+      <div class="what">Coimbatore <span class="tag optional">stretch break</span></div>
+      <div class="desc">Quick stop only &mdash; save the sightseeing energy for Ooty. This is roughly the last flat, fast stretch before the road starts climbing.</div>
+    </div>
+    <div class="stop">
+      <div class="time">10:30 AM &middot; ~35 km</div>
+      <div class="what">Mettupalayam</div>
+      <div class="desc">Last town before the climb begins. Good spot for a final washroom break, top up fuel, and let her stretch her legs before the bends start.</div>
+    </div>
+    <div class="stop">
+      <div class="time">11:00 AM &middot; ~20 km of ghat road</div>
+      <div class="what">The climb: 36 hairpin bends to Coonoor</div>
+      <div class="desc">Slow, scenic, and occasionally queasy for young kids &mdash; keep her seated with a light snack and watch for motion sickness. A few viewpoints with parking let you stop for photos of the valley below.</div>
+    </div>
+    <div class="stop">
+      <div class="time">12:15 PM</div>
+      <div class="what">Coonoor <span class="tag optional">optional stop</span></div>
+      <div class="desc">Sim's Park is a small, pretty garden if she needs to run off some energy before the final stretch to Ooty.</div>
+    </div>
+    <div class="stop">
+      <div class="time">1:00 PM &middot; ~18 km</div>
+      <div class="what">Arrive Ooty, check in, lunch</div>
+      <div class="desc">Settle in and have a proper lunch before heading back out &mdash; Ooty's town centre (Charing Cross) has plenty of options within a short drive of most budget hotels.</div>
+    </div>
+    <div class="stop">
+      <div class="time">3:00 PM</div>
+      <div class="what">Ooty Lake</div>
+      <div class="desc">Boating on the lake is the easy, obvious win with a 4-year-old &mdash; pedal boats or a rowed boat with a boatman both work well. Budget an hour here.</div>
+    </div>
+    <div class="stop">
+      <div class="time">4:30 PM</div>
+      <div class="what">Government Botanical Garden</div>
+      <div class="desc">Wide lawns, a toy train replica, and a fossil tree exhibit that kids tend to like. Good for an unhurried wander before it cools down further.</div>
+    </div>
+    <div class="stop">
+      <div class="time">6:15 PM</div>
+      <div class="what">Charing Cross &amp; Commercial Road</div>
+      <div class="desc">Ooty's town centre &mdash; homemade chocolate shops, eucalyptus oil stalls, and warm woollens if you didn't pack enough layers. An easy, walkable way to close the day.</div>
+    </div>
+    <div class="stop">
+      <div class="time">7:30 PM</div>
+      <div class="what">Dinner <span class="tag optional">see food picks below</span></div>
+    </div>
+  </div>
+
+  <div class="route-strip">
+    <div class="r-item"><div class="r-val">~217 km</div>total distance</div>
+    <div class="r-item"><div class="r-val">~5 hrs</div>drive time</div>
+    <div class="r-item"><div class="r-val">3</div>major breaks</div>
+    <div class="r-item"><div class="r-val">2,240 m</div>Ooty's altitude</div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= DAY 2 ================= -->
+  <div class="section-head">
+    <div class="day-tag">02</div>
+    <div class="day-meta">
+      <h2>Ooty Morning &amp; Drive Back</h2>
+      <p>One good viewpoint, a tea stop, then home before evening</p>
+    </div>
+  </div>
+  <p class="day-intro">Keep this morning short and specific rather than trying to fit in everything Ooty offers &mdash; one peak, one tea estate, and the drive back with daylight to spare.</p>
+
+  <div class="timeline">
+    <div class="stop">
+      <div class="time">8:00 AM</div>
+      <div class="what">Breakfast at the hotel</div>
+    </div>
+    <div class="stop">
+      <div class="time">9:00 AM &middot; ~10 km</div>
+      <div class="what">Doddabetta Peak</div>
+      <div class="desc">The highest point in the Nilgiris, with a viewpoint and small telescope house. Go early &mdash; it can get misty and crowded by mid-morning. A short, easy walk from the car park.</div>
+    </div>
+    <div class="stop">
+      <div class="time">10:30 AM</div>
+      <div class="what">Tea estate &amp; factory visit</div>
+      <div class="desc">Several tea factories near town (e.g. around Doddabetta / Ooty&ndash;Coonoor road) offer quick, free-ish tours showing how tea is processed, ending in a tasting counter &mdash; usually a hit with kids for the machinery alone.</div>
+    </div>
+    <div class="stop">
+      <div class="time">12:00 PM</div>
+      <div class="what">Lunch in Ooty</div>
+    </div>
+    <div class="stop">
+      <div class="time">12:30 PM</div>
+      <div class="what">Check out &amp; depart</div>
+      <div class="desc">With ~5 hours of driving ahead, an early-afternoon start still gets you home at a reasonable hour without rushing the ghat section.</div>
+    </div>
+    <div class="stop">
+      <div class="time">~5:30 PM &middot; back in Salem</div>
+      <div class="what">Arrive home</div>
+      <div class="desc">Same route back down through Coonoor, Mettupalayam, Coimbatore and Erode &mdash; stop wherever your daughter needs a break, and keep a snack stop in hand for the last flat stretch.</div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h3>If you have an extra hour on Day 2</h3>
+    <ul>
+      <li><strong>Nilgiri Mountain Railway</strong> &mdash; the toy train's short Ooty&ndash;Lovedale stretch is a fun, low-effort ride if timings line up with your schedule; check the current timetable locally, as it changes seasonally.</li>
+      <li><strong>Rose Garden</strong> is a gentler, flatter alternative to the Botanical Garden if you didn't get to it on Day 1.</li>
+    </ul>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= STAY ================= -->
+  <div class="section-head" style="margin-top:56px;">
+    <div class="day-meta" style="max-width:100%;">
+      <h2 style="font-size:1.9rem;">Where to stay in Ooty</h2>
+      <p>Budget rooms, roughly ₹1,000&ndash;1,500 a night, in Ooty town</p>
+    </div>
+  </div>
+  <p class="day-intro">Staying close to Charing Cross keeps you a short drive (or even a walk) from the lake, gardens and market, which matters more than usual with a toddler at the end of a travel day.</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Hotel Tamil Nadu (TTDC), Charing Cross</div>
+          <div class="pick-price">₹1,000&ndash;1,400</div>
+        </div>
+        <div class="pick-desc">A government-run budget hotel right in the town centre &mdash; simple rooms, reliable hot water, and easy walking access to the lake, market and gardens. A dependable, no-surprises option for a one-night stay.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Vinayaga Inn by Poppys, Garden Road</div>
+          <div class="pick-price">₹1,300&ndash;1,500</div>
+        </div>
+        <div class="pick-desc">Close to the city centre with parking on site &mdash; useful for a family arriving by car and not wanting to move it again until check-out.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top">
+          <div class="pick-name">Budget lodges around Upper Bazaar / Fern Hill</div>
+          <div class="pick-price">₹1,000&ndash;1,500</div>
+        </div>
+        <div class="pick-desc">Several smaller family-run lodges (rooms bookable via OYO/Treebo) sit in this range, a short drive from the main attractions &mdash; good if the two named options above are full.</div>
+      </div>
+      <div class="note">Ooty hotel rates rise sharply in peak season (April&ndash;June, and the Christmas/New Year week), so a ₹1,000&ndash;1,500 room is easiest to find outside those windows. Book a few days ahead and confirm hot water and parking, since both matter more here than in the plains.</div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= FOOD ================= -->
+  <div class="section-head" style="margin-top:56px;">
+    <div class="day-meta" style="max-width:100%;">
+      <h2 style="font-size:1.9rem;">Where to eat</h2>
+      <p>Easy, family-friendly options near the town centre</p>
+    </div>
+  </div>
+  <div class="card-grid">
+    <div class="card">
+      <div class="pick">
+        <div class="pick-top"><div class="pick-name">Hotel Tamil Nadu's own restaurant</div></div>
+        <div class="pick-desc">Simple, familiar South Indian meals if you're staying there &mdash; one less thing to plan after a long drive.</div>
+      </div>
+      <div class="pick">
+        <div class="pick-top"><div class="pick-name">Charing Cross &amp; Commercial Road eateries</div></div>
+        <div class="pick-desc">A cluster of casual restaurants and bakeries within walking distance of most budget hotels &mdash; good for grabbing dinner without another drive.</div>
+      </div>
+      <div class="note">Ooty isn't especially known for non-veg specialities the way Kochi is &mdash; expect standard South Indian and North Indian multi-cuisine menus rather than a signature local dish, with the tea shops and bakeries being the real local specialty.</div>
+    </div>
+  </div>
+
+  <hr class="div">
+
+  <!-- ================= TIPS ================= -->
+  <div class="section-head" style="margin-top:56px;">
+    <div class="day-meta" style="max-width:100%;">
+      <h2 style="font-size:1.9rem;">A few things worth knowing</h2>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <h3>Before you leave</h3>
+    <ul>
+      <li>Pack a light jacket or sweater for all three of you &mdash; Ooty is noticeably cold in the morning and evening even outside winter.</li>
+      <li>If your daughter tends to get car-sick, keep something in reach for the ghat section specifically &mdash; that's where it's most likely to show up.</li>
+    </ul>
+  </div>
+
+  <div class="tip-box" style="margin-top:14px;">
+    <h3>On the road</h3>
+    <ul>
+      <li>The ghat road is narrow with frequent buses and lorries &mdash; budget more time than the distance suggests, and avoid overtaking on blind bends.</li>
+      <li>Fuel up in Mettupalayam; stations thin out once you're on the climb.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  Salem &rarr; Ooty &middot; 2 days, 1 night &middot; built for a family of three
+</footer>
+
+</body>
+</html>

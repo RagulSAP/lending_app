@@ -1,6 +1,6 @@
 -- =============================================================
 -- LendTrack — Complete Database DDL
--- Incorporates: original schema + 001_v1_updates + 002_add_created_by_and_fix_timestamps
+-- Incorporates: original schema + 001_v1_updates + 002_add_created_by_and_fix_timestamps + 003_fix_autoincrement
 -- Engine: InnoDB  |  Charset: utf8mb4
 -- =============================================================
 
