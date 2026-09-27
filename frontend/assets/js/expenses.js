@@ -293,7 +293,7 @@
             <td>${e.category_name || '-'}</td>
             <td class="fw-600 text-danger">${formatCurrency(e.expense_amount)}</td>
             <td>${e.entered_by || '-'}</td>
-            <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
                 title="${safeRemark}">${e.expense_remark || e.remark || '-'}</td>
             ${canManage ? `<td>
               <div class="d-flex gap-1">

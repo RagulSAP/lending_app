@@ -74,11 +74,11 @@
           font-weight: 700; font-size: 15px; color: #fff;
           flex-shrink: 0;
         }
-        .session-meta span { font-size: 12px; color: #64748B; }
+        .session-meta span { font-size: 13px; color: #64748B; }
         .action-badge {
           display: inline-flex; align-items: center; gap: 4px;
-          padding: 3px 10px; border-radius: 20px;
-          font-size: 11px; font-weight: 600;
+          padding: 4px 10px; border-radius: 20px;
+          font-size: 12px; font-weight: 600;
         }
 
         /* ── Drawer ── */
@@ -149,16 +149,16 @@
           margin-bottom: 4px;
         }
         .tl-meta {
-          font-size: 11.5px; color: #64748B;
+          font-size: 12.5px; color: #64748B;
           display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
         }
         .tl-status {
-          display: inline-block; padding: 1px 8px;
-          border-radius: 10px; font-size: 11px; font-weight: 600;
+          display: inline-block; padding: 2px 9px;
+          border-radius: 10px; font-size: 12px; font-weight: 600;
         }
         .tl-time-badge {
-          font-size: 10.5px; color: #94A3B8;
-          background: #F1F5F9; padding: 2px 8px; border-radius: 10px;
+          font-size: 12px; color: #94A3B8;
+          background: #F1F5F9; padding: 3px 9px; border-radius: 10px;
         }
 
         @keyframes dotPulse {
@@ -183,28 +183,30 @@
       </style>
 
       <!-- Filter bar -->
-      <div class="d-flex flex-wrap gap-2 align-items-end mb-4">
-        <div>
-          <label class="form-label mb-1 small fw-semibold text-secondary">From</label>
-          <input type="date" id="flt-from" class="form-control form-control-sm" value="${today}">
+      <div class="filter-bar mb-4">
+        <div class="form-group">
+          <label class="form-label">From</label>
+          <input type="date" id="flt-from" class="form-control" value="${today}">
         </div>
-        <div>
-          <label class="form-label mb-1 small fw-semibold text-secondary">To</label>
-          <input type="date" id="flt-to" class="form-control form-control-sm" value="${today}">
+        <div class="form-group">
+          <label class="form-label">To</label>
+          <input type="date" id="flt-to" class="form-control" value="${today}">
         </div>
-        <div>
-          <label class="form-label mb-1 small fw-semibold text-secondary">User</label>
-          <select id="flt-user" class="form-select form-select-sm" style="min-width:160px">
+        <div class="form-group">
+          <label class="form-label">User</label>
+          <select id="flt-user" class="form-select">
             <option value="">All users</option>
           </select>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="auditPage.search()">
-          <i class="bi bi-search me-1"></i>Search
-        </button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="auditPage.clearFilters()">
-          <i class="bi bi-x-circle me-1"></i>Clear
-        </button>
-        <span id="session-count" class="ms-auto small text-secondary align-self-center"></span>
+        <div class="d-flex gap-2 align-items-end flex-wrap">
+          <button class="btn btn-primary" onclick="auditPage.search()">
+            <i class="bi bi-search me-1"></i>Search
+          </button>
+          <button class="btn btn-outline-secondary" onclick="auditPage.clearFilters()">
+            <i class="bi bi-x-circle me-1"></i>Clear
+          </button>
+        </div>
+        <span id="session-count" class="small text-secondary align-self-center ms-auto"></span>
       </div>
 
       <!-- Session grid -->
@@ -325,7 +327,7 @@
             </div>
             <i class="bi bi-chevron-right text-secondary"></i>
           </div>
-          <div class="mt-2" style="font-size:10px; color:#CBD5E1; font-family:monospace;">${sidShort}</div>
+          <div class="mt-2" style="font-size:11.5px; color:#CBD5E1; font-family:monospace;">${sidShort}</div>
         </div>
       </div>`;
   }
@@ -414,7 +416,7 @@
           <div class="tl-content">
             <div class="tl-action">${esc(a.action)}</div>
             <div class="tl-meta">
-              ${a.endpoint ? `<span class="text-truncate" style="max-width:180px; font-family:monospace; font-size:11px;">${esc(a.method || a.http_method || '')} ${esc(a.endpoint)}</span>` : ''}
+              ${a.endpoint ? `<span class="text-truncate" style="max-width:200px; font-family:monospace; font-size:12.5px;">${esc(a.http_method || '')} ${esc(a.endpoint)}</span>` : ''}
               ${sc ? `<span class="tl-status" style="background:${scBg}; color:${scColor};">${sc}</span>` : ''}
               <span class="tl-time-badge">${timeStr}</span>
               <span class="tl-time-badge" style="color:#6366F1;">${elStr}</span>

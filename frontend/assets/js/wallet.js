@@ -373,7 +373,7 @@
                     <div id="tc-amount" style="font-size:22px;font-weight:700;color:#2563EB;"></div>
                     <div id="tc-amount-words" style="font-size:11px;color:#4F46E5;font-style:italic;margin-top:2px;"></div>
                   </div>
-                  <div class="mb-2" style="display:flex;gap:24px;">
+                  <div class="mb-2" style="display:flex;gap:24px;flex-wrap:wrap;">
                     <div>
                       <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Partner</div>
                       <div id="tc-partner" style="font-size:13px;font-weight:600;"></div>

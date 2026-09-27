@@ -166,18 +166,18 @@
                     <input type="number" class="form-control" id="l-collection" placeholder="e.g. 1000" min="1" step="1">
                   </div>
                   <div class="col-12" id="l-summary" style="display:none;">
-                    <div class="row g-0 text-center" style="background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;overflow:hidden;">
-                      <div class="col-4 p-2" style="border-right:1px solid #BFDBFE;">
-                        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
+                    <div style="display:flex;flex-wrap:wrap;text-align:center;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;overflow:hidden;">
+                      <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
+                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
                         <div id="l-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">&#8377; 0</div>
                       </div>
-                      <div class="col-4 p-2" style="border-right:1px solid #BFDBFE;">
-                        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
+                      <div style="flex:1;min-width:120px;padding:10px 8px;">
+                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
                         <div id="l-interest" style="font-size:15px;font-weight:700;color:#16A34A;">&#8377; 0</div>
                       </div>
-                      <div class="col-4 p-2">
-                        <div style="font-size:10px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Disbursement Date</div>
-                        <input type="date" class="form-control form-control-sm text-center p-1" id="l-date" style="font-size:12px;">
+                      <div style="flex:1 0 100%;padding:8px 10px;border-top:1px solid #BFDBFE;">
+                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Disbursement Date</div>
+                        <input type="date" class="form-control text-center" id="l-date">
                       </div>
                     </div>
                   </div>
