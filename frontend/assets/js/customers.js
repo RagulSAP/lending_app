@@ -199,7 +199,9 @@
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">Area / Locality</label>
-                  <input type="text" class="form-control" id="e-area" placeholder="Area">
+                  <select class="form-select" id="e-area">
+                    <option value="">-- Select Area --</option>
+                  </select>
                 </div>
                 <div class="col-md-3">
                   <label class="form-label">City <span class="text-danger">*</span></label>
@@ -464,7 +466,16 @@
       document.getElementById('e-name').value = c.name || '';
       document.getElementById('e-phone').value = c.phone || '';
       document.getElementById('e-pincode').value = c.pincode || '';
-      document.getElementById('e-area').value = c.area || '';
+      const areaEl = document.getElementById('e-area');
+      if (c.area) {
+        const existing = areaEl.querySelector(`option[value="${c.area}"]`);
+        if (!existing) {
+          const opt = document.createElement('option');
+          opt.value = c.area; opt.textContent = c.area;
+          areaEl.appendChild(opt);
+        }
+        areaEl.value = c.area;
+      }
       document.getElementById('e-city').value = c.city || '';
       document.getElementById('e-state').value = c.state || '';
       document.getElementById('e-address').value = c.address || '';

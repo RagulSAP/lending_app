@@ -300,11 +300,10 @@
         document.getElementById(stateId).value = po.State || '';
         if (areaId) {
           const areaEl = document.getElementById(areaId);
-          const datalistId = areaId + '-list';
-          let dl = document.getElementById(datalistId);
-          if (!dl) { dl = document.createElement('datalist'); dl.id = datalistId; areaEl.setAttribute('list', datalistId); areaEl.parentNode.appendChild(dl); }
-          dl.innerHTML = offices.map(o => `<option value="${o.Name}">`).join('');
-          if (!areaEl.value) areaEl.value = offices[0].Name;
+          areaEl.innerHTML = '<option value="">-- Select Area --</option>' +
+            offices.map(o => `<option value="${o.Name}">${o.Name}</option>`).join('');
+          areaEl.value = '';
+          areaEl.disabled = false;
         }
         if (feedbackEl) { feedbackEl.textContent = '✓ Filled'; feedbackEl.style.color = '#16a34a'; }
       } else {

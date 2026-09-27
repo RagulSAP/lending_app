@@ -62,7 +62,9 @@
               </div>
               <div class="col-md-3">
                 <label class="form-label">Area / Locality</label>
-                <input type="text" class="form-control" id="f-area" placeholder="Area">
+                <select class="form-select" id="f-area" disabled>
+                  <option value="">Enter pincode first</option>
+                </select>
               </div>
               <div class="col-md-3">
                 <label class="form-label">City <span class="text-danger">*</span></label>
