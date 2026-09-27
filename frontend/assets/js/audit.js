@@ -25,7 +25,8 @@
   }
 
   /* ── State ───────────────────────────────────────────────────────────────── */
-  let _animTimer = null;
+  let _animTimer   = null;
+  let _sessionsMap = {};   // session_id → session object
 
   /* ── Bootstrap ───────────────────────────────────────────────────────────── */
   function init() {
@@ -276,6 +277,8 @@
         return;
       }
 
+      _sessionsMap = {};
+      sessions.forEach(s => { _sessionsMap[s.session_id] = s; });
       grid.innerHTML = sessions.map(s => sessionCardHTML(s)).join('');
     } catch (err) {
       grid.innerHTML = `<div class="col-12"><div class="audit-empty text-danger"><i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>${err.message}</div></div>`;
@@ -295,7 +298,7 @@
     return `
       <div class="col-12 col-md-6 col-xl-4">
         <div class="session-card" style="--role-color:${roleColor}; border-left: 4px solid ${roleColor};"
-             onclick="auditPage.openSession('${sid}', ${JSON.stringify(s).replace(/'/g, "\\'")})">
+             onclick="auditPage.openSession('${sid}')">
           <div class="d-flex align-items-center gap-3 mb-3">
             <div class="session-avatar" style="background:${roleColor}">${initials}</div>
             <div class="flex-1">
@@ -328,7 +331,8 @@
   }
 
   /* ── Open session detail ─────────────────────────────────────────────────── */
-  async function openSession(sessionId, sessionMeta) {
+  async function openSession(sessionId) {
+    const sessionMeta = _sessionsMap[sessionId] || {};
     const drawer  = document.getElementById('audit-drawer');
     const overlay = document.getElementById('audit-overlay');
     const wrap    = document.getElementById('timeline-wrap');
