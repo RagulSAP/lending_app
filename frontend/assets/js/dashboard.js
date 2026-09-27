@@ -85,15 +85,23 @@
       </div>
       <div class="row g-3 mb-4" id="kpi-row"></div>
       <div class="row g-4">
-        <div class="col-lg-5">
+        <div class="col-lg-4">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Loan Status Breakdown</h6></div>
             <div style="display:flex;align-items:center;justify-content:center;min-height:240px;">
-              <canvas id="loan-chart" width="260" height="260"></canvas>
+              <canvas id="loan-chart" width="240" height="240"></canvas>
             </div>
           </div>
         </div>
-        <div class="col-lg-7">
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header-flex"><h6 class="card-title">Customer Loan Status</h6></div>
+            <div style="display:flex;align-items:center;justify-content:center;min-height:240px;">
+              <canvas id="customer-chart" width="240" height="240"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
           <div class="card h-100">
             <div class="card-header-flex">
               <h6 class="card-title">Recent Transactions</h6>
@@ -121,13 +129,12 @@
         <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon amber"><i class="bi bi-receipt"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.expenses_this_month || 0)}</div><div class="stat-label">Expenses This Month</div></div></div></div>
         <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon pink"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">${s.active_customers || 0}</div><div class="stat-label">Active Customers</div></div></div></div>`;
 
-      // Chart
-      const activeOnly = Math.max((s.total_active_loans || 0) - (s.overdue_count || 0), 0);
+      // Loan status chart
+      const activeOnly   = Math.max((s.total_active_loans || 0) - (s.overdue_count || 0), 0);
       const overdueCount = s.overdue_count || 0;
-      const chartCard = document.getElementById('loan-chart').closest('.card');
+      const loanChartCard = document.getElementById('loan-chart').closest('.card');
       if (typeof Chart !== 'undefined') {
-        const ctx = document.getElementById('loan-chart').getContext('2d');
-        new Chart(ctx, {
+        new Chart(document.getElementById('loan-chart').getContext('2d'), {
           type: 'doughnut',
           data: {
             labels: ['Active', 'Overdue'],
@@ -136,13 +143,38 @@
           options: { responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12, family: 'Inter' }, padding: 16 } } }, cutout: '68%' }
         });
       } else {
-        chartCard.querySelector('div[style]').innerHTML = `
+        loanChartCard.querySelector('div[style]').innerHTML = `
           <div class="p-4 text-center" style="min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;">
             <div style="font-size:36px;font-weight:700;color:#2563EB;">${activeOnly}</div>
             <div style="font-size:13px;color:#64748B;">Active Loans</div>
             <div style="width:60px;height:2px;background:#e2e8f0;"></div>
             <div style="font-size:36px;font-weight:700;color:#DC2626;">${overdueCount}</div>
             <div style="font-size:13px;color:#64748B;">Overdue Loans</div>
+          </div>`;
+      }
+
+      // Customer loan status chart
+      const custActive    = s.customers_with_active_loans    || 0;
+      const custCompleted = s.customers_with_completed_loans || 0;
+      const custNone      = s.customers_without_loans        || 0;
+      const custChartCard = document.getElementById('customer-chart').closest('.card');
+      if (typeof Chart !== 'undefined') {
+        new Chart(document.getElementById('customer-chart').getContext('2d'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Active Loan', 'Completed', 'No Loan'],
+            datasets: [{ data: [custActive, custCompleted, custNone], backgroundColor: ['#2563EB','#16A34A','#94A3B8'], borderWidth: 0, hoverOffset: 6 }]
+          },
+          options: { responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12, family: 'Inter' }, padding: 14 } } }, cutout: '68%' }
+        });
+      } else {
+        custChartCard.querySelector('div[style]').innerHTML = `
+          <div class="p-4 text-center" style="min-height:240px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;">
+            <div style="font-size:32px;font-weight:700;color:#2563EB;">${custActive}</div><div style="font-size:12px;color:#64748B;">Active Loan</div>
+            <div style="width:50px;height:1px;background:#e2e8f0;"></div>
+            <div style="font-size:32px;font-weight:700;color:#16A34A;">${custCompleted}</div><div style="font-size:12px;color:#64748B;">Completed</div>
+            <div style="width:50px;height:1px;background:#e2e8f0;"></div>
+            <div style="font-size:32px;font-weight:700;color:#94A3B8;">${custNone}</div><div style="font-size:12px;color:#64748B;">No Loan</div>
           </div>`;
       }
 

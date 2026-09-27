@@ -3,7 +3,7 @@ Role-aware dashboard aggregation queries.
 All functions accept a SQLAlchemy session (db) and return plain dicts.
 """
 from datetime import date, timedelta
-from sqlalchemy import func
+from sqlalchemy import func, distinct
 from models import Customer, Loan, Transaction, Wallet, User, Organization
 from config import Config
 
@@ -100,6 +100,38 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
+    # Customer loan status breakdown
+    _active_loan_custs = (
+        db.query(Loan.customer_id)
+        .filter(Loan.org_id == org_id, Loan.status.in_(["ACTIVE", "OVERDUE"]))
+        .distinct()
+        .subquery()
+    )
+    _any_loan_custs = (
+        db.query(Loan.customer_id)
+        .filter(Loan.org_id == org_id)
+        .distinct()
+        .subquery()
+    )
+    customers_with_active_loans = (
+        db.query(func.count(Customer.customer_id))
+        .filter(Customer.org_id == org_id, Customer.customer_id.in_(_active_loan_custs))
+        .scalar() or 0
+    )
+    customers_without_loans = (
+        db.query(func.count(Customer.customer_id))
+        .filter(Customer.org_id == org_id, Customer.customer_id.notin_(_any_loan_custs))
+        .scalar() or 0
+    )
+    total_all_customers = (
+        db.query(func.count(Customer.customer_id))
+        .filter(Customer.org_id == org_id)
+        .scalar() or 0
+    )
+    customers_with_completed_loans = max(
+        total_all_customers - customers_with_active_loans - customers_without_loans, 0
+    )
+
     # Recent loan collection transactions
     recent_raw = (
         db.query(
@@ -141,6 +173,9 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         "wallet_balance": round(wallet_balance, 2),
         "expenses_this_month": round(expenses_this_month, 2),
         "active_customers": active_customers,
+        "customers_with_active_loans": customers_with_active_loans,
+        "customers_with_completed_loans": customers_with_completed_loans,
+        "customers_without_loans": customers_without_loans,
         "recent_transactions": recent_transactions,
     }
 
