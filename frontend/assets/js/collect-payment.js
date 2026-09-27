@@ -500,6 +500,7 @@
                 <div class="col-md-6">
                   <label class="form-label">Loan Amount (₹) <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-amount" placeholder="e.g. 10000" min="1" step="1">
+                  <span id="al-wallet-balance" style="font-size:12px;"></span>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Installment Type <span class="text-danger">*</span></label>
@@ -555,10 +556,27 @@
     document.getElementById('al-save-btn').addEventListener('click', submitAddLoan);
 
     function updateSummary() {
-      const amount = parseFloat(document.getElementById('al-amount').value) || 0;
+      const amtEl = document.getElementById('al-amount');
+      const amount = parseFloat(amtEl.value) || 0;
       const n = parseInt(document.getElementById('al-num-inst').value) || 0;
       const col = parseFloat(document.getElementById('al-collection').value) || 0;
       const summaryEl = document.getElementById('al-summary');
+
+      // Wallet balance live check
+      const walletBal = amtEl._walletBalance || 0;
+      const balEl = document.getElementById('al-wallet-balance');
+      if (balEl && walletBal > 0 && amount > 0) {
+        if (amount > walletBal) {
+          balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal) + ' — exceeds balance!';
+          balEl.style.color = '#DC2626';
+          amtEl.style.borderColor = '#DC2626';
+        } else {
+          balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal);
+          balEl.style.color = '#16A34A';
+          amtEl.style.borderColor = '';
+        }
+      }
+
       if (amount > 0 && n > 0 && col > 0) {
         document.getElementById('al-total').textContent = '₹ ' + (col * n).toLocaleString('en-IN');
         document.getElementById('al-interest').textContent = '₹ ' + (col * n - amount).toLocaleString('en-IN');
@@ -572,9 +590,12 @@
     });
   }
 
-  window.openAddLoanModal = function () {
+  window.openAddLoanModal = async function () {
     injectAddLoanModal();
-    document.getElementById('al-amount').value = '';
+    const amtEl = document.getElementById('al-amount');
+    amtEl.value = '';
+    amtEl.style.borderColor = '';
+    amtEl._walletBalance = 0;
     document.getElementById('al-num-inst').value = '';
     document.getElementById('al-collection').value = '';
     document.getElementById('al-remarks').value = '';
@@ -585,6 +606,19 @@
     document.getElementById('al-save-txt').classList.remove('d-none');
     document.getElementById('al-save-load').classList.add('d-none');
     addLoanModal.show();
+
+    // Fetch and show wallet balance
+    let balance = 0;
+    try {
+      const wres = await api.get('/api/wallet');
+      balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.balance || 0) : 0;
+    } catch (_) {}
+    amtEl._walletBalance = balance;
+    const balEl = document.getElementById('al-wallet-balance');
+    if (balEl) {
+      balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
+      balEl.style.color = balance > 0 ? '#16A34A' : '#DC2626';
+    }
   };
 
   async function submitAddLoan() {
@@ -595,8 +629,10 @@
     const numInst = parseInt(document.getElementById('al-num-inst').value) || 0;
     const colAmt = parseFloat(document.getElementById('al-collection').value) || 0;
 
+    const walletBal = document.getElementById('al-amount')._walletBalance || 0;
     if (!selectedCustomer) { errEl.textContent = 'No customer selected.'; errEl.classList.remove('d-none'); return; }
     if (amount <= 0) { errEl.textContent = 'Enter a valid loan amount.'; errEl.classList.remove('d-none'); return; }
+    if (walletBal > 0 && amount > walletBal) { errEl.textContent = `Loan amount exceeds wallet balance (${formatCurrency(walletBal)}).`; errEl.classList.remove('d-none'); return; }
     if (numInst < 1) { errEl.textContent = 'Enter number of installments.'; errEl.classList.remove('d-none'); return; }
     if (colAmt <= 0) { errEl.textContent = 'Enter a valid collection amount.'; errEl.classList.remove('d-none'); return; }
     if (colAmt * numInst < amount) { errEl.textContent = 'Total collections must be ≥ loan amount.'; errEl.classList.remove('d-none'); return; }
