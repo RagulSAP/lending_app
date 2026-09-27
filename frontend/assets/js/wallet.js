@@ -4,9 +4,11 @@
   let partners = [];
   let walletData = null;
   let topupModal = null;
+  let topupConfirmModal = null;
   let addPartnerModal = null;
   let allTransactions = [];
   let txnSortDir = 'desc';
+  let _confirmResolve = null;
 
   function amountToWords(n) {
     n = Math.round(n);
@@ -130,7 +132,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Date</th><th>Type</th><th>Amount</th><th>Partner / Customer</th><th>Remarks</th>
+                <th>Date</th><th>Type</th><th>Amount</th><th>Partner</th><th>Customer</th><th>Remarks</th>
               </tr>
             </thead>
             <tbody id="txn-tbody"></tbody>
@@ -270,19 +272,25 @@
   function renderTransactions(txns) {
     const tbody = document.getElementById('txn-tbody');
     if (!txns.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="table-empty"><i class="bi bi-clock-history"></i>No transactions yet</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="table-empty"><i class="bi bi-clock-history"></i>No transactions yet</td></tr>';
       return;
     }
     tbody.innerHTML = txns.map(t => {
       const cfg = TYPE_CONFIG[t.transaction_type] || { label: t.transaction_type, cls: 'badge-closed', icon: 'bi-circle', sign: '' };
       const isDebit = ['LOAN_DISBURSEMENT', 'EXPENSE'].includes(t.transaction_type);
       const amtColor = isDebit ? '#DC2626' : '#16A34A';
-      const context = t.partner_name || t.customer_name || '-';
+      const partner  = t.partner_name
+        ? `<span class="fw-600">${t.partner_name}</span>`
+        : `<span style="color:#CBD5E1;">—</span>`;
+      const customer = t.customer_name
+        ? `<span class="fw-600">${t.customer_name}</span>`
+        : `<span style="color:#CBD5E1;">—</span>`;
       return `<tr>
         <td>${formatDate(t.transaction_date)}</td>
         <td><span class="badge-status ${cfg.cls}"><i class="bi ${cfg.icon} me-1"></i>${cfg.label}</span></td>
         <td style="font-weight:600;color:${amtColor};">${cfg.sign}${formatCurrency(t.amount)}</td>
-        <td>${context}</td>
+        <td>${partner}</td>
+        <td>${customer}</td>
         <td style="font-size:12px;color:#64748B;">${t.remarks || '-'}</td>
       </tr>`;
     }).join('');
@@ -341,6 +349,62 @@
       document.getElementById('tu-save-btn').addEventListener('click', submitTopup);
       document.getElementById('tu-amount').addEventListener('input', function () {
         document.getElementById('tu-amount-words').textContent = amountToWords(parseFloat(this.value) || 0);
+      });
+    }
+
+    if (!document.getElementById('topup-confirm-modal')) {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div class="modal fade" id="topup-confirm-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+          <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+              <div class="modal-header" style="background:#FFFBEB;border-bottom:1px solid #FDE68A;">
+                <h5 class="modal-title fw-600" style="font-size:15px;">
+                  <i class="bi bi-shield-exclamation me-2 text-warning"></i>Confirm Top Up
+                </h5>
+              </div>
+              <div class="modal-body">
+                <p style="font-size:12.5px;color:#64748B;margin-bottom:12px;">
+                  Verify the details below. Transactions <strong>cannot be edited</strong> after submission.
+                </p>
+                <div style="background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;padding:14px;">
+                  <div class="mb-3">
+                    <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Amount</div>
+                    <div id="tc-amount" style="font-size:22px;font-weight:700;color:#2563EB;"></div>
+                    <div id="tc-amount-words" style="font-size:11px;color:#4F46E5;font-style:italic;margin-top:2px;"></div>
+                  </div>
+                  <div class="mb-2" style="display:flex;gap:24px;">
+                    <div>
+                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Partner</div>
+                      <div id="tc-partner" style="font-size:13px;font-weight:600;"></div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Date</div>
+                      <div id="tc-date" style="font-size:13px;font-weight:600;"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" id="tc-cancel-btn">
+                  <i class="bi bi-arrow-left me-1"></i>Go Back
+                </button>
+                <button type="button" class="btn btn-success" id="tc-confirm-btn">
+                  <i class="bi bi-check-circle me-1"></i>Confirm Top Up
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(el.firstElementChild);
+      topupConfirmModal = new bootstrap.Modal(document.getElementById('topup-confirm-modal'));
+      document.getElementById('tc-confirm-btn').addEventListener('click', () => {
+        topupConfirmModal.hide();
+        if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+      });
+      document.getElementById('tc-cancel-btn').addEventListener('click', () => {
+        topupConfirmModal.hide();
+        if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
       });
     }
 
@@ -409,6 +473,15 @@
     addPartnerModal.show();
   }
 
+  function showTopupConfirm({ amount, partnerName, date }) {
+    document.getElementById('tc-amount').textContent = formatCurrency(amount);
+    document.getElementById('tc-amount-words').textContent = amountToWords(amount);
+    document.getElementById('tc-partner').textContent = partnerName;
+    document.getElementById('tc-date').textContent = date;
+    topupConfirmModal.show();
+    return new Promise(resolve => { _confirmResolve = resolve; });
+  }
+
   async function submitTopup() {
     const errEl = document.getElementById('topup-error');
     errEl.classList.add('d-none');
@@ -420,6 +493,13 @@
     if (amount <= 0) { errEl.textContent = 'Enter a valid amount.'; errEl.classList.remove('d-none'); return; }
     if (!partner_id) { errEl.textContent = 'Please select a partner.'; errEl.classList.remove('d-none'); return; }
     if (!date) { errEl.textContent = 'Date is required.'; errEl.classList.remove('d-none'); return; }
+
+    const partnerName = document.getElementById('tu-partner').options[
+      document.getElementById('tu-partner').selectedIndex
+    ].text;
+
+    const confirmed = await showTopupConfirm({ amount, partnerName, date });
+    if (!confirmed) return;
 
     const btn = document.getElementById('tu-save-btn');
     btn.disabled = true;
