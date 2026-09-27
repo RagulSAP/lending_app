@@ -96,8 +96,8 @@
         <div class="col-lg-4">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Customer Loan Status</h6></div>
-            <div style="display:flex;align-items:center;justify-content:center;min-height:240px;">
-              <canvas id="customer-chart" width="240" height="240"></canvas>
+            <div style="position:relative;min-height:240px;padding:12px 16px;">
+              <canvas id="customer-chart"></canvas>
             </div>
           </div>
         </div>
@@ -165,7 +165,17 @@
             labels: ['Active Loan', 'Completed', 'No Loan'],
             datasets: [{ data: [custActive, custCompleted, custNone], backgroundColor: ['#2563EB','#16A34A','#94A3B8'], borderWidth: 0, hoverOffset: 6 }]
           },
-          options: { responsive: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 12, family: 'Inter' }, padding: 14 } } }, cutout: '68%' }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: { font: { size: 12, family: 'Inter' }, padding: 16, usePointStyle: true, pointStyle: 'circle' }
+              }
+            },
+            cutout: '68%'
+          }
         });
       } else {
         custChartCard.querySelector('div[style]').innerHTML = `
