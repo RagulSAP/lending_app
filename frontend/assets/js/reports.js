@@ -106,7 +106,7 @@
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Date</th><th>Customer</th><th>Onboarded By</th><th>Loan</th><th>Amount</th><th>Mode</th><th>Type</th></tr>
+                <tr><th>#</th><th>Date</th><th>Customer</th><th>Done By</th><th>Loan</th><th>Amount</th><th>Mode</th><th>Type</th></tr>
               </thead>
               <tbody id="txn-tbody">
                 <tr><td colspan="8" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
@@ -290,7 +290,7 @@
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date || r.created_at)}</td>
           <td>${r.customer_name || '-'}</td>
-          <td style="font-size:12px;color:#64748B;">${r.onboarded_by || '-'}</td>
+          <td style="font-size:12px;color:#64748B;">${r.collected_by || '-'}</td>
           <td style="font-size:12px;">${r.loan_id ? r.loan_id.slice(0, 8) + '…' : '-'}</td>
           <td class="fw-600">${formatCurrency(r.amount)}</td>
           <td><span class="badge bg-light text-dark">${r.payment_mode || '-'}</span></td>
