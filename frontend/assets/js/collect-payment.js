@@ -261,7 +261,7 @@
               <div class="col-6"><span style="color:#64748B;">Balance:</span>
                 <span class="fw-600 text-danger">${formatCurrency(l.balance_amount || 0)}</span>
               </div>
-              <div class="col-6"><span style="color:#64748B;">Rate:</span> ${l.interest_rate}% (${l.interest_type})</div>
+              <div class="col-6"><span style="color:#64748B;">Collection:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
               <div class="col-6"><span style="color:#64748B;">Type:</span> ${l.installment_type}</div>
             </div>
             <button type="button" class="btn btn-success w-100" onclick="selectLoan('${l.loan_id}')">
@@ -307,7 +307,7 @@
     // Header
     document.getElementById('pm-title').textContent = 'Collect Payment';
     document.getElementById('pm-subtitle').textContent =
-      `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.interest_type} ${l.interest_rate}%`;
+      `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.num_installments} installments · ${formatCurrency(l.installment_amount)} each`;
 
     // Loan summary mini-cards
     document.getElementById('pm-loan-summary').innerHTML = `

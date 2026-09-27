@@ -338,7 +338,7 @@
             <td>
               <div class="d-flex align-items-center gap-2">
                 ${avatarHtml}
-                <div><div class="fw-600">${c.name}</div><div style="font-size:11px;color:#64748B;">#${c.customer_id}</div></div>
+                <div><div class="fw-600">${c.name}</div></div>
               </div>
             </td>
             <td>${c.phone || '-'}</td>
