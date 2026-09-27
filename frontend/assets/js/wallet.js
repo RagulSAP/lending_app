@@ -5,6 +5,26 @@
   let walletData = null;
   let topupModal = null;
   let addPartnerModal = null;
+  let allTransactions = [];
+  let txnSortDir = 'desc';
+
+  function amountToWords(n) {
+    n = Math.round(n);
+    if (!n || n <= 0) return '';
+    const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+               'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+               'Seventeen', 'Eighteen', 'Nineteen'];
+    const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+    function two(x) { return x < 20 ? a[x] : b[Math.floor(x / 10)] + (x % 10 ? ' ' + a[x % 10] : ''); }
+    function three(x) { return x >= 100 ? a[Math.floor(x / 100)] + ' Hundred' + (x % 100 ? ' ' + two(x % 100) : '') : two(x); }
+    let w = '';
+    if (n >= 10000000) { w += three(Math.floor(n / 10000000)) + ' Crore '; n %= 10000000; }
+    if (n >= 100000)   { w += two(Math.floor(n / 100000)) + ' Lakh '; n %= 100000; }
+    if (n >= 1000)     { w += two(Math.floor(n / 1000)) + ' Thousand '; n %= 1000; }
+    if (n >= 100)      { w += a[Math.floor(n / 100)] + ' Hundred '; n %= 100; }
+    if (n > 0)         { w += two(n); }
+    return w.trim() + ' Rupees Only';
+  }
 
   async function init() {
     await initPage('Wallet', [1, 2, 5]);
@@ -64,7 +84,48 @@
       <div class="card">
         <div class="card-header-flex">
           <h6 class="card-title"><i class="bi bi-clock-history me-2 text-primary"></i>Transaction History</h6>
+          <button type="button" class="btn btn-sm btn-outline-secondary" id="txn-clear-btn" style="font-size:11px;">
+            <i class="bi bi-x-circle me-1"></i>Clear Filters
+          </button>
         </div>
+        <div class="row g-2 mb-3 align-items-end">
+          <div class="col-6 col-md-2">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Type</label>
+            <select class="form-select form-select-sm" id="txn-type-filter">
+              <option value="">All Types</option>
+              <option value="WALLET_DEPOSIT">Top Up</option>
+              <option value="LOAN_DISBURSEMENT">Disbursed</option>
+              <option value="LOAN_COLLECTION">Collected</option>
+              <option value="EXPENSE">Expense</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">From Date</label>
+            <input type="date" class="form-control form-control-sm" id="txn-from-date">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">To Date</label>
+            <input type="date" class="form-control form-control-sm" id="txn-to-date">
+          </div>
+          <div class="col-6 col-md-3">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Partner / Customer</label>
+            <input type="text" class="form-control form-control-sm" id="txn-search" placeholder="Search name…">
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Sort By</label>
+            <select class="form-select form-select-sm" id="txn-sort-by">
+              <option value="date">Date</option>
+              <option value="amount">Amount</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-1 d-flex flex-column">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Order</label>
+            <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="txn-sort-dir-btn" title="Toggle sort order">
+              <i class="bi bi-sort-down" id="txn-sort-dir-icon"></i>
+            </button>
+          </div>
+        </div>
+        <div id="txn-result-count" style="font-size:12px;color:#64748B;margin-bottom:8px;"></div>
         <div class="table-container">
           <table class="table">
             <thead>
@@ -80,6 +141,27 @@
     document.getElementById('topup-btn').addEventListener('click', openTopupModal);
     document.getElementById('add-partner-btn').addEventListener('click', openAddPartnerModal);
     injectModals();
+
+    ['txn-type-filter', 'txn-from-date', 'txn-to-date', 'txn-sort-by'].forEach(id => {
+      document.getElementById(id).addEventListener('change', applyFiltersAndSort);
+    });
+    document.getElementById('txn-search').addEventListener('input', applyFiltersAndSort);
+    document.getElementById('txn-sort-dir-btn').addEventListener('click', function () {
+      txnSortDir = txnSortDir === 'desc' ? 'asc' : 'desc';
+      document.getElementById('txn-sort-dir-icon').className =
+        txnSortDir === 'desc' ? 'bi bi-sort-down' : 'bi bi-sort-up';
+      applyFiltersAndSort();
+    });
+    document.getElementById('txn-clear-btn').addEventListener('click', function () {
+      document.getElementById('txn-type-filter').value = '';
+      document.getElementById('txn-from-date').value = '';
+      document.getElementById('txn-to-date').value = '';
+      document.getElementById('txn-search').value = '';
+      document.getElementById('txn-sort-by').value = 'date';
+      txnSortDir = 'desc';
+      document.getElementById('txn-sort-dir-icon').className = 'bi bi-sort-down';
+      applyFiltersAndSort();
+    });
   }
 
   async function loadAll() {
@@ -98,15 +180,53 @@
       if (walletResult.status === 'fulfilled') {
         walletData = walletResult.value.data;
         renderStats(walletData);
-        renderTransactions(walletData.transactions || []);
+        allTransactions = walletData.transactions || [];
       } else {
-        renderTransactions([]);
+        allTransactions = [];
       }
+      applyFiltersAndSort();
     } catch (err) {
       showToast('Failed to load data: ' + err.message, 'danger');
     } finally {
       hideLoading();
     }
+  }
+
+  function applyFiltersAndSort() {
+    const type    = document.getElementById('txn-type-filter')?.value || '';
+    const from    = document.getElementById('txn-from-date')?.value   || '';
+    const to      = document.getElementById('txn-to-date')?.value     || '';
+    const search  = (document.getElementById('txn-search')?.value     || '').toLowerCase().trim();
+    const sortBy  = document.getElementById('txn-sort-by')?.value     || 'date';
+
+    let txns = allTransactions.slice();
+
+    if (type)   txns = txns.filter(t => t.transaction_type === type);
+    if (from)   txns = txns.filter(t => (t.transaction_date || '') >= from);
+    if (to)     txns = txns.filter(t => (t.transaction_date || '') <= to);
+    if (search) txns = txns.filter(t =>
+      (t.partner_name  || '').toLowerCase().includes(search) ||
+      (t.customer_name || '').toLowerCase().includes(search) ||
+      (t.remarks       || '').toLowerCase().includes(search)
+    );
+
+    txns.sort((a, b) => {
+      const va = sortBy === 'amount' ? (parseFloat(a.amount) || 0)    : (a.transaction_date || '');
+      const vb = sortBy === 'amount' ? (parseFloat(b.amount) || 0)    : (b.transaction_date || '');
+      if (va < vb) return txnSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return txnSortDir === 'asc' ?  1 : -1;
+      return 0;
+    });
+
+    const countEl = document.getElementById('txn-result-count');
+    if (countEl) {
+      const isFiltered = type || from || to || search;
+      countEl.textContent = isFiltered
+        ? `Showing ${txns.length} of ${allTransactions.length} transactions`
+        : (allTransactions.length ? `${allTransactions.length} transactions` : '');
+    }
+
+    renderTransactions(txns);
   }
 
   function renderStats(data) {
@@ -187,6 +307,7 @@
                   <div class="col-12">
                     <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="tu-amount" placeholder="e.g. 50000" min="1" step="1">
+                    <div id="tu-amount-words" style="font-size:12px;color:#4F46E5;font-style:italic;margin-top:4px;min-height:16px;"></div>
                   </div>
                   <div class="col-12">
                     <label class="form-label">Partner <span class="text-danger">*</span></label>
@@ -218,6 +339,9 @@
       document.body.appendChild(el.firstElementChild);
       topupModal = new bootstrap.Modal(document.getElementById('topup-modal'));
       document.getElementById('tu-save-btn').addEventListener('click', submitTopup);
+      document.getElementById('tu-amount').addEventListener('input', function () {
+        document.getElementById('tu-amount-words').textContent = amountToWords(parseFloat(this.value) || 0);
+      });
     }
 
     if (!document.getElementById('add-partner-modal')) {
@@ -265,6 +389,7 @@
     sel.innerHTML = '<option value="">Select partner</option>' +
       partners.map(p => `<option value="${p.partner_id}">${p.name}${p.phone ? ' (' + p.phone + ')' : ''}</option>`).join('');
     document.getElementById('tu-amount').value = '';
+    document.getElementById('tu-amount-words').textContent = '';
     document.getElementById('tu-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('tu-remarks').value = '';
     document.getElementById('topup-error').classList.add('d-none');
