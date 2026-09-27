@@ -1,0 +1,139 @@
+"""
+Wallet management routes.
+Blueprint prefix: /api/wallet
+"""
+import uuid
+from datetime import date
+
+from flask import Blueprint, request
+
+from database import SessionLocal
+from models import Wallet, Transaction, Partner, Customer
+from config import Config
+from core_functions.rbac import require_roles
+from core_functions.auth import get_current_user_info
+from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+
+wallet_bp = Blueprint("wallet", __name__, url_prefix="/api/wallet")
+
+_ADMIN_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER)
+_VIEW_ROLES  = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_ACCOUNTANT)
+
+
+@wallet_bp.route("/", methods=["GET"])
+@require_roles(*_VIEW_ROLES)
+def get_wallet():
+    """GET /api/wallet — balance + recent 100 transactions with partner/customer names."""
+    current = get_current_user_info()
+    db = SessionLocal()
+    try:
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        if not wallet:
+            return error_response("Wallet not found", 404)
+
+        txns = (
+            db.query(Transaction)
+            .filter(Transaction.org_id == current["org_id"])
+            .order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
+            .limit(100)
+            .all()
+        )
+
+        partner_ids  = list({t.partner_id  for t in txns if t.partner_id})
+        customer_ids = list({t.customer_id for t in txns if t.customer_id})
+
+        partner_map = {}
+        if partner_ids:
+            rows = db.query(Partner).filter(Partner.partner_id.in_(partner_ids)).all()
+            partner_map = {p.partner_id: p.name for p in rows}
+
+        customer_map = {}
+        if customer_ids:
+            rows = db.query(Customer).filter(Customer.customer_id.in_(customer_ids)).all()
+            customer_map = {c.customer_id: c.name for c in rows}
+
+        txn_rows = []
+        for t in txns:
+            d = model_to_dict(t)
+            d["partner_name"]  = partner_map.get(t.partner_id)  if t.partner_id  else None
+            d["customer_name"] = customer_map.get(t.customer_id) if t.customer_id else None
+            txn_rows.append(d)
+
+        # Summary stats
+        total_topup    = sum(float(t.amount) for t in txns if t.transaction_type == "WALLET_DEPOSIT")
+        total_disburse = sum(float(t.amount) for t in txns if t.transaction_type == "LOAN_DISBURSEMENT")
+        total_collect  = sum(float(t.amount) for t in txns if t.transaction_type == "LOAN_COLLECTION")
+
+        return success_response(data={
+            "wallet": model_to_dict(wallet),
+            "transactions": txn_rows,
+            "stats": {
+                "total_topup":    round(total_topup, 2),
+                "total_disbursed": round(total_disburse, 2),
+                "total_collected": round(total_collect, 2),
+            },
+        })
+    finally:
+        db.close()
+
+
+@wallet_bp.route("/topup", methods=["POST"])
+@require_roles(*_ADMIN_ROLES)
+def topup_wallet():
+    """POST /api/wallet/topup — {amount, partner_id, transaction_date, remarks}"""
+    current = get_current_user_info()
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    try:
+        amount = float(data.get("amount") or 0)
+    except (TypeError, ValueError):
+        return error_response("amount must be a number")
+    if amount <= 0:
+        return error_response("amount must be positive")
+
+    partner_id = data.get("partner_id") or None
+    txn_date_str = data.get("transaction_date")
+    txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
+    if not txn_date:
+        return error_response("transaction_date must be YYYY-MM-DD")
+
+    db = SessionLocal()
+    try:
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        if not wallet:
+            return error_response("Wallet not found", 404)
+
+        if partner_id:
+            partner = db.query(Partner).filter(
+                Partner.partner_id == partner_id,
+                Partner.org_id == current["org_id"],
+            ).first()
+            if not partner:
+                return error_response("Partner not found", 404)
+
+        wallet.balance = round(float(wallet.balance or 0) + amount, 2)
+
+        txn = Transaction(
+            transaction_id=str(uuid.uuid4()),
+            user_id=current["user_id"],
+            org_id=current["org_id"],
+            transaction_type="WALLET_DEPOSIT",
+            transaction_date=txn_date,
+            amount=round(amount, 2),
+            wallet_id=wallet.wallet_id,
+            partner_id=partner_id,
+            remarks=(data.get("remarks") or "").strip(),
+        )
+        db.add(txn)
+        db.commit()
+
+        d = model_to_dict(txn)
+        d["wallet_balance"] = float(wallet.balance)
+        return success_response(data=d, message="Wallet topped up successfully"), 201
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()

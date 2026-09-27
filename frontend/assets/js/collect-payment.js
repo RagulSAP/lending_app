@@ -221,6 +221,7 @@
             <div class="fw-600" style="font-size:15px;">${c.name}</div>
             <div style="font-size:13px;color:#64748B;">${c.phone}</div>
             <div style="font-size:12px;color:#64748B;">${c.city || ''} ${c.state || ''}</div>
+            ${c.onboarded_by ? `<div style="font-size:11px;color:#94A3B8;margin-top:2px;"><i class="bi bi-person-check me-1"></i>Onboarded by ${c.onboarded_by}</div>` : ''}
           </div>
           <div class="ms-auto">${statusBadge(c.status || 'ACTIVE')}</div>
         </div>
@@ -253,7 +254,7 @@
         <div class="col-md-6">
           <div class="loan-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
-              <div class="fw-600" style="font-size:13px;">Loan #${l.loan_id.slice(0, 8)}…</div>
+              <div class="fw-600" style="font-size:13px;">${l.installment_type} · ${l.num_installments} installments</div>
               ${statusBadge(l.status)}
             </div>
             <div class="row g-1 mb-3" style="font-size:12.5px;">

@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
   `amount`           NUMERIC(10,2) NOT NULL,
   `payment_mode`     VARCHAR(100),
   `wallet_id`        VARCHAR(36),
+  `partner_id`       VARCHAR(36),
   `remarks`          VARCHAR(225),
   `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -198,7 +199,22 @@ CREATE TABLE IF NOT EXISTS `expense` (
 
 
 -- ----------------------------------------------------------------
--- 11. loan_status_history
+-- 11. partners
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `partners` (
+  `id`         INT          NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `partner_id` VARCHAR(36)  UNIQUE NOT NULL,
+  `org_id`     VARCHAR(36)  NOT NULL,
+  `name`       VARCHAR(100) NOT NULL,
+  `phone`      VARCHAR(100),
+  `status`     VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
+  `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+-- ----------------------------------------------------------------
+-- 12. loan_status_history
 -- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `loan_status_history` (
   `id`         VARCHAR(36)  PRIMARY KEY,
@@ -232,3 +248,9 @@ VALUES (0, '00000000-0000-0000-0000-000000000000', 'SYSTEM', NULL, NULL, 'ACTIVE
 INSERT IGNORE INTO `wallet` (id, wallet_id, balance, org_id, created_at, updated_at)
 VALUES (0, '00000000-0000-0000-0000-000000000001', 0.00,
         '00000000-0000-0000-0000-000000000000', NOW(), NOW());
+
+------
+
+ALTER TABLE `transaction` ADD COLUMN `partner_id` VARCHAR(36) AFTER `wallet_id`;
+CREATE TABLE IF NOT EXISTS `partners` (...);  -- from the DDL
+ALTER TABLE `loans` ADD COLUMN `num_installments` INT AFTER `installment_type`;

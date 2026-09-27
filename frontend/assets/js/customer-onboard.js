@@ -147,6 +147,7 @@
                   <div class="col-md-6">
                     <label class="form-label">Loan Amount (&#8377;) <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-amount" placeholder="e.g. 10000" min="1" step="1">
+                    <span id="l-wallet-balance" style="font-size:12px;"></span>
                   </div>
                   <div class="col-md-6">
                     <label class="form-label">Installment Type <span class="text-danger">*</span></label>
@@ -220,7 +221,7 @@
     document.getElementById('id-input').addEventListener('change', function () { handleFileSelect(this, 'id'); });
 
     // Loan toggle
-    document.getElementById('toggle-loan-btn').addEventListener('click', function () {
+    document.getElementById('toggle-loan-btn').addEventListener('click', async function () {
       const sec = document.getElementById('loan-section');
       const isHidden = sec.classList.contains('d-none');
       sec.classList.toggle('d-none');
@@ -230,15 +231,43 @@
       if (isHidden) {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('l-date').value = today;
+        // Show wallet balance
+        try {
+          const wres = await api.get('/api/wallet');
+          const balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.balance || 0) : 0;
+          const balEl = document.getElementById('l-wallet-balance');
+          if (balEl) {
+            balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
+            balEl.style.color = balance > 0 ? '#16A34A' : '#DC2626';
+          }
+          document.getElementById('l-amount')._walletBalance = balance;
+        } catch (_) {}
       }
     });
 
     // Live loan summary calculation
     function updateLoanSummary() {
-      const amount = parseFloat(document.getElementById('l-amount').value) || 0;
+      const amtEl = document.getElementById('l-amount');
+      const amount = parseFloat(amtEl.value) || 0;
       const n = parseInt(document.getElementById('l-num-inst').value) || 0;
       const col = parseFloat(document.getElementById('l-collection').value) || 0;
       const summary = document.getElementById('l-summary');
+
+      // Wallet balance check
+      const walletBal = amtEl._walletBalance || 0;
+      const balEl = document.getElementById('l-wallet-balance');
+      if (balEl && walletBal > 0) {
+        if (amount > walletBal) {
+          balEl.style.color = '#DC2626';
+          balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal) + ' — amount exceeds balance!';
+          amtEl.style.borderColor = '#DC2626';
+        } else {
+          balEl.style.color = '#16A34A';
+          balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal);
+          amtEl.style.borderColor = '';
+        }
+      }
+
       if (amount > 0 && n > 0 && col > 0) {
         const total = col * n;
         const interest = total - amount;
@@ -396,9 +425,19 @@
       // Optional loan creation
       const loanSection = document.getElementById('loan-section');
       if (!loanSection.classList.contains('d-none') && customerId) {
-        const amount = parseFloat(document.getElementById('l-amount').value) || 0;
+        const amtEl = document.getElementById('l-amount');
+        const amount = parseFloat(amtEl.value) || 0;
         const numInst = parseInt(document.getElementById('l-num-inst').value) || 0;
         const colAmt = parseFloat(document.getElementById('l-collection').value) || 0;
+        const walletBal = amtEl._walletBalance || 0;
+        if (walletBal > 0 && amount > walletBal) {
+          errEl.textContent = `Loan amount exceeds wallet balance (${formatCurrency(walletBal)}).`;
+          errEl.classList.remove('d-none');
+          btn.disabled = false;
+          document.getElementById('submit-txt').classList.remove('d-none');
+          document.getElementById('submit-load').classList.add('d-none');
+          return;
+        }
         if (amount > 0 && numInst > 0 && colAmt > 0) {
           try {
             await api.post('/api/loans/', {

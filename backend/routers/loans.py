@@ -11,7 +11,7 @@ def _now_ist(): return datetime.now(_IST).replace(tzinfo=None)
 from flask import Blueprint, request
 
 from database import SessionLocal
-from models import Customer, Loan, LoanInstallment, LoanStatusHistory
+from models import Customer, Loan, LoanInstallment, LoanStatusHistory, Wallet, Transaction
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
@@ -190,11 +190,30 @@ def create_loan():
         )
         db.add(history)
 
+        # Deduct disbursement from wallet
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        if wallet:
+            wallet.balance = round(float(wallet.balance or 0) - principal, 2)
+            disbursement_txn = Transaction(
+                transaction_id=str(uuid.uuid4()),
+                loan_id=loan_id,
+                customer_id=customer.customer_id,
+                user_id=current["user_id"],
+                org_id=current["org_id"],
+                transaction_type="LOAN_DISBURSEMENT",
+                transaction_date=disbursement_date,
+                amount=round(principal, 2),
+                wallet_id=wallet.wallet_id,
+            )
+            db.add(disbursement_txn)
+
         db.commit()
 
         loan_data = model_to_dict(loan)
         loan_data["installments"] = [model_to_dict(i) for i in installment_objs]
         loan_data["total_interest"] = calc["total_interest"]
+        if wallet:
+            loan_data["wallet_balance"] = float(wallet.balance)
 
         return success_response(data=loan_data, message="Loan created successfully"), 201
 

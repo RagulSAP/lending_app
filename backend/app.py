@@ -42,6 +42,8 @@ def create_app():
     from routers.expenses      import expenses_bp
     from routers.dashboard     import dashboard_bp
     from routers.reports       import reports_bp
+    from routers.wallet        import wallet_bp
+    from routers.partners      import partners_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(orgs_bp)
@@ -52,6 +54,8 @@ def create_app():
     app.register_blueprint(expenses_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(wallet_bp)
+    app.register_blueprint(partners_bp)
 
     # ── Serve frontend static files ───────────────────────────────────────────
     frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")

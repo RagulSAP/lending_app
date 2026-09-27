@@ -13,6 +13,7 @@
     { label: 'App Users',      icon: 'bi-person-badge',   href: 'users.html',          roles: [1,2] },
     { label: 'Expenses',       icon: 'bi-receipt',        href: 'expenses.html',       roles: [1,2,3,5] },
     { label: 'Reports',        icon: 'bi-bar-chart-line', href: 'reports.html',        roles: [1,2,5] },
+    { label: 'Wallet',         icon: 'bi-wallet2',        href: 'wallet.html',         roles: [1,2] },
   ];
 
   // Priority order for bottom nav (max 4 shown) — most used actions first per role

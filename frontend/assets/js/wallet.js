@@ -1,0 +1,358 @@
+(function () {
+  'use strict';
+
+  let partners = [];
+  let walletData = null;
+  let topupModal = null;
+  let addPartnerModal = null;
+
+  async function init() {
+    await initPage('Wallet', [1, 2, 5]);
+    renderPage();
+    await loadAll();
+  }
+
+  function renderPage() {
+    document.getElementById('page-content').innerHTML = `
+      <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
+        <div><h1>Wallet</h1><p>Manage wallet balance, top-ups and partners</p></div>
+        <button type="button" class="btn btn-primary" id="topup-btn">
+          <i class="bi bi-plus-circle me-1"></i>Top Up Wallet
+        </button>
+      </div>
+
+      <!-- Balance + stats cards -->
+      <div class="row g-3 mb-4" id="stats-row">
+        <div class="col-6 col-md-3">
+          <div class="card text-center" style="background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;border:none;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">Current Balance</div>
+            <div id="stat-balance" style="font-size:22px;font-weight:700;">—</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Topped Up</div>
+            <div id="stat-topup" style="font-size:18px;font-weight:700;color:#16A34A;">—</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Disbursed</div>
+            <div id="stat-disburse" style="font-size:18px;font-weight:700;color:#DC2626;">—</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Collected</div>
+            <div id="stat-collect" style="font-size:18px;font-weight:700;color:#2563EB;">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Partners section -->
+      <div class="card mb-4">
+        <div class="card-header-flex">
+          <h6 class="card-title"><i class="bi bi-people me-2 text-primary"></i>Partners</h6>
+          <button type="button" class="btn btn-sm btn-outline-primary" id="add-partner-btn">
+            <i class="bi bi-plus me-1"></i>Add Partner
+          </button>
+        </div>
+        <div id="partners-list"></div>
+      </div>
+
+      <!-- Transaction history -->
+      <div class="card">
+        <div class="card-header-flex">
+          <h6 class="card-title"><i class="bi bi-clock-history me-2 text-primary"></i>Transaction History</h6>
+        </div>
+        <div class="table-container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Type</th><th>Amount</th><th>Partner / Customer</th><th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="txn-tbody"></tbody>
+          </table>
+        </div>
+      </div>`;
+
+    document.getElementById('topup-btn').addEventListener('click', openTopupModal);
+    document.getElementById('add-partner-btn').addEventListener('click', openAddPartnerModal);
+    injectModals();
+  }
+
+  async function loadAll() {
+    try {
+      showLoading();
+      const [walletRes, partnerRes] = await Promise.all([
+        api.get('/api/wallet'),
+        api.get('/api/partners'),
+      ]);
+      walletData = walletRes.data;
+      partners = partnerRes.data || [];
+      renderStats(walletData);
+      renderPartners();
+      renderTransactions(walletData.transactions || []);
+    } catch (err) {
+      showToast('Failed to load wallet data: ' + err.message, 'danger');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  function renderStats(data) {
+    const w = data.wallet || {};
+    const s = data.stats || {};
+    document.getElementById('stat-balance').textContent  = formatCurrency(w.balance || 0);
+    document.getElementById('stat-topup').textContent    = formatCurrency(s.total_topup || 0);
+    document.getElementById('stat-disburse').textContent = formatCurrency(s.total_disbursed || 0);
+    document.getElementById('stat-collect').textContent  = formatCurrency(s.total_collected || 0);
+  }
+
+  function renderPartners() {
+    const el = document.getElementById('partners-list');
+    if (!partners.length) {
+      el.innerHTML = '<div style="padding:16px;font-size:13px;color:#64748B;">No partners yet. Add one to use in top-ups.</div>';
+      return;
+    }
+    el.innerHTML = `<div class="table-container"><table class="table table-sm">
+      <thead><tr><th>Name</th><th>Phone</th><th></th></tr></thead>
+      <tbody>${partners.map(p => `
+        <tr>
+          <td class="fw-600">${p.name}</td>
+          <td>${p.phone || '-'}</td>
+          <td onclick="event.stopPropagation()">
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePartner('${p.partner_id}','${(p.name || '').replace(/'/g,"\\'")}')">
+              <i class="bi bi-trash"></i>
+            </button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+  }
+
+  const TYPE_CONFIG = {
+    WALLET_DEPOSIT:    { label: 'Top Up',    cls: 'badge-active',   icon: 'bi-arrow-down-circle-fill', sign: '+' },
+    LOAN_DISBURSEMENT: { label: 'Disbursed', cls: 'badge-overdue',  icon: 'bi-arrow-up-circle-fill',   sign: '-' },
+    LOAN_COLLECTION:   { label: 'Collected', cls: 'badge-paid',     icon: 'bi-cash-coin',              sign: '+' },
+    EXPENSE:           { label: 'Expense',   cls: 'badge-inactive', icon: 'bi-receipt',                sign: '-' },
+  };
+
+  function renderTransactions(txns) {
+    const tbody = document.getElementById('txn-tbody');
+    if (!txns.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="table-empty"><i class="bi bi-clock-history"></i>No transactions yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = txns.map(t => {
+      const cfg = TYPE_CONFIG[t.transaction_type] || { label: t.transaction_type, cls: 'badge-closed', icon: 'bi-circle', sign: '' };
+      const isDebit = ['LOAN_DISBURSEMENT', 'EXPENSE'].includes(t.transaction_type);
+      const amtColor = isDebit ? '#DC2626' : '#16A34A';
+      const context = t.partner_name || t.customer_name || '-';
+      return `<tr>
+        <td>${formatDate(t.transaction_date)}</td>
+        <td><span class="badge-status ${cfg.cls}"><i class="bi ${cfg.icon} me-1"></i>${cfg.label}</span></td>
+        <td style="font-weight:600;color:${amtColor};">${cfg.sign}${formatCurrency(t.amount)}</td>
+        <td>${context}</td>
+        <td style="font-size:12px;color:#64748B;">${t.remarks || '-'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ─── Modals ───────────────────────────────────────────────────────────────
+
+  function injectModals() {
+    if (!document.getElementById('topup-modal')) {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div class="modal fade" id="topup-modal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title fw-600" style="font-size:16px;"><i class="bi bi-plus-circle me-2 text-primary"></i>Top Up Wallet</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div id="topup-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
+                <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                    <input type="number" class="form-control" id="tu-amount" placeholder="e.g. 50000" min="1" step="1">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Partner <span class="text-danger">*</span></label>
+                    <select class="form-select" id="tu-partner">
+                      <option value="">Select partner</option>
+                    </select>
+                    <div style="font-size:11px;color:#64748B;margin-top:4px;">Add partners in the Partners section first.</div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="tu-date">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">Remarks</label>
+                    <input type="text" class="form-control" id="tu-remarks" placeholder="Optional">
+                  </div>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="tu-save-btn">
+                  <span id="tu-save-txt"><i class="bi bi-check-lg me-1"></i>Top Up</span>
+                  <span id="tu-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(el.firstElementChild);
+      topupModal = new bootstrap.Modal(document.getElementById('topup-modal'));
+      document.getElementById('tu-save-btn').addEventListener('click', submitTopup);
+    }
+
+    if (!document.getElementById('add-partner-modal')) {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div class="modal fade" id="add-partner-modal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title fw-600" style="font-size:16px;"><i class="bi bi-person-plus me-2 text-primary"></i>Add Partner</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div id="ap-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
+                <div class="mb-3">
+                  <label class="form-label">Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="ap-name" placeholder="Partner name">
+                </div>
+                <div>
+                  <label class="form-label">Phone</label>
+                  <input type="tel" class="form-control" id="ap-phone" placeholder="Phone (optional)" maxlength="10">
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="ap-save-btn">
+                  <span id="ap-save-txt"><i class="bi bi-check-lg me-1"></i>Add</span>
+                  <span id="ap-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(el.firstElementChild);
+      addPartnerModal = new bootstrap.Modal(document.getElementById('add-partner-modal'));
+      document.getElementById('ap-save-btn').addEventListener('click', submitAddPartner);
+      document.getElementById('ap-phone').addEventListener('input', function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 10);
+      });
+    }
+  }
+
+  function openTopupModal() {
+    const sel = document.getElementById('tu-partner');
+    sel.innerHTML = '<option value="">Select partner</option>' +
+      partners.map(p => `<option value="${p.partner_id}">${p.name}${p.phone ? ' (' + p.phone + ')' : ''}</option>`).join('');
+    document.getElementById('tu-amount').value = '';
+    document.getElementById('tu-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('tu-remarks').value = '';
+    document.getElementById('topup-error').classList.add('d-none');
+    document.getElementById('tu-save-btn').disabled = false;
+    document.getElementById('tu-save-txt').classList.remove('d-none');
+    document.getElementById('tu-save-load').classList.add('d-none');
+    topupModal.show();
+  }
+
+  function openAddPartnerModal() {
+    document.getElementById('ap-name').value = '';
+    document.getElementById('ap-phone').value = '';
+    document.getElementById('ap-error').classList.add('d-none');
+    document.getElementById('ap-save-btn').disabled = false;
+    document.getElementById('ap-save-txt').classList.remove('d-none');
+    document.getElementById('ap-save-load').classList.add('d-none');
+    addPartnerModal.show();
+  }
+
+  async function submitTopup() {
+    const errEl = document.getElementById('topup-error');
+    errEl.classList.add('d-none');
+
+    const amount = parseFloat(document.getElementById('tu-amount').value) || 0;
+    const partner_id = document.getElementById('tu-partner').value;
+    const date = document.getElementById('tu-date').value;
+
+    if (amount <= 0) { errEl.textContent = 'Enter a valid amount.'; errEl.classList.remove('d-none'); return; }
+    if (!partner_id) { errEl.textContent = 'Please select a partner.'; errEl.classList.remove('d-none'); return; }
+    if (!date) { errEl.textContent = 'Date is required.'; errEl.classList.remove('d-none'); return; }
+
+    const btn = document.getElementById('tu-save-btn');
+    btn.disabled = true;
+    document.getElementById('tu-save-txt').classList.add('d-none');
+    document.getElementById('tu-save-load').classList.remove('d-none');
+
+    try {
+      await api.post('/api/wallet/topup', {
+        amount,
+        partner_id,
+        transaction_date: date,
+        remarks: document.getElementById('tu-remarks').value.trim(),
+      });
+      topupModal.hide();
+      showToast('Wallet topped up successfully!', 'success');
+      await loadAll();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      document.getElementById('tu-save-txt').classList.remove('d-none');
+      document.getElementById('tu-save-load').classList.add('d-none');
+    }
+  }
+
+  async function submitAddPartner() {
+    const errEl = document.getElementById('ap-error');
+    errEl.classList.add('d-none');
+    const name = document.getElementById('ap-name').value.trim();
+    if (!name) { errEl.textContent = 'Name is required.'; errEl.classList.remove('d-none'); return; }
+
+    const btn = document.getElementById('ap-save-btn');
+    btn.disabled = true;
+    document.getElementById('ap-save-txt').classList.add('d-none');
+    document.getElementById('ap-save-load').classList.remove('d-none');
+
+    try {
+      const res = await api.post('/api/partners', {
+        name,
+        phone: document.getElementById('ap-phone').value.trim(),
+      });
+      partners.push(res.data);
+      addPartnerModal.hide();
+      showToast('Partner added!', 'success');
+      renderPartners();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      document.getElementById('ap-save-txt').classList.remove('d-none');
+      document.getElementById('ap-save-load').classList.add('d-none');
+    }
+  }
+
+  window.removePartner = async function (partnerId, name) {
+    const ok = await confirmDialog(`Remove partner "${name}"?`);
+    if (!ok) return;
+    try {
+      await api.delete(`/api/partners/${partnerId}`);
+      partners = partners.filter(p => p.partner_id !== partnerId);
+      showToast('Partner removed', 'success');
+      renderPartners();
+    } catch (err) {
+      showToast('Failed: ' + err.message, 'danger');
+    }
+  };
+
+  init();
+})();

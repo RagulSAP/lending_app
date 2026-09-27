@@ -151,7 +151,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Status</th><th>Assigned To</th><th>Created</th>
+                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Onboarded By</th><th>Status</th><th>Assigned To</th><th>Created</th>
                 ${canEdit ? '<th>Actions</th>' : ''}
               </tr>
             </thead>
@@ -304,7 +304,7 @@
 
       const tbody = document.getElementById('cust-tbody');
       const offset = (currentPage - 1) * perPage;
-      const colSpan = canEdit ? 8 : 7;
+      const colSpan = canEdit ? 9 : 8;
       if (!customers.length) {
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>No customers found</td></tr>`;
       } else {
@@ -343,6 +343,7 @@
             </td>
             <td>${c.phone || '-'}</td>
             <td>${c.city || '-'}</td>
+            <td>${c.onboarded_by || '-'}</td>
             <td>${statusBadge(c.status || 'ACTIVE')}</td>
             <td>${c.assigned_user_name || c.assigned_to || '-'}</td>
             <td>${formatDate(c.created_at)}</td>
@@ -352,7 +353,7 @@
       }
       renderPagination();
     } catch (err) {
-      document.getElementById('cust-tbody').innerHTML = `<tr><td colspan="8" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
+      document.getElementById('cust-tbody').innerHTML = `<tr><td colspan="9" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
       showToast('Failed to load customers: ' + err.message, 'danger');
     } finally {
       hideLoading();

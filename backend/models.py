@@ -127,6 +127,7 @@ class Transaction(Base):
     amount           = Column(Numeric(10, 2), nullable=False)
     payment_mode     = Column(String(100))  # CASH / UPI / BANK_TRANSFER / CHEQUE
     wallet_id        = Column(String(36), ForeignKey("wallet.wallet_id"))
+    partner_id       = Column(String(36))
     remarks          = Column(String(225))
     created_at       = Column(DateTime, default=_now_ist, server_default=func.now())
     updated_at       = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
@@ -166,6 +167,18 @@ class Expense(Base):
     expense_date   = Column(DateTime, nullable=False)
     created_at     = Column(DateTime, default=_now_ist, server_default=func.now())
     updated_at     = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
+
+
+class Partner(Base):
+    __tablename__ = "partners"
+    id         = Column(Integer, primary_key=True, autoincrement=True)
+    partner_id = Column(String(36), unique=True, nullable=False)
+    org_id     = Column(String(36), nullable=False)
+    name       = Column(String(100), nullable=False)
+    phone      = Column(String(100))
+    status     = Column(String(20), default="ACTIVE")
+    created_at = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class LoanStatusHistory(Base):

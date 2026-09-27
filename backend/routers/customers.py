@@ -171,8 +171,22 @@ def list_customers():
             .limit(per_page)
             .all()
         )
+
+        # Batch-fetch creator names
+        creator_ids = list({c.created_by for c in customers if c.created_by})
+        creator_map = {}
+        if creator_ids:
+            users = db.query(User).filter(User.user_id.in_(creator_ids)).all()
+            creator_map = {u.user_id: u.name for u in users}
+
+        rows = []
+        for c in customers:
+            d = model_to_dict(c)
+            d["onboarded_by"] = creator_map.get(c.created_by) if c.created_by else None
+            rows.append(d)
+
         return success_response(
-            data=[model_to_dict(c) for c in customers],
+            data=rows,
             total=total,
             page=page,
             per_page=per_page,
@@ -225,9 +239,15 @@ def get_customer(customer_id):
             u = db.query(User).filter(User.user_id == customer.user_id).first()
             assigned_user = u.name if u else None
 
+        onboarded_by = None
+        if customer.created_by:
+            creator = db.query(User).filter(User.user_id == customer.created_by).first()
+            onboarded_by = creator.name if creator else None
+
         data = model_to_dict(customer)
         data["loan_summary"] = loan_summary
         data["assigned_user_name"] = assigned_user
+        data["onboarded_by"] = onboarded_by
 
         return success_response(data=data)
     finally:
