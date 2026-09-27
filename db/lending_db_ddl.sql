@@ -2,6 +2,7 @@
 -- LendTrack — Complete Database DDL
 -- Incorporates: original schema + 001_v1_updates + 002_add_created_by_and_fix_timestamps + 003_fix_autoincrement
 -- Engine: InnoDB  |  Charset: utf8mb4
+-- Note: Foreign key constraints removed for dev — re-add before prod
 -- =============================================================
 
 -- CREATE DATABASE IF NOT EXISTS lending_db
@@ -46,9 +47,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `status`        INT          NOT NULL DEFAULT 1,   -- 1=active, 0=inactive
   `last_login`    DATETIME,
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`org_id`)  REFERENCES `organizations` (`org_id`),
-  FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)
+  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -76,10 +75,7 @@ CREATE TABLE IF NOT EXISTS `customers` (
   `id_proof_type` VARCHAR(10)  COMMENT 'PAN, AADHAAR, VOTER_ID, PASSPORT, DL',
   `status`        VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`org_id`)     REFERENCES `organizations` (`org_id`),
-  FOREIGN KEY (`user_id`)    REFERENCES `users` (`user_id`),
-  FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
+  `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -104,12 +100,9 @@ CREATE TABLE IF NOT EXISTS `loans` (
   `balance_amount`      NUMERIC(10,2),
   `status`              VARCHAR(100)  NOT NULL DEFAULT 'ACTIVE',
   `remarks`             VARCHAR(100),
-  `created_by`          VARCHAR(100),
+  `created_by`          VARCHAR(36),
   `created_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`customer_id`) REFERENCES `customers` (`customer_id`),
-  FOREIGN KEY (`org_id`)      REFERENCES `organizations` (`org_id`),
-  FOREIGN KEY (`created_by`)  REFERENCES `users` (`user_id`)
+  `updated_at`          DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -131,8 +124,7 @@ CREATE TABLE IF NOT EXISTS `loan_installments` (
   `status`             VARCHAR(20)   NOT NULL DEFAULT 'PENDING',
   `paid_date`          DATE,
   `created_at`         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`loan_id`) REFERENCES `loans` (`loan_id`)
+  `updated_at`         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -145,8 +137,7 @@ CREATE TABLE IF NOT EXISTS `wallet` (
   `balance`    NUMERIC(10,2) NOT NULL DEFAULT 0,
   `org_id`     VARCHAR(36)   NOT NULL,
   `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`org_id`) REFERENCES `organizations` (`org_id`)
+  `updated_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -168,13 +159,7 @@ CREATE TABLE IF NOT EXISTS `transaction` (
   `wallet_id`        VARCHAR(36),
   `remarks`          VARCHAR(225),
   `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`org_id`)         REFERENCES `organizations` (`org_id`),
-  FOREIGN KEY (`user_id`)        REFERENCES `users` (`user_id`),
-  FOREIGN KEY (`customer_id`)    REFERENCES `customers` (`customer_id`),
-  FOREIGN KEY (`loan_id`)        REFERENCES `loans` (`loan_id`),
-  FOREIGN KEY (`installment_id`) REFERENCES `loan_installments` (`installment_id`),
-  FOREIGN KEY (`wallet_id`)      REFERENCES `wallet` (`wallet_id`)
+  `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -189,8 +174,7 @@ CREATE TABLE IF NOT EXISTS `expense_categories` (
   `description` VARCHAR(255),
   `status`      VARCHAR(20)  NOT NULL DEFAULT 'ACTIVE',
   `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`org_id`) REFERENCES `organizations` (`org_id`)
+  `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -207,10 +191,7 @@ CREATE TABLE IF NOT EXISTS `expense` (
   `wallet_id`      VARCHAR(36)   NOT NULL,
   `expense_date`   DATETIME      NOT NULL,
   `created_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (`user_id`)     REFERENCES `users` (`user_id`),
-  FOREIGN KEY (`category_id`) REFERENCES `expense_categories` (`category_id`),
-  FOREIGN KEY (`wallet_id`)   REFERENCES `wallet` (`wallet_id`)
+  `updated_at`     DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -222,11 +203,9 @@ CREATE TABLE IF NOT EXISTS `loan_status_history` (
   `loan_id`    VARCHAR(36)  NOT NULL,
   `old_status` VARCHAR(100),
   `new_status` VARCHAR(100) NOT NULL,
-  `changed_by` VARCHAR(100),
+  `changed_by` VARCHAR(36),
   `changed_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `remarks`    VARCHAR(100),
-  FOREIGN KEY (`loan_id`)    REFERENCES `loans` (`loan_id`),
-  FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`)
+  `remarks`    VARCHAR(100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
