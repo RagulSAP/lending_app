@@ -70,6 +70,7 @@
               <div class="col-md-4">
                 <label class="form-label">Pincode</label>
                 <input type="text" class="form-control" id="f-pincode" placeholder="6-digit pincode" maxlength="6">
+                <span id="f-pincode-feedback" style="font-size:12px;"></span>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Aadhaar Number</label>
@@ -194,7 +195,12 @@
     // Input masking / formatting events
     document.getElementById('f-phone').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 10); });
     document.getElementById('f-aadhaar').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 12); });
-    document.getElementById('f-pincode').addEventListener('input', function () { this.value = this.value.replace(/\D/g, '').slice(0, 6); });
+    document.getElementById('f-pincode').addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+      const fb = document.getElementById('f-pincode-feedback');
+      if (fb) fb.textContent = '';
+      if (this.value.length === 6) lookupPincode(this.value, 'f-city', 'f-state', 'f-pincode-feedback');
+    });
     document.getElementById('f-pan').addEventListener('input', function () { this.value = this.value.toUpperCase().slice(0, 10); });
 
     // Navigation events

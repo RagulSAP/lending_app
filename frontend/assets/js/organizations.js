@@ -282,18 +282,6 @@
     }
   }
 
-  window.togglePass = function(inputId, btn) {
-    const input = document.getElementById(inputId);
-    const icon = btn.querySelector('i');
-    if (input.type === 'password') {
-      input.type = 'text';
-      icon.classList.replace('bi-eye', 'bi-eye-slash');
-    } else {
-      input.type = 'password';
-      icon.classList.replace('bi-eye-slash', 'bi-eye');
-    }
-  };
-
   window.editOrg = function(orgId) {
     const org = orgList.find(o => o.org_id === orgId);
     if (!org) return;

@@ -286,4 +286,35 @@
   window.renderSidebar = renderSidebar;
   window.renderTopbar = renderTopbar;
   window.renderBottomNav = renderBottomNav;
+
+  window.lookupPincode = async function (pincode, cityId, stateId, feedbackId) {
+    const feedbackEl = feedbackId ? document.getElementById(feedbackId) : null;
+    if (feedbackEl) { feedbackEl.textContent = 'Looking up...'; feedbackEl.style.color = '#64748B'; }
+    try {
+      const res = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
+      const json = await res.json();
+      if (json[0]?.Status === 'Success' && json[0].PostOffice?.length) {
+        const po = json[0].PostOffice[0];
+        document.getElementById(cityId).value = po.District || '';
+        document.getElementById(stateId).value = po.State || '';
+        if (feedbackEl) { feedbackEl.textContent = '✓ City & State filled'; feedbackEl.style.color = '#16a34a'; }
+      } else {
+        if (feedbackEl) { feedbackEl.textContent = 'Pincode not found'; feedbackEl.style.color = '#dc2626'; }
+      }
+    } catch {
+      if (feedbackEl) { feedbackEl.textContent = 'Lookup failed'; feedbackEl.style.color = '#dc2626'; }
+    }
+  };
+
+  window.togglePass = function (inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.classList.replace('bi-eye', 'bi-eye-slash');
+    } else {
+      input.type = 'password';
+      icon.classList.replace('bi-eye-slash', 'bi-eye');
+    }
+  };
 })();

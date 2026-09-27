@@ -123,8 +123,11 @@
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">New Password</label>
-                  <input type="password" class="form-control" id="eu-password" placeholder="Leave blank to keep current">
+                  <label class="form-label">Password</label>
+                  <div class="input-group">
+                    <input type="password" class="form-control" id="eu-password" placeholder="Leave blank to keep current">
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePass('eu-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -184,6 +187,7 @@
             <td>${statusBadge(u.status !== undefined ? u.status : 'ACTIVE')}</td>
             <td>${formatDate(u.created_at)}</td>
             ${isAdmin ? `<td>
+              ${u.role_id === 1 ? '<span style="font-size:12px;color:#94a3b8;">—</span>' : `
               <div class="d-flex gap-1 flex-nowrap">
                 <button type="button" class="btn btn-sm btn-outline-primary"
                   onclick="openEditModal('${u.user_id}')" title="Edit">
@@ -198,7 +202,7 @@
                   onclick="deleteUser('${u.user_id}', '${safeName}')" title="Delete">
                   <i class="bi bi-trash"></i>
                 </button>
-              </div>
+              </div>`}
             </td>` : ''}
           </tr>`;
         }).join('');
@@ -258,6 +262,7 @@
       document.getElementById('eu-name').value = u.name || '';
       document.getElementById('eu-phone').value = u.phone || '';
       document.getElementById('eu-role').value = String(u.role_id || 2);
+      document.getElementById('eu-password').value = u.password || '';
 
       editModal.show();
     } catch (err) {

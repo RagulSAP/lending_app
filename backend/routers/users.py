@@ -129,7 +129,7 @@ def list_users():
         role_map = {r.id: r.role_name for r in db.query(Role).all()}
         result = []
         for u in users:
-            d = model_to_dict(u, exclude=["password"])
+            d = model_to_dict(u)
             d["role_name"] = role_map.get(u.role_id, "")
             result.append(d)
 
