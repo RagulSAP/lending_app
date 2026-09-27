@@ -190,3 +190,22 @@ class LoanStatusHistory(Base):
     changed_by = Column(String(100), ForeignKey("users.user_id"))
     changed_at = Column(DateTime, server_default=func.now())
     remarks    = Column(String(100))
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+    id              = Column(Integer, primary_key=True, autoincrement=True)
+    log_id          = Column(String(36), unique=True, nullable=False)
+    session_id      = Column(String(36))          # JWT jti — one login session
+    org_id          = Column(String(36))
+    user_id         = Column(String(36))
+    user_name       = Column(String(100))
+    role_id         = Column(Integer)
+    action          = Column(String(100), nullable=False)
+    action_category = Column(String(50))
+    entity_id       = Column(String(100))
+    http_method     = Column(String(10))
+    endpoint        = Column(String(200))
+    ip_address      = Column(String(45))
+    status_code     = Column(Integer)
+    created_at      = Column(DateTime, nullable=False, default=_now_ist)

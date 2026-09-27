@@ -57,6 +57,10 @@ def create_app():
     app.register_blueprint(wallet_bp)
     app.register_blueprint(partners_bp)
 
+    # ── Audit logging (after_request hook) ───────────────────────────────────
+    from core_functions.audit import audit_after_request
+    app.after_request(audit_after_request)
+
     # ── Serve frontend static files ───────────────────────────────────────────
     frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
 

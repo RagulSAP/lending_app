@@ -260,6 +260,55 @@
     });
   }
 
+  function initAutoLogout() {
+    const INACTIVE_MS  = 60 * 60 * 1000; // 1 hour
+    const WARN_BEFORE  =  5 * 60 * 1000; // warn 5 min before
+    let logoutTimer = null;
+    let warnTimer   = null;
+
+    function clearWarning() {
+      const el = document.getElementById('_inactivity-warn');
+      if (el) el.remove();
+    }
+
+    function showWarning() {
+      clearWarning();
+      const bar = document.createElement('div');
+      bar.id = '_inactivity-warn';
+      bar.innerHTML = `
+        <div style="position:fixed;bottom:76px;left:50%;transform:translateX(-50%);z-index:9999;
+                    background:#1E293B;color:#fff;border-radius:12px;padding:12px 16px;
+                    display:flex;align-items:center;gap:14px;
+                    box-shadow:0 4px 24px rgba(0,0,0,.35);
+                    font-size:13px;max-width:420px;width:calc(100% - 32px);">
+          <i class="bi bi-clock-history" style="font-size:22px;color:#FBBF24;flex-shrink:0;"></i>
+          <span style="flex:1;">You'll be logged out in <strong>5 minutes</strong> due to inactivity.</span>
+          <button id="_inactivity-stay-btn"
+                  style="background:#2563EB;color:#fff;border:none;border-radius:7px;
+                         padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;
+                         white-space:nowrap;flex-shrink:0;">
+            Stay Logged In
+          </button>
+        </div>`;
+      document.body.appendChild(bar);
+      document.getElementById('_inactivity-stay-btn').addEventListener('click', reset);
+    }
+
+    function reset() {
+      clearTimeout(logoutTimer);
+      clearTimeout(warnTimer);
+      clearWarning();
+      warnTimer   = setTimeout(showWarning, INACTIVE_MS - WARN_BEFORE);
+      logoutTimer = setTimeout(() => auth.logout(), INACTIVE_MS);
+    }
+
+    ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'].forEach(evt => {
+      document.addEventListener(evt, reset, { passive: true });
+    });
+
+    reset();
+  }
+
   async function initPage(pageTitle, allowedRoles) {
     if (!auth.requireLogin()) return;
     const user = auth.getUser();
@@ -271,6 +320,7 @@
     renderTopbar(pageTitle);
     renderSidebar();
     renderBottomNav();
+    initAutoLogout();
   }
 
   window.ROLES = ROLES;

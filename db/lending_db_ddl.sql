@@ -227,6 +227,32 @@ CREATE TABLE IF NOT EXISTS `loan_status_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
+-- ----------------------------------------------------------------
+-- 13. audit_log
+-- ----------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `audit_log` (
+  `id`              BIGINT        NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `log_id`          VARCHAR(36)   UNIQUE NOT NULL,
+  `session_id`      VARCHAR(36)   COMMENT 'JWT jti — groups all actions in one login session',
+  `org_id`          VARCHAR(36),
+  `user_id`         VARCHAR(36),
+  `user_name`       VARCHAR(100),
+  `role_id`         INT,
+  `action`          VARCHAR(100)  NOT NULL,
+  `action_category` VARCHAR(50),
+  `entity_id`       VARCHAR(100),
+  `http_method`     VARCHAR(10),
+  `endpoint`        VARCHAR(200),
+  `ip_address`      VARCHAR(45),
+  `status_code`     INT,
+  `created_at`      DATETIME(3)   NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE INDEX `idx_audit_user`    ON `audit_log` (`user_id`, `created_at`);
+CREATE INDEX `idx_audit_session` ON `audit_log` (`session_id`);
+CREATE INDEX `idx_audit_org`     ON `audit_log` (`org_id`, `created_at`);
+
+
 -- ================================================================
 -- Seed data
 -- ================================================================

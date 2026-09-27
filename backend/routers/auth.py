@@ -7,8 +7,8 @@ from datetime import datetime, timezone, timedelta
 _IST = timezone(timedelta(hours=5, minutes=30))
 def _now_ist(): return datetime.now(_IST).replace(tzinfo=None)
 
-from flask import Blueprint, request
-from flask_jwt_extended import jwt_required
+from flask import Blueprint, request, g
+from flask_jwt_extended import jwt_required, get_jwt
 
 from database import SessionLocal
 from models import User, Role
@@ -52,6 +52,15 @@ def login():
         db.commit()
 
         token = create_token(user)
+
+        # Expose user info so the audit after_request hook can log LOGIN
+        # (JWT claims are not yet available in after_request for this request)
+        g.audit_user_id   = user.user_id
+        g.audit_user_name = user.name
+        g.audit_org_id    = user.org_id
+        g.audit_role_id   = user.role_id
+        g.audit_session_id = None  # jti is inside the token but not decoded here
+
         return success_response(data={
             "access_token": token,
             "user": {
