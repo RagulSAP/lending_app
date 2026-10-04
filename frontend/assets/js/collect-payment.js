@@ -759,6 +759,20 @@
     XLSX.writeFile(wb, `Loan_${name}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  // PDF-safe currency: jsPDF default font has no Rupee glyph, use "Rs." instead
+  function pdfAmt(val) {
+    const n = parseFloat(val) || 0;
+    return 'Rs. ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Status fill colors for PDF cells
+  function statusFill(status) {
+    if (status === 'PAID') return [220, 252, 231];       // light green
+    if (status === 'PARTIAL') return [254, 243, 199];    // light yellow
+    if (status === 'PENDING') return [255, 255, 255];    // white
+    return [255, 255, 255];
+  }
+
   window.exportLoanPdf = function () {
     if (!selectedLoan || !selectedCustomer) return;
     const { jsPDF } = window.jspdf;
@@ -766,76 +780,150 @@
     const l = selectedLoan;
     const c = selectedCustomer;
     const totalPayable = l.total_payable || (parseFloat(l.installment_amount) * parseInt(l.num_installments));
-    let y = 15;
+    const pageW = doc.internal.pageSize.getWidth();
+    let y = 14;
 
-    // Title
-    doc.setFontSize(16);
+    // Header bar
+    doc.setFillColor(0, 51, 102);
+    doc.rect(0, 0, pageW, 22, 'F');
+    doc.setFontSize(15);
     doc.setFont(undefined, 'bold');
-    doc.text('Loan Details', 14, y);
-    y += 8;
-
-    // Customer block
-    doc.setFontSize(10);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Loan Statement', 14, 14);
+    doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
-    doc.text(`Customer: ${c.name}   |   Phone: ${c.phone}${c.city ? '   |   City: ' + c.city : ''}`, 14, y);
-    y += 6;
-    doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 14, y);
-    y += 6;
+    doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, pageW - 14, 14, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+    y = 30;
 
-    // Loan summary table
+    // Customer info row
+    doc.setFillColor(240, 244, 255);
+    doc.roundedRect(14, y, pageW - 28, 14, 2, 2, 'F');
+    doc.setFontSize(9);
+    doc.setFont(undefined, 'bold');
+    doc.text('Customer', 18, y + 5);
+    doc.setFont(undefined, 'normal');
+    doc.text(c.name, 18, y + 10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Phone', 70, y + 5);
+    doc.setFont(undefined, 'normal');
+    doc.text(c.phone, 70, y + 10);
+    if (c.city) {
+      doc.setFont(undefined, 'bold');
+      doc.text('City', 120, y + 5);
+      doc.setFont(undefined, 'normal');
+      doc.text(c.city, 120, y + 10);
+    }
+    y += 20;
+
+    // Loan summary table (2-column key-value)
     doc.autoTable({
       startY: y,
-      head: [['Field', 'Value']],
+      head: [['Loan Summary', '']],
       body: [
-        ['Loan ID', l.loan_id],
-        ['Disbursed Amount', formatCurrency(l.disbursement_amount)],
+        ['Loan ID', '...' + l.loan_id.slice(-12)],
+        ['Disbursement Date', l.disbursement_date || '—'],
+        ['Disbursed Amount', pdfAmt(l.disbursement_amount)],
         ['Installment Type', l.installment_type],
         ['No. of Installments', String(l.num_installments)],
-        ['Installment Amount', formatCurrency(l.installment_amount)],
-        ['Total Payable', formatCurrency(totalPayable)],
-        ['Total Paid', formatCurrency(l.total_paid || 0)],
-        ['Balance Amount', formatCurrency(l.balance_amount || 0)],
+        ['Installment Amount', pdfAmt(l.installment_amount)],
+        ['Total Payable', pdfAmt(totalPayable)],
+        ['Total Paid', pdfAmt(l.total_paid || 0)],
+        ['Balance Outstanding', pdfAmt(l.balance_amount || 0)],
         ['Status', l.status],
-        ['Disbursement Date', l.disbursement_date || '—'],
       ],
-      theme: 'grid',
-      headStyles: { fillColor: [0, 51, 102], textColor: 255, fontSize: 9, fontStyle: 'bold' },
-      bodyStyles: { fontSize: 9 },
-      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } },
+      theme: 'plain',
+      headStyles: {
+        fillColor: [0, 51, 102], textColor: 255, fontSize: 9, fontStyle: 'bold',
+        cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+      },
+      bodyStyles: { fontSize: 9, cellPadding: { top: 2.5, bottom: 2.5, left: 4, right: 4 } },
+      columnStyles: {
+        0: { fontStyle: 'bold', cellWidth: 55, fillColor: [248, 250, 252] },
+        1: { cellWidth: 'auto' },
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didParseCell(data) {
+        if (data.row.index === 9 && data.column.index === 1) {
+          const s = data.cell.raw;
+          if (s === 'ACTIVE') data.cell.styles.textColor = [22, 163, 74];
+          else if (s === 'CLOSED') data.cell.styles.textColor = [100, 116, 139];
+        }
+        if (data.row.index === 7 && data.column.index === 1) {
+          data.cell.styles.textColor = [22, 163, 74];
+          data.cell.styles.fontStyle = 'bold';
+        }
+        if (data.row.index === 8 && data.column.index === 1) {
+          data.cell.styles.textColor = [220, 38, 38];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      },
       margin: { left: 14, right: 14 },
     });
 
     y = doc.lastAutoTable.finalY + 8;
 
-    // Installment schedule header
-    doc.setFontSize(12);
+    // Section header
+    doc.setFontSize(11);
     doc.setFont(undefined, 'bold');
+    doc.setTextColor(0, 51, 102);
     doc.text('Installment Schedule', 14, y);
-    y += 4;
+    doc.setTextColor(0, 0, 0);
+    y += 3;
 
-    const instRows = buildInstallmentRows().map(row => [
+    const rawRows = buildInstallmentRows();
+    const instBodyRows = rawRows.map(row => [
       String(row[0]),
       String(row[1]),
-      formatCurrency(row[2]),
-      formatCurrency(row[3]),
-      formatCurrency(row[4]),
+      pdfAmt(row[2]),
+      pdfAmt(row[3]),
+      pdfAmt(row[4]),
       String(row[5]),
     ]);
 
     doc.autoTable({
       startY: y,
       head: [['#', 'Due Date', 'Total', 'Paid', 'Balance', 'Status']],
-      body: instRows,
+      body: instBodyRows,
       theme: 'grid',
-      headStyles: { fillColor: [0, 51, 102], textColor: 255, fontSize: 9, fontStyle: 'bold' },
-      bodyStyles: { fontSize: 8 },
+      headStyles: {
+        fillColor: [0, 51, 102], textColor: 255, fontSize: 8, fontStyle: 'bold', halign: 'center',
+      },
+      bodyStyles: { fontSize: 8, halign: 'center' },
       columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 28 },
-        5: { cellWidth: 22 },
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 26, halign: 'center' },
+        2: { halign: 'right' },
+        3: { halign: 'right' },
+        4: { halign: 'right', fontStyle: 'bold' },
+        5: { cellWidth: 20, halign: 'center' },
+      },
+      didParseCell(data) {
+        if (data.section === 'body' && data.column.index === 5) {
+          const s = data.cell.raw;
+          const fill = statusFill(s);
+          data.cell.styles.fillColor = fill;
+          if (s === 'PAID') data.cell.styles.textColor = [21, 128, 61];
+          else if (s === 'PARTIAL') data.cell.styles.textColor = [146, 64, 14];
+        }
+        // Balance column: red if > 0
+        if (data.section === 'body' && data.column.index === 4) {
+          const rowIdx = data.row.index;
+          if (rawRows[rowIdx] && parseFloat(rawRows[rowIdx][4]) > 0) {
+            data.cell.styles.textColor = [220, 38, 38];
+          }
+        }
       },
       margin: { left: 14, right: 14 },
     });
+
+    // Footer line
+    const finalY = doc.lastAutoTable.finalY + 6;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, finalY, pageW - 14, finalY);
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text('This is a system-generated document.', 14, finalY + 4);
 
     const name = c.name.replace(/\s+/g, '_');
     doc.save(`Loan_${name}_${new Date().toISOString().split('T')[0]}.pdf`);
