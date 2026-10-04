@@ -433,7 +433,8 @@
         tbodyId = 'wd-rep-tbody'; colCount = 6; pagId = 'wd-rep-pag'; countId = 'wd-rep-count';
       }
 
-      const res = await api.get('/api/reports/' + tab, params);
+      const apiTab = tab === 'collection' ? 'transactions' : tab;
+      const res = await api.get('/api/reports/' + apiTab, params);
       const rows = res.data || [];
       const pagination = res.pagination || {};
       totalPages = pagination.total_pages || 1;
