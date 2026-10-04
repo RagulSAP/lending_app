@@ -833,7 +833,7 @@
       startY: y,
       head: [['Loan Summary', '']],
       body: [
-        ['Loan ID', '...' + l.loan_id.slice(-12)],
+        ['Loan ID', l.loan_id],
         ['Disbursement Date', l.disbursement_date || '—'],
         ['Disbursed Amount', pdfAmt(l.disbursement_amount)],
         ['Installment Type', l.installment_type],
