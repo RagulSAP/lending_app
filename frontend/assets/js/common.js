@@ -106,7 +106,7 @@ try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.se
         <i class="bi bi-list"></i>
       </button>
       <div class="topbar-title">${pageTitle || ''}</div>
-      <span class="d-none d-md-inline" style="font-size:11.5px;color:#64748B;background:#F8FAFC;padding:3px 11px;border-radius:20px;border:1px solid #E2E8F0;white-space:nowrap;margin-right:8px;">${_dateStr}</span>
+      <span class="d-none d-md-inline topbar-date-pill">${_dateStr}</span>
       <div class="topbar-user">
         <div class="topbar-user-info d-none d-sm-block">
           <div class="topbar-user-name">${name}</div>

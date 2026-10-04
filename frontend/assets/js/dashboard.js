@@ -75,24 +75,24 @@
   // ---- ADMIN/MANAGER/ACCOUNTANT DASHBOARD ----
   async function renderAdminDashboard() {
     const finCard = (id, label, accent) => `
-      <div style="background:#fff;border-radius:12px;padding:14px 16px 14px 20px;border:1px solid #E2E8F0;
-                  box-shadow:0 1px 4px rgba(0,0,0,.05);position:relative;overflow:hidden;">
+      <div style="background:var(--card-bg);border-radius:12px;padding:14px 16px 14px 20px;border:1px solid var(--border);
+                  box-shadow:var(--shadow-sm);position:relative;overflow:hidden;">
         <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${accent};border-radius:12px 0 0 12px;"></div>
-        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:5px;">${label}</div>
-        <div id="${id}" style="font-size:18px;font-weight:700;color:#1E293B;line-height:1.2;">—</div>
+        <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:5px;">${label}</div>
+        <div id="${id}" style="font-size:18px;font-weight:700;color:var(--text-primary);line-height:1.2;">—</div>
       </div>`;
 
-    const miniCard = (id, label, icon, bg, color, subId) => `
-      <div style="background:#fff;border-radius:10px;padding:10px 12px;border:1px solid #F1F5F9;
-                  box-shadow:0 1px 3px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;">
-        <div style="width:34px;height:34px;border-radius:8px;background:${bg};display:flex;align-items:center;
+    const miniCard = (id, label, icon, chipClass, color, subId) => `
+      <div style="background:var(--card-bg);border-radius:10px;padding:10px 12px;border:1px solid var(--border);
+                  box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
+        <div class="${chipClass}" style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;
                     justify-content:center;flex-shrink:0;">
           <i class="bi ${icon}" style="font-size:15px;color:${color};"></i>
         </div>
         <div style="min-width:0;">
-          <div id="${id}" style="font-size:15px;font-weight:700;color:#1E293B;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+          <div id="${id}" style="font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
           ${subId ? `<div id="${subId}" style="font-size:10px;color:${color};font-weight:600;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>` : ''}
-          <div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+          <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
         </div>
       </div>`;
 
@@ -108,11 +108,11 @@
 
       <!-- Operational mini-cards -->
       <div class="row g-2 mb-4">
-        <div class="col-6 col-md">${miniCard('mv-customers', 'Customers',   'bi-people',                '#FDF2F8', '#DB2777')}</div>
-        <div class="col-6 col-md">${miniCard('mv-loans',     'Active Loans','bi-file-earmark-text',     '#EFF6FF', '#2563EB')}</div>
-        <div class="col-6 col-md">${miniCard('mv-overdue',   'Overdue',     'bi-exclamation-triangle',  '#FEF2F2', '#DC2626')}</div>
-        <div class="col-6 col-md">${miniCard('mv-month',     'This Month',  'bi-calendar-month',        '#EEF2FF', '#4F46E5')}</div>
-        <div class="col-6 col-md">${miniCard('mv-expenses',  'Expenses',    'bi-receipt',               '#FFFBEB', '#D97706')}</div>
+        <div class="col-6 col-md">${miniCard('mv-customers', 'Customers',   'bi-people',                'dash-chip-pink',   '#DB2777')}</div>
+        <div class="col-6 col-md">${miniCard('mv-loans',     'Active Loans','bi-file-earmark-text',     'dash-chip-blue',   '#2563EB')}</div>
+        <div class="col-6 col-md">${miniCard('mv-overdue',   'Overdue',     'bi-exclamation-triangle',  'dash-chip-red',    '#DC2626')}</div>
+        <div class="col-6 col-md">${miniCard('mv-month',     'This Month',  'bi-calendar-month',        'dash-chip-indigo', '#4F46E5')}</div>
+        <div class="col-6 col-md">${miniCard('mv-expenses',  'Expenses',    'bi-receipt',               'dash-chip-amber',  '#D97706')}</div>
       </div>
 
       <!-- Charts -->
@@ -274,7 +274,7 @@
                   ticks: { font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0 },
                 },
                 y: {
-                  grid: { color: '#F1F5F9' },
+                  grid: { color: document.body.getAttribute('data-theme') === 'dark' ? '#21262D' : '#F1F5F9' },
                   ticks: {
                     font: { size: 10 },
                     callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,

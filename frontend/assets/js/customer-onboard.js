@@ -137,7 +137,7 @@
               <button type="button" class="btn btn-outline-primary w-100" id="toggle-loan-btn" style="min-height:44px;">
                 <i class="bi bi-plus-circle me-2"></i>Add Loan Details (Optional)
               </button>
-              <div id="loan-section" class="d-none mt-3 p-3" style="background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;">
+              <div id="loan-section" class="loan-info-box d-none mt-3 p-3">
                 <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Loan Details</h6>
                 <div class="row g-3">
                   <div class="col-md-6">
@@ -162,7 +162,7 @@
                     <input type="number" class="form-control" id="l-collection" placeholder="e.g. 1000" min="1" step="1">
                   </div>
                   <div class="col-12" id="l-summary" style="display:none;">
-                    <div style="display:flex;flex-wrap:wrap;text-align:center;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;overflow:hidden;">
+                    <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
                       <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
                         <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
                         <div id="l-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">&#8377; 0</div>

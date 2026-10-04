@@ -781,8 +781,9 @@
 
   function updateWithdrawSourceHighlight() {
     const val = document.querySelector('input[name="wd-source"]:checked')?.value;
-    document.getElementById('wd-opt-invest').style.borderColor   = val === 'invest'   ? '#2563EB' : '#E2E8F0';
-    document.getElementById('wd-opt-interest').style.borderColor = val === 'interest' ? '#16A34A' : '#E2E8F0';
+    const defBorder = document.body.getAttribute('data-theme') === 'dark' ? '#30363D' : '#E2E8F0';
+    document.getElementById('wd-opt-invest').style.borderColor   = val === 'invest'   ? '#2563EB' : defBorder;
+    document.getElementById('wd-opt-interest').style.borderColor = val === 'interest' ? '#16A34A' : defBorder;
   }
 
   function openWithdrawModal() {
@@ -790,8 +791,9 @@
     document.getElementById('wd-invest-bal').textContent   = formatCurrency(w.invest_balance   || 0);
     document.getElementById('wd-interest-bal').textContent = formatCurrency(w.interest_balance || 0);
     document.querySelectorAll('input[name="wd-source"]').forEach(r => r.checked = false);
-    document.getElementById('wd-opt-invest').style.borderColor   = '#E2E8F0';
-    document.getElementById('wd-opt-interest').style.borderColor = '#E2E8F0';
+    const defBorder = document.body.getAttribute('data-theme') === 'dark' ? '#30363D' : '#E2E8F0';
+    document.getElementById('wd-opt-invest').style.borderColor   = defBorder;
+    document.getElementById('wd-opt-interest').style.borderColor = defBorder;
     document.getElementById('wd-amount').value = '';
     document.getElementById('wd-amount-words').textContent = '';
     document.getElementById('wd-date').value = new Date().toISOString().split('T')[0];

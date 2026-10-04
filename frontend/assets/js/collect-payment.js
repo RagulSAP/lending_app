@@ -332,7 +332,7 @@
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="p-2 rounded text-center" style="background:#fff7ed;">
+        <div class="p-2 rounded text-center balance-stat-box">
           <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(l.balance_amount || 0)}</div>
           <div style="font-size:11px;color:#64748B;">Balance</div>
         </div>
@@ -514,7 +514,7 @@
                   <input type="number" class="form-control" id="al-collection" placeholder="e.g. 1000" min="1" step="1">
                 </div>
                 <div class="col-12" id="al-summary" style="display:none;">
-                  <div style="display:flex;flex-wrap:wrap;text-align:center;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;overflow:hidden;">
+                  <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
                     <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
                       <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
                       <div id="al-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">₹ 0</div>

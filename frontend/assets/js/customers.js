@@ -110,8 +110,8 @@
     document.getElementById('page-content').innerHTML = `
       <div class="card">
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);">
-          <h6 style="margin:0;font-size:14px;font-weight:600;color:#1E293B;white-space:nowrap;">Customers List</h6>
-          <div style="width:1px;height:22px;background:#E2E8F0;"></div>
+          <h6 style="margin:0;font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;">Customers List</h6>
+          <div style="width:1px;height:22px;background:var(--border);"></div>
           <input type="text" class="form-control form-control-sm" id="f-search" placeholder="Name or phone…" style="width:155px;">
           <input type="text" class="form-control form-control-sm" id="f-city" placeholder="City…" style="width:110px;">
           <select class="form-select form-select-sm" id="f-status" style="width:115px;">
