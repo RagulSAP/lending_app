@@ -1,6 +1,33 @@
 (function () {
   'use strict';
 
+  // Module-level chart references so the theme observer can update them
+  let _custChart  = null;
+  let _trendChart = null;
+
+  const _isDark     = () => document.body.getAttribute('data-theme') === 'dark';
+  const _textColor  = () => _isDark() ? '#E6EDF3' : '#0F172A';
+  const _mutedColor = () => _isDark() ? '#8B949E' : '#64748B';
+  const _gridColor  = () => _isDark() ? '#21262D' : '#F1F5F9';
+
+  function _syncChartTheme() {
+    if (_custChart) {
+      _custChart.options.plugins.legend.labels.color = _textColor();
+      _custChart.update();
+    }
+    if (_trendChart) {
+      _trendChart.options.plugins.legend.labels.color = _textColor();
+      _trendChart.options.scales.x.ticks.color        = _mutedColor();
+      _trendChart.options.scales.y.ticks.color        = _mutedColor();
+      _trendChart.options.scales.y.grid.color         = _gridColor();
+      _trendChart.update();
+    }
+  }
+
+  // Watch for theme attribute changes and re-colour charts immediately
+  new MutationObserver(_syncChartTheme)
+    .observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+
   async function init() {
     await initPage('Dashboard', [1, 2, 4, 5]);
     const user = auth.getUser();
@@ -167,7 +194,7 @@
       const custColors    = ['#2563EB', '#16A34A', '#94A3B8'];
       const custData      = [custActive, custCompleted, custNone];
       if (typeof Chart !== 'undefined') {
-        new Chart(document.getElementById('customer-chart').getContext('2d'), {
+        _custChart = new Chart(document.getElementById('customer-chart').getContext('2d'), {
           type: 'doughnut',
           data: { labels: custLabels, datasets: [{ data: custData, backgroundColor: custColors, borderWidth: 0, hoverOffset: 6 }] },
           options: {
@@ -181,19 +208,15 @@
                   padding: 12,
                   usePointStyle: true,
                   pointStyle: 'circle',
-                  color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#0F172A',
-                  generateLabels: () => {
-                    const labelColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#0F172A';
-                    return custLabels.map((lbl, i) => ({
-                      text: `${lbl}  ${custData[i]}`,
-                      fillStyle: custColors[i],
-                      strokeStyle: custColors[i],
-                      pointStyle: 'circle',
-                      fontColor: labelColor,
-                      color: labelColor,
-                      index: i,
-                    }));
-                  },
+                  color: _textColor(),
+                  generateLabels: () => custLabels.map((lbl, i) => ({
+                    text: `${lbl}  ${custData[i]}`,
+                    fillStyle: custColors[i],
+                    strokeStyle: custColors[i],
+                    pointStyle: 'circle',
+                    color: _textColor(),
+                    index: i,
+                  })),
                 },
               },
             },
@@ -211,7 +234,6 @@
       }
 
       // Trend chart — default last 30 days
-      let trendChartInstance = null;
       const today = new Date();
       const d30ago = new Date(today); d30ago.setDate(d30ago.getDate() - 29);
       const fmtDate = d => d.toISOString().split('T')[0];
@@ -226,11 +248,11 @@
           const collected = td.collected || [];
           const disbursed = td.disbursed || [];
 
-          if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+          if (_trendChart) { _trendChart.destroy(); _trendChart = null; }
 
           if (typeof Chart === 'undefined') return;
 
-          trendChartInstance = new Chart(document.getElementById('trend-chart').getContext('2d'), {
+          _trendChart = new Chart(document.getElementById('trend-chart').getContext('2d'), {
             data: {
               labels: dates,
               datasets: [
@@ -265,10 +287,7 @@
               plugins: {
                 legend: {
                   position: 'top',
-                  labels: {
-                    font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 14,
-                    color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#0F172A',
-                  },
+                  labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 14, color: _textColor() },
                 },
                 tooltip: {
                   callbacks: {
@@ -279,16 +298,12 @@
               scales: {
                 x: {
                   grid: { display: false },
-                  ticks: {
-                    font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0,
-                    color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#64748B',
-                  },
+                  ticks: { font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0, color: _mutedColor() },
                 },
                 y: {
-                  grid: { color: document.body.getAttribute('data-theme') === 'dark' ? '#21262D' : '#F1F5F9' },
+                  grid: { color: _gridColor() },
                   ticks: {
-                    font: { size: 10 },
-                    color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#64748B',
+                    font: { size: 10 }, color: _mutedColor(),
                     callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
                   },
                 },
