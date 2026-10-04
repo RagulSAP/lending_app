@@ -103,8 +103,7 @@
       </div>`;
 
     document.getElementById('page-content').innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
-        <h1 style="font-size:20px;font-weight:700;color:#1E293B;margin:0;">Dashboard</h1>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
         <span style="font-size:12px;color:#64748B;background:#F8FAFC;padding:4px 12px;border-radius:20px;border:1px solid #E2E8F0;">${dateLabel}</span>
       </div>
 
@@ -118,36 +117,38 @@
 
       <!-- Operational mini-cards -->
       <div class="row g-2 mb-4">
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-customers', 'Customers',   'bi-people',                '#FDF2F8', '#DB2777')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-loans',     'Active Loans','bi-file-earmark-text',     '#EFF6FF', '#2563EB')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-overdue',   'Overdue',     'bi-exclamation-triangle',  '#FEF2F2', '#DC2626', 'mv-overdue-amt')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-month',     'This Month',  'bi-calendar-month',        '#EEF2FF', '#4F46E5')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-expenses',  'Expenses',    'bi-receipt',               '#FFFBEB', '#D97706')}</div>
+        <div class="col-6 col-md">${miniCard('mv-customers', 'Customers',   'bi-people',                '#FDF2F8', '#DB2777')}</div>
+        <div class="col-6 col-md">${miniCard('mv-loans',     'Active Loans','bi-file-earmark-text',     '#EFF6FF', '#2563EB')}</div>
+        <div class="col-6 col-md">${miniCard('mv-overdue',   'Overdue',     'bi-exclamation-triangle',  '#FEF2F2', '#DC2626', 'mv-overdue-amt')}</div>
+        <div class="col-6 col-md">${miniCard('mv-month',     'This Month',  'bi-calendar-month',        '#EEF2FF', '#4F46E5')}</div>
+        <div class="col-6 col-md">${miniCard('mv-expenses',  'Expenses',    'bi-receipt',               '#FFFBEB', '#D97706')}</div>
       </div>
 
       <!-- Charts -->
       <div class="row g-3">
-        <div class="col-md-5">
+        <div class="col-md-4">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Customer Status</h6></div>
-            <div style="position:relative;height:220px;padding:8px 16px;">
+            <div style="position:relative;height:170px;padding:6px 12px;">
               <canvas id="customer-chart"></canvas>
             </div>
           </div>
         </div>
-        <div class="col-md-7">
+        <div class="col-md-8">
           <div class="card h-100">
-            <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
+            <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;align-items:center;">
               <h6 class="card-title" style="margin:0;">Collection &amp; Disbursement Trend</h6>
-              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <input type="date" id="trend-from" class="form-control form-control-sm" style="width:130px;">
-                <input type="date" id="trend-to"   class="form-control form-control-sm" style="width:130px;">
-                <button class="btn btn-sm btn-primary" id="trend-apply" style="padding:3px 10px;font-size:12px;">
-                  <i class="bi bi-search"></i> Apply
+              <div style="display:flex;align-items:center;gap:6px;flex:1;justify-content:flex-end;flex-wrap:wrap;">
+                <span id="trend-total-collected" style="font-size:11px;font-weight:600;color:#10B981;background:#ECFDF5;padding:2px 8px;border-radius:20px;border:1px solid #D1FAE5;display:none;"></span>
+                <span id="trend-total-disbursed" style="font-size:11px;font-weight:600;color:#6366F1;background:#EEF2FF;padding:2px 8px;border-radius:20px;border:1px solid #E0E7FF;display:none;"></span>
+                <input type="date" id="trend-from" class="form-control form-control-sm" style="width:126px;">
+                <input type="date" id="trend-to"   class="form-control form-control-sm" style="width:126px;">
+                <button class="btn btn-sm btn-primary" id="trend-apply" style="padding:3px 10px;font-size:12px;white-space:nowrap;">
+                  <i class="bi bi-arrow-clockwise"></i> Apply
                 </button>
               </div>
             </div>
-            <div style="position:relative;height:190px;padding:8px 16px;">
+            <div style="position:relative;height:210px;padding:6px 16px 10px;">
               <canvas id="trend-chart"></canvas>
             </div>
           </div>
@@ -171,55 +172,50 @@
       document.getElementById('mv-month').textContent     = formatCurrency(s.collected_this_month || 0);
       document.getElementById('mv-expenses').textContent  = formatCurrency(s.expenses_this_month  || 0);
 
-      // Shared doughnut options builder
-      function makeDoughnutOpts(labels, colors, data) {
-        return {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: {
-                font: { size: 11, family: 'Inter' },
-                padding: 12,
-                usePointStyle: true,
-                pointStyle: 'circle',
-                generateLabels: () =>
-                  labels.map((lbl, i) => ({
-                    text: `${lbl}  ${data[i]}`,
-                    fillStyle: colors[i],
-                    strokeStyle: colors[i],
-                    pointStyle: 'circle',
-                    index: i,
-                  })),
-              },
-            },
-          },
-          cutout: '72%',
-        };
-      }
-
       // Customer loan status chart
       const custActive    = s.customers_with_active_loans    || 0;
       const custCompleted = s.customers_with_completed_loans || 0;
       const custNone      = s.customers_without_loans        || 0;
-      const custLabels    = ['Active Loan', 'Completed', 'No Loan'];
-      const custColors    = ['#2563EB', '#16A34A', '#94A3B8'];
+      const custLabels    = ['Active', 'Completed', 'No Loan'];
+      const custColors    = ['#6366F1', '#10B981', '#CBD5E1'];
       const custData      = [custActive, custCompleted, custNone];
       if (typeof Chart !== 'undefined') {
         new Chart(document.getElementById('customer-chart').getContext('2d'), {
           type: 'doughnut',
-          data: { labels: custLabels, datasets: [{ data: custData, backgroundColor: custColors, borderWidth: 0, hoverOffset: 6 }] },
-          options: makeDoughnutOpts(custLabels, custColors, custData),
+          data: { labels: custLabels, datasets: [{ data: custData, backgroundColor: custColors, borderWidth: 2, borderColor: '#fff', hoverOffset: 4 }] },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  font: { size: 10.5 },
+                  padding: 10,
+                  usePointStyle: true,
+                  pointStyle: 'circle',
+                  generateLabels: () =>
+                    custLabels.map((lbl, i) => ({
+                      text: `${lbl}  ${custData[i]}`,
+                      fillStyle: custColors[i],
+                      strokeStyle: custColors[i],
+                      pointStyle: 'circle',
+                      index: i,
+                    })),
+                },
+              },
+            },
+            cutout: '74%',
+          },
         });
       } else {
-        const rows = [['#2563EB', custActive, 'Active Loan'], ['#16A34A', custCompleted, 'Completed'], ['#94A3B8', custNone, 'No Loan']]
-          .map(([c, v, l]) => `<div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
-            <span style="font-size:22px;font-weight:700;color:${c};">${v}</span>
-            <span style="font-size:12px;color:#64748B;">${l}</span></div>`).join('');
+        const rows = [['#6366F1', custActive, 'Active'], ['#10B981', custCompleted, 'Completed'], ['#CBD5E1', custNone, 'No Loan']]
+          .map(([c, v, l]) => `<div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+            <span style="font-size:18px;font-weight:700;color:${c};">${v}</span>
+            <span style="font-size:11px;color:#64748B;">${l}</span></div>`).join('');
         document.getElementById('customer-chart').closest('div[style]').innerHTML =
-          `<div style="height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">${rows}</div>`;
+          `<div style="height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">${rows}</div>`;
       }
 
       // Trend chart — default last 30 days
@@ -240,9 +236,31 @@
 
           if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
 
+          // Update summary badges
+          const totalC = collected.reduce((a, b) => a + b, 0);
+          const totalD = disbursed.reduce((a, b) => a + b, 0);
+          const elC = document.getElementById('trend-total-collected');
+          const elD = document.getElementById('trend-total-disbursed');
+          if (elC) { elC.textContent = `↑ ${formatCurrency(totalC)}`; elC.style.display = 'inline'; }
+          if (elD) { elD.textContent = `↓ ${formatCurrency(totalD)}`; elD.style.display = 'inline'; }
+
           if (typeof Chart === 'undefined') return;
 
-          trendChartInstance = new Chart(document.getElementById('trend-chart').getContext('2d'), {
+          const ctx = document.getElementById('trend-chart').getContext('2d');
+
+          // Gradient fill for collected bars
+          const barGrad = ctx.createLinearGradient(0, 0, 0, 200);
+          barGrad.addColorStop(0, 'rgba(16,185,129,0.85)');
+          barGrad.addColorStop(1, 'rgba(16,185,129,0.35)');
+
+          // Gradient fill under line
+          const lineGrad = ctx.createLinearGradient(0, 0, 0, 200);
+          lineGrad.addColorStop(0, 'rgba(99,102,241,0.18)');
+          lineGrad.addColorStop(1, 'rgba(99,102,241,0.01)');
+
+          const sparse = dates.length > 45;
+
+          trendChartInstance = new Chart(ctx, {
             data: {
               labels: dates,
               datasets: [
@@ -250,20 +268,29 @@
                   type: 'bar',
                   label: 'Collected',
                   data: collected,
-                  backgroundColor: 'rgba(22,163,74,.65)',
-                  borderRadius: 3,
+                  backgroundColor: barGrad,
+                  borderColor: 'rgba(16,185,129,0.9)',
+                  borderWidth: 1,
+                  borderRadius: 4,
+                  borderSkipped: false,
                   order: 2,
                   yAxisID: 'y',
+                  barPercentage: 0.6,
+                  categoryPercentage: 0.7,
                 },
                 {
                   type: 'line',
                   label: 'Disbursed',
                   data: disbursed,
-                  borderColor: '#2563EB',
-                  backgroundColor: 'rgba(37,99,235,.08)',
-                  borderWidth: 2,
-                  pointRadius: dates.length > 60 ? 0 : 3,
-                  tension: 0.35,
+                  borderColor: '#6366F1',
+                  backgroundColor: lineGrad,
+                  borderWidth: 2.5,
+                  pointRadius: sparse ? 0 : 3,
+                  pointHoverRadius: 5,
+                  pointBackgroundColor: '#6366F1',
+                  pointBorderColor: '#fff',
+                  pointBorderWidth: 1.5,
+                  tension: 0.4,
                   fill: true,
                   order: 1,
                   yAxisID: 'y',
@@ -273,28 +300,52 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
+              animation: { duration: 500, easing: 'easeInOutQuart' },
               interaction: { mode: 'index', intersect: false },
               plugins: {
                 legend: {
                   position: 'top',
-                  labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 14 },
+                  align: 'end',
+                  labels: {
+                    font: { size: 11 },
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    padding: 16,
+                    color: '#475569',
+                  },
                 },
                 tooltip: {
+                  backgroundColor: '#1E293B',
+                  titleColor: '#94A3B8',
+                  bodyColor: '#F8FAFC',
+                  borderColor: '#334155',
+                  borderWidth: 1,
+                  cornerRadius: 8,
+                  padding: 10,
                   callbacks: {
-                    label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+                    label: ctx => `  ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
                   },
                 },
               },
               scales: {
                 x: {
                   grid: { display: false },
-                  ticks: { font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0 },
+                  border: { display: false },
+                  ticks: { font: { size: 10 }, color: '#94A3B8', maxTicksLimit: sparse ? 10 : 16, maxRotation: 0 },
                 },
                 y: {
-                  grid: { color: '#F1F5F9' },
+                  grid: { color: '#F1F5F9', drawBorder: false },
+                  border: { display: false, dash: [4, 4] },
                   ticks: {
                     font: { size: 10 },
-                    callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
+                    color: '#94A3B8',
+                    padding: 6,
+                    callback: v => {
+                      if (v === 0) return '0';
+                      if (v >= 100000) return (v / 100000).toFixed(1).replace(/\.0$/, '') + 'L';
+                      if (v >= 1000)   return (v / 1000).toFixed(0) + 'k';
+                      return v;
+                    },
                   },
                 },
               },
