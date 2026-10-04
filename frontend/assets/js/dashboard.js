@@ -165,7 +165,7 @@
         <div class="col-6 col-md-3">${finCard('kv-disbursed', t('dash.total_disbursed'),   '#2563EB')}</div>
         <div class="col-6 col-md-3">${finCard('kv-today',     t('dash.collected_today'),   '#0891B2')}</div>
         <div class="col-6 col-md-3">${finCard('kv-interest',  t('dash.interest_balance'),  'linear-gradient(135deg,#16A34A,#059669)')}</div>
-        <div class="col-6 col-md-3">${finCard('kv-invest',    t('dash.invest_balance'),    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-rotation',  t('dash.invest_balance'),    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
       </div>
 
       <!-- Operational mini-cards -->
@@ -211,7 +211,7 @@
       const res = await api.get('/api/dashboard/summary');
       const s = res.data || {};
 
-      document.getElementById('kv-invest').textContent    = formatCurrency(s.wallet_invest_balance   || 0);
+      document.getElementById('kv-rotation').textContent  = formatCurrency(s.wallet_rotation_balance  || 0);
       document.getElementById('kv-interest').textContent  = formatCurrency(s.wallet_interest_balance || 0);
       document.getElementById('kv-disbursed').textContent = formatCurrency(s.total_disbursed         || 0);
       document.getElementById('kv-today').textContent     = formatCurrency(s.collected_today         || 0);

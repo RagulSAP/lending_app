@@ -110,12 +110,12 @@ def create_loan():
         if customer.status != "ACTIVE":
             return error_response("Cannot disburse loan to an inactive customer")
 
-        # Validate invest_balance before proceeding — disbursements come from investment capital only
+        # Validate rotation_balance before proceeding — disbursements come from rotation capital
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
-        wallet_balance = round(float(wallet.invest_balance or 0), 2) if wallet else 0.0
+        wallet_balance = round(float(wallet.rotation_balance or 0), 2) if wallet else 0.0
         if not wallet or wallet_balance < principal:
             return error_response(
-                f"Insufficient invest balance. Available: ₹ {wallet_balance:,.2f}, Required: ₹ {principal:,.2f}",
+                f"Insufficient rotation balance. Available: ₹ {wallet_balance:,.2f}, Required: ₹ {principal:,.2f}",
                 400,
             )
 
@@ -199,9 +199,9 @@ def create_loan():
         )
         db.add(history)
 
-        # Deduct disbursement from invest_balance (wallet already validated above)
+        # Deduct disbursement from rotation_balance (wallet already validated above)
         if wallet:
-            wallet.invest_balance = round(float(wallet.invest_balance or 0) - principal, 2)
+            wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - principal, 2)
             disbursement_txn = Transaction(
                 transaction_id=str(uuid.uuid4()),
                 loan_id=loan_id,
@@ -221,8 +221,9 @@ def create_loan():
         loan_data["installments"] = [model_to_dict(i) for i in installment_objs]
         loan_data["total_interest"] = calc["total_interest"]
         if wallet:
-            loan_data["wallet_invest_balance"]   = float(wallet.invest_balance)
-            loan_data["wallet_interest_balance"] = float(wallet.interest_balance)
+            loan_data["wallet_invest_balance"]    = float(wallet.invest_balance)
+            loan_data["wallet_rotation_balance"]  = float(wallet.rotation_balance)
+            loan_data["wallet_interest_balance"]  = float(wallet.interest_balance)
 
         return success_response(data=loan_data, message="Loan created successfully"), 201
 

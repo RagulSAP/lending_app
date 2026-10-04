@@ -124,15 +124,14 @@ def collect_payment():
             loan.balance_amount = 0.0
             loan.status = "CLOSED"
 
-        # 5. Credit wallet — split between invest_balance (principal) and interest_balance (interest)
+        # 5. Credit wallet — full amount to rotation_balance; interest portion tracked in interest_balance
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
         total_inst = float(installment.total_amount or 1)
-        principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst, 2)
-        interest_portion  = round(amount - principal_portion, 2)
-        wallet.invest_balance   = round(float(wallet.invest_balance   or 0) + principal_portion, 2)
-        wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_portion,  2)
+        interest_portion = round(amount * float(installment.interest_amount or 0) / total_inst, 2)
+        wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount,           2)
+        wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_portion, 2)
 
         # 6. Insert transaction
         txn = Transaction(
@@ -168,8 +167,9 @@ def collect_payment():
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status
-        txn_data["wallet_invest_balance"]   = float(wallet.invest_balance)
-        txn_data["wallet_interest_balance"] = float(wallet.interest_balance)
+        txn_data["wallet_invest_balance"]    = float(wallet.invest_balance)
+        txn_data["wallet_rotation_balance"]  = float(wallet.rotation_balance)
+        txn_data["wallet_interest_balance"]  = float(wallet.interest_balance)
 
         return success_response(data=txn_data, message="Payment collected successfully"), 201
 

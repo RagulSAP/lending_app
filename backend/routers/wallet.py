@@ -31,7 +31,7 @@ def get_wallet():
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return success_response(data={
-                "wallet": {"wallet_id": None, "invest_balance": 0, "interest_balance": 0, "org_id": current["org_id"]},
+                "wallet": {"wallet_id": None, "invest_balance": 0, "rotation_balance": 0, "interest_balance": 0, "org_id": current["org_id"]},
                 "transactions": [],
                 "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0, "total_withdrawn": 0},
             })
@@ -125,6 +125,7 @@ def topup_wallet():
                 wallet_id=str(uuid.uuid4()),
                 org_id=current["org_id"],
                 invest_balance=0,
+                rotation_balance=0,
                 interest_balance=0,
             )
             db.add(wallet)
@@ -138,7 +139,8 @@ def topup_wallet():
             if not partner:
                 return error_response("Partner not found", 404)
 
-        wallet.invest_balance = round(float(wallet.invest_balance or 0) + amount, 2)
+        wallet.invest_balance   = round(float(wallet.invest_balance   or 0) + amount, 2)
+        wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount, 2)
 
         txn = Transaction(
             transaction_id=str(uuid.uuid4()),
@@ -155,8 +157,9 @@ def topup_wallet():
         db.commit()
 
         d = model_to_dict(txn)
-        d["wallet_invest_balance"]   = float(wallet.invest_balance)
-        d["wallet_interest_balance"] = float(wallet.interest_balance)
+        d["wallet_invest_balance"]    = float(wallet.invest_balance)
+        d["wallet_rotation_balance"]  = float(wallet.rotation_balance)
+        d["wallet_interest_balance"]  = float(wallet.interest_balance)
         return success_response(data=d, message="Wallet topped up successfully"), 201
     except Exception as exc:
         db.rollback()
@@ -165,66 +168,11 @@ def topup_wallet():
         db.close()
 
 
-@wallet_bp.route("/transfer", methods=["POST"])
-@require_roles(*_ADMIN_ROLES)
-def transfer_interest_to_invest():
-    """POST /api/wallet/transfer — move amount from interest_balance to invest_balance."""
-    current = get_current_user_info()
-    data = request.get_json(silent=True)
-    if not data:
-        return error_response("JSON body is required")
-
-    try:
-        amount = float(data.get("amount") or 0)
-    except (TypeError, ValueError):
-        return error_response("amount must be a number")
-    if amount <= 0:
-        return error_response("amount must be positive")
-
-    db = SessionLocal()
-    try:
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
-        if not wallet:
-            return error_response("No wallet found for this organisation", 404)
-
-        interest_bal = float(wallet.interest_balance or 0)
-        if amount > interest_bal + 0.005:
-            return error_response(
-                f"Insufficient interest balance. Available: ₹ {interest_bal:,.2f}, Requested: ₹ {amount:,.2f}",
-                400,
-            )
-
-        wallet.interest_balance = round(interest_bal - amount, 2)
-        wallet.invest_balance   = round(float(wallet.invest_balance or 0) + amount, 2)
-
-        txn = Transaction(
-            transaction_id=str(uuid.uuid4()),
-            user_id=current["user_id"],
-            org_id=current["org_id"],
-            transaction_type="WALLET_TRANSFER",
-            transaction_date=date.today(),
-            amount=round(amount, 2),
-            wallet_id=wallet.wallet_id,
-            remarks=(data.get("remarks") or "Interest → Invest transfer").strip(),
-        )
-        db.add(txn)
-        db.commit()
-
-        d = model_to_dict(txn)
-        d["wallet_invest_balance"]   = float(wallet.invest_balance)
-        d["wallet_interest_balance"] = float(wallet.interest_balance)
-        return success_response(data=d, message="Transfer completed successfully"), 201
-    except Exception as exc:
-        db.rollback()
-        return error_response(f"Database error: {exc}", 500)
-    finally:
-        db.close()
-
 
 @wallet_bp.route("/withdraw", methods=["POST"])
 @require_roles(*_ADMIN_ROLES)
 def withdraw():
-    """POST /api/wallet/withdraw — {amount, source ('invest'|'interest'), transaction_date, remarks}"""
+    """POST /api/wallet/withdraw — {amount, transaction_date, remarks} — deducts from both invest_balance and rotation_balance."""
     current = get_current_user_info()
     data = request.get_json(silent=True)
     if not data:
@@ -236,10 +184,6 @@ def withdraw():
         return error_response("amount must be a number")
     if amount <= 0:
         return error_response("amount must be positive")
-
-    source = (data.get("source") or "").strip().lower()
-    if source not in ("invest", "interest"):
-        return error_response("source must be 'invest' or 'interest'")
 
     txn_date_str = data.get("transaction_date")
     txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
@@ -252,20 +196,14 @@ def withdraw():
         if not wallet:
             return error_response("No wallet found for this organisation", 404)
 
-        if source == "invest":
-            available = float(wallet.invest_balance or 0)
-            if amount > available + 0.005:
-                return error_response(
-                    f"Insufficient invest balance. Available: ₹ {available:,.2f}", 400
-                )
-            wallet.invest_balance = round(available - amount, 2)
-        else:
-            available = float(wallet.interest_balance or 0)
-            if amount > available + 0.005:
-                return error_response(
-                    f"Insufficient interest balance. Available: ₹ {available:,.2f}", 400
-                )
-            wallet.interest_balance = round(available - amount, 2)
+        rotation_avail = float(wallet.rotation_balance or 0)
+        if amount > rotation_avail + 0.005:
+            return error_response(
+                f"Insufficient rotation balance. Available: ₹ {rotation_avail:,.2f}", 400
+            )
+
+        wallet.invest_balance   = round(float(wallet.invest_balance   or 0) - amount, 2)
+        wallet.rotation_balance = round(rotation_avail - amount, 2)
 
         txn = Transaction(
             transaction_id=str(uuid.uuid4()),
@@ -275,13 +213,14 @@ def withdraw():
             transaction_date=txn_date,
             amount=round(amount, 2),
             wallet_id=wallet.wallet_id,
-            remarks=(data.get("remarks") or f"{source.capitalize()} balance withdrawal").strip(),
+            remarks=(data.get("remarks") or "Withdrawal").strip(),
         )
         db.add(txn)
         db.commit()
 
         d = model_to_dict(txn)
         d["wallet_invest_balance"]   = float(wallet.invest_balance)
+        d["wallet_rotation_balance"] = float(wallet.rotation_balance)
         d["wallet_interest_balance"] = float(wallet.interest_balance)
         return success_response(data=d, message="Withdrawal successful"), 201
     except Exception as exc:
