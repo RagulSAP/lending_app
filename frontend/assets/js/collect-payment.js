@@ -49,15 +49,7 @@
       <div class="card d-none" id="step2-card">
         <div class="card-header-flex">
           <h6 class="card-title"><span class="badge bg-primary me-2">2</span>${t('pay.select_loan')}</h6>
-          <div class="d-flex gap-2 align-items-center">
-            <div id="loan-export-btns" style="display:none;gap:0.5rem;">
-              <button type="button" class="btn btn-sm btn-outline-success" onclick="exportLoanExcel()">
-                <i class="bi bi-file-earmark-excel me-1"></i>Excel
-              </button>
-              <button type="button" class="btn btn-sm btn-outline-danger" onclick="exportLoanPdf()">
-                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-              </button>
-            </div>
+          <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-outline-primary d-none" id="add-loan-btn">
               <i class="bi bi-plus-circle me-1"></i>${t('pay.add_loan')}
             </button>
@@ -152,14 +144,6 @@
               </div>
             </div>
             <div class="modal-footer">
-              <div class="me-auto d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-outline-success" onclick="exportLoanExcel()">
-                  <i class="bi bi-file-earmark-excel me-1"></i>Excel
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="exportLoanPdf()">
-                  <i class="bi bi-file-earmark-pdf me-1"></i>PDF
-                </button>
-              </div>
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-success d-none" id="pm-submit-btn">
                 <span id="pm-submit-txt"><i class="bi bi-check-circle me-2"></i>Record Payment</span>
@@ -256,11 +240,12 @@
       const step2 = document.getElementById('step2-card');
       step2.classList.remove('d-none');
       step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const exportBtns = document.getElementById('loan-export-btns');
-      if (exportBtns) exportBtns.style.display = 'none';
 
       const listEl = document.getElementById('loans-list');
       const addLoanBtn = document.getElementById('add-loan-btn');
+      const roleId = (auth.getUser() || {}).role_id;
+      const canExport = roleId === 1 || roleId === 2; // ADMIN or MANAGER
+
       if (!customerLoans.length) {
         if (addLoanBtn) addLoanBtn.classList.remove('d-none');
         listEl.innerHTML = `
@@ -290,9 +275,18 @@
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.collection')}:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
             </div>
-            <button type="button" class="btn btn-success w-100" onclick="selectLoan('${l.loan_id}')">
-              <i class="bi bi-cash-coin me-2"></i>${t('pay.collect')}
-            </button>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-success flex-fill" onclick="selectLoan('${l.loan_id}')">
+                <i class="bi bi-cash-coin me-2"></i>${t('pay.collect')}
+              </button>
+              ${canExport ? `
+              <button type="button" class="btn btn-outline-success" title="Export Excel" onclick="exportLoanCard('${l.loan_id}','excel')">
+                <i class="bi bi-file-earmark-excel"></i>
+              </button>
+              <button type="button" class="btn btn-outline-danger" title="Export PDF" onclick="exportLoanCard('${l.loan_id}','pdf')">
+                <i class="bi bi-file-earmark-pdf"></i>
+              </button>` : ''}
+            </div>
           </div>
         </div>`).join('');
     } catch (err) {
@@ -315,9 +309,6 @@
       installments = loanData.installments || [];
       // Merge full API data (has total_paid, balance_amount, etc.) onto selected
       selectedLoan = Object.assign({}, selectedLoan, loanData);
-      // Reveal export buttons in step2 header
-      const exportBtns = document.getElementById('loan-export-btns');
-      if (exportBtns) exportBtns.style.display = 'flex';
       delete selectedLoan.installments; // keep it in the separate array
       openPaymentModal();
     } catch (err) {
@@ -761,6 +752,25 @@
     XLSX.writeFile(wb, `Loan_${name}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
+  window.exportLoanCard = async function (loanId, format) {
+    try {
+      showLoading();
+      const res = await api.get('/api/loans/' + loanId);
+      const loanData = res.data || {};
+      const base = customerLoans.find(l => l.loan_id === loanId) || {};
+      selectedLoan = Object.assign({}, base, loanData);
+      delete selectedLoan.installments;
+      installments = loanData.installments || [];
+    } catch (err) {
+      showToast('Failed to load loan: ' + err.message, 'danger');
+      return;
+    } finally {
+      hideLoading();
+    }
+    if (format === 'excel') exportLoanExcel();
+    else exportLoanPdf();
+  };
+
   // PDF-safe currency: jsPDF default font has no Rupee glyph, use "Rs." instead
   function pdfAmt(val) {
     const n = parseFloat(val) || 0;
@@ -945,8 +955,6 @@
     document.getElementById('step2-card').classList.add('d-none');
     const addLoanBtn = document.getElementById('add-loan-btn');
     if (addLoanBtn) addLoanBtn.classList.add('d-none');
-    const exportBtns = document.getElementById('loan-export-btns');
-    if (exportBtns) exportBtns.style.display = 'none';
   }
 
   init();
