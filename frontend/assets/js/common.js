@@ -1,5 +1,10 @@
-// Apply saved theme immediately to avoid flash
+// Apply saved theme + settings immediately to avoid flash
 try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttribute('data-theme', t); } catch {}
+try {
+  const _s = JSON.parse(localStorage.getItem('tc-settings') || '{}');
+  if (_s.fontSize) document.body.setAttribute('data-font-size', _s.fontSize);
+  if (_s.compact)  document.body.classList.add('compact');
+} catch {}
 
 // Thiruvelan Capitals Common Utilities — IIFE, exposes window globals
 (function () {
@@ -18,6 +23,7 @@ try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttrib
     { label: 'Reports',        icon: 'bi-bar-chart-line', href: 'reports.html',        roles: [1,2,5] },
     { label: 'Wallet',         icon: 'bi-wallet2',        href: 'wallet.html',         roles: [1,2] },
     { label: 'Audit Log',      icon: 'bi-journal-text',   href: 'audit.html',          roles: [0,1] },
+    { label: 'Settings',       icon: 'bi-gear',           href: 'settings.html',       roles: [0,1,2,3,4,5] },
   ];
 
   // Priority order for bottom nav (max 4 shown) — most used actions first per role
@@ -100,6 +106,7 @@ try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttrib
     if (icon) { icon.className = isDark ? 'bi bi-moon-stars' : 'bi bi-sun'; }
     if (lbl)  lbl.textContent = isDark ? 'Dark Mode' : 'Light Mode';
   }
+  window.applyTheme = _applyTheme;
 
   function renderTopbar(pageTitle) {
     const el = document.getElementById('topbar');
@@ -229,8 +236,15 @@ try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttrib
 
   function formatDate(d) {
     if (!d) return '-';
-    const dt = new Date(d);
+    const dt = new Date(String(d).length === 10 ? d + 'T00:00:00' : d);
     if (isNaN(dt.getTime())) return d;
+    try {
+      const _s = JSON.parse(localStorage.getItem('tc-settings') || '{}');
+      if (_s.dateFormat === 'numeric') {
+        return String(dt.getDate()).padStart(2,'0') + '/' +
+               String(dt.getMonth() + 1).padStart(2,'0') + '/' + dt.getFullYear();
+      }
+    } catch {}
     const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     return String(dt.getDate()).padStart(2,'0') + ' ' + mo[dt.getMonth()] + ' ' + dt.getFullYear();
   }
@@ -360,8 +374,31 @@ try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttrib
     renderTopbar(pageTitle);
     renderSidebar();
     renderBottomNav();
+    window.applySettings();
     initAutoLogout();
   }
+
+  const _SETTINGS_KEY = 'tc-settings';
+  const _SETTINGS_DEFAULTS = { fontSize: 'medium', compact: false, dateFormat: 'short', pageSize: 20 };
+
+  window.getSettings = function () {
+    try { return Object.assign({}, _SETTINGS_DEFAULTS, JSON.parse(localStorage.getItem(_SETTINGS_KEY) || '{}')); }
+    catch { return Object.assign({}, _SETTINGS_DEFAULTS); }
+  };
+
+  window.saveSettings = function (patch) {
+    try {
+      const s = Object.assign(window.getSettings(), patch);
+      localStorage.setItem(_SETTINGS_KEY, JSON.stringify(s));
+      window.applySettings();
+    } catch {}
+  };
+
+  window.applySettings = function () {
+    const s = window.getSettings();
+    document.body.setAttribute('data-font-size', s.fontSize || 'medium');
+    document.body.classList.toggle('compact', !!s.compact);
+  };
 
   window.ROLES = ROLES;
   window.roleName = roleName;
