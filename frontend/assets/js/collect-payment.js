@@ -615,7 +615,7 @@
     let balance = 0;
     try {
       const wres = await api.get('/api/wallet');
-      balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.balance || 0) : 0;
+      balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.invest_balance || 0) : 0;
     } catch (_) {}
     amtEl._walletBalance = balance;
     const balEl = document.getElementById('al-wallet-balance');
