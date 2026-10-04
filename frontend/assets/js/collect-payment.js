@@ -376,7 +376,9 @@
           <td>${statusBadge(inst.status)}</td>
           <td>${selectable
             ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="pmSelectInstallment(${i});event.stopPropagation();">Select</button>`
-            : ''}</td>
+            : inst.paid_date
+              ? `<span style="font-size:11px;color:var(--text-secondary);"><i class="bi bi-check-circle-fill text-success me-1"></i>${formatDate(inst.paid_date)}</span>`
+              : ''}</td>
         </tr>`;
       }).join('');
     }
