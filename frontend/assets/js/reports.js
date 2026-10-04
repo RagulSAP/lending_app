@@ -58,11 +58,6 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#" data-tab="wallet-transfer" onclick="switchTab('wallet-transfer');return false;">
-            <i class="bi bi-arrow-left-right me-1"></i>${t('rep.tab_transfer')}
-          </a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link" href="#" data-tab="withdrawal" onclick="switchTab('withdrawal');return false;">
             <i class="bi bi-box-arrow-up me-1"></i>${t('rep.tab_withdraw')}
           </a>
@@ -338,49 +333,6 @@
         </div>
       </div>
 
-      <!-- Wallet Transfer Tab -->
-      <div id="tab-wallet-transfer" class="d-none">
-        <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
-          <div class="form-group">
-            <label class="form-label">${t('common.date_from')}</label>
-            <input type="date" class="form-control" id="wt-rep-from" value="${today}">
-          </div>
-          <div class="form-group">
-            <label class="form-label">${t('common.date_to')}</label>
-            <input type="date" class="form-control" id="wt-rep-to" value="${today}">
-          </div>
-          <div class="form-group d-flex align-items-end gap-2 flex-wrap">
-            <button class="btn btn-primary" onclick="searchReport('wallet-transfer')">
-              <i class="bi bi-search me-1"></i>${t('common.search')}
-            </button>
-            <button class="btn btn-outline-success" onclick="exportReport('excel','wallet-transfer')">
-              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
-            </button>
-            <button class="btn btn-outline-danger" onclick="exportReport('pdf','wallet-transfer')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
-            </button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header-flex">
-            <h6 class="card-title">${t('rep.transfer_title')}</h6>
-            <div class="d-flex gap-2 align-items-center">
-              <span id="wt-rep-total" class="fw-600 text-success" style="font-size:13px;"></span>
-              <span id="wt-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
-            </div>
-          </div>
-          <div class="table-container">
-            <table class="table">
-              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>Remarks</th></tr></thead>
-              <tbody id="wt-rep-tbody">
-                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="d-flex justify-content-center mt-3 mb-2" id="wt-rep-pag"></div>
-        </div>
-      </div>
-
       <!-- Withdrawal Tab -->
       <div id="tab-withdrawal" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
@@ -414,9 +366,9 @@
           </div>
           <div class="table-container">
             <table class="table">
-              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>${t('wallet.partner')}</th><th>Remarks</th></tr></thead>
               <tbody id="wd-rep-tbody">
-                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
+                <tr><td colspan="6" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -428,7 +380,7 @@
   window.switchTab = function (tab) {
     activeTab = tab;
     currentPage = 1;
-    ['transactions', 'collection', 'loans', 'expenses', 'topup', 'wallet-transfer', 'withdrawal'].forEach(t => {
+    ['transactions', 'collection', 'loans', 'expenses', 'topup', 'withdrawal'].forEach(t => {
       const el = document.getElementById('tab-' + t);
       const link = document.querySelector('[data-tab="' + t + '"]');
       if (el) el.classList.toggle('d-none', t !== tab);
@@ -475,14 +427,10 @@
         params.date_from = document.getElementById('tu-rep-from').value;
         params.date_to   = document.getElementById('tu-rep-to').value;
         tbodyId = 'tu-rep-tbody'; colCount = 5; pagId = 'tu-rep-pag'; countId = 'tu-rep-count';
-      } else if (tab === 'wallet-transfer') {
-        params.date_from = document.getElementById('wt-rep-from').value;
-        params.date_to   = document.getElementById('wt-rep-to').value;
-        tbodyId = 'wt-rep-tbody'; colCount = 5; pagId = 'wt-rep-pag'; countId = 'wt-rep-count';
       } else {  // withdrawal
         params.date_from = document.getElementById('wd-rep-from').value;
         params.date_to   = document.getElementById('wd-rep-to').value;
-        tbodyId = 'wd-rep-tbody'; colCount = 5; pagId = 'wd-rep-pag'; countId = 'wd-rep-count';
+        tbodyId = 'wd-rep-tbody'; colCount = 6; pagId = 'wd-rep-pag'; countId = 'wd-rep-count';
       }
 
       const res = await api.get('/api/reports/' + tab, params);
@@ -550,19 +498,29 @@
           <td>${r.entered_by || r.user_name || '-'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.expense_remark || r.remark || '-'}</td>
         </tr>`).join('');
-      } else {
-        // topup / wallet-transfer / withdrawal — same columns
-        const totalIdMap = { topup: 'tu-rep-total', 'wallet-transfer': 'wt-rep-total', withdrawal: 'wd-rep-total' };
+      } else if (tab === 'topup') {
         const totalAmt = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
-        const totEl = document.getElementById(totalIdMap[tab]);
-        const amtClass = tab === 'withdrawal' ? 'text-warning fw-600' : 'text-success fw-600';
+        const totEl = document.getElementById('tu-rep-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date)}</td>
-          <td class="${amtClass}">${formatCurrency(r.amount)}</td>
+          <td class="text-success fw-600">${formatCurrency(r.amount)}</td>
           <td>${r.collected_by || '-'}</td>
           <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks || '-'}</td>
+        </tr>`).join('');
+      } else {
+        // withdrawal
+        const totalAmt = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totEl = document.getElementById('wd-rep-total');
+        if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
+        tbody.innerHTML = rows.map((r, i) => `<tr>
+          <td>${offset + i + 1}</td>
+          <td>${formatDate(r.transaction_date)}</td>
+          <td class="text-warning fw-600">${formatCurrency(r.amount)}</td>
+          <td>${r.collected_by || '-'}</td>
+          <td>${r.partner_name ? `<span class="fw-600">${r.partner_name}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks || '-'}</td>
         </tr>`).join('');
       }
 
@@ -619,9 +577,6 @@
       } else if (report === 'topup') {
         params.date_from = document.getElementById('tu-rep-from').value;
         params.date_to   = document.getElementById('tu-rep-to').value;
-      } else if (report === 'wallet-transfer') {
-        params.date_from = document.getElementById('wt-rep-from').value;
-        params.date_to   = document.getElementById('wt-rep-to').value;
       } else if (report === 'withdrawal') {
         params.date_from = document.getElementById('wd-rep-from').value;
         params.date_to   = document.getElementById('wd-rep-to').value;

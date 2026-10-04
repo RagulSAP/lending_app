@@ -7,7 +7,7 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory
+from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory, Partner
 
 
 # ---------------------------------------------------------------------------
@@ -217,8 +217,9 @@ def get_wallet_activity_report(
     """Returns (records_list, total_count) for wallet-only transactions of a specific type."""
     DoerUser = aliased(User)
     q = (
-        db.query(Transaction, DoerUser.name.label("doer_name"))
+        db.query(Transaction, DoerUser.name.label("doer_name"), Partner.name.label("partner_name"))
         .join(DoerUser, DoerUser.user_id == Transaction.user_id, isouter=True)
+        .join(Partner, Partner.partner_id == Transaction.partner_id, isouter=True)
         .filter(
             Transaction.org_id == org_id,
             Transaction.transaction_type == txn_type,
@@ -238,12 +239,13 @@ def get_wallet_activity_report(
     )
 
     records = []
-    for txn, doer_name in rows:
+    for txn, doer_name, partner_name in rows:
         records.append({
             "transaction_id":   txn.transaction_id,
             "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
             "amount":           float(txn.amount) if txn.amount is not None else 0.0,
             "collected_by":     doer_name,
+            "partner_name":     partner_name,
             "remarks":          txn.remarks,
         })
     return records, total
