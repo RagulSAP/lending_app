@@ -11,19 +11,19 @@ try {
   'use strict';
 
   const ROLES = { SUPER_ADMIN: 0, ADMIN: 1, MANAGER: 2, STAFF: 3, COLLECTOR: 4, ACCOUNTANT: 5 };
-  const ROLE_NAMES = { 0: 'Super Admin', 1: 'Admin', 2: 'Manager', 3: 'Staff', 4: 'Collector', 5: 'Accountant' };
+  const ROLE_NAME_KEYS = { 0: 'common.role_superadmin', 1: 'common.role_admin', 2: 'common.role_manager', 3: 'common.role_staff', 4: 'common.role_collector', 5: 'common.role_accountant' };
 
   const NAV_ITEMS = [
-    { label: 'Dashboard',      icon: 'bi-speedometer2',   href: 'dashboard.html',      roles: [1,2,4,5] },
-    { label: 'Organizations',  icon: 'bi-building',       href: 'organizations.html',  roles: [0] },
-    { label: 'Customers',      icon: 'bi-people',         href: 'customers.html',      roles: [1,2,3,4,5] },
-    { label: 'Collect Payment',icon: 'bi-cash-coin',      href: 'collect-payment.html',roles: [1,2,3,4] },
-    { label: 'App Users',      icon: 'bi-person-badge',   href: 'users.html',          roles: [1,2] },
-    { label: 'Expenses',       icon: 'bi-receipt',        href: 'expenses.html',       roles: [1,2,3,5] },
-    { label: 'Reports',        icon: 'bi-bar-chart-line', href: 'reports.html',        roles: [1,2,5] },
-    { label: 'Wallet',         icon: 'bi-wallet2',        href: 'wallet.html',         roles: [1,2] },
-    { label: 'Audit Log',      icon: 'bi-journal-text',   href: 'audit.html',          roles: [0,1] },
-    { label: 'Settings',       icon: 'bi-gear',           href: 'settings.html',       roles: [0,1,2,3,4,5] },
+    { key: 'nav.dashboard', shortKey: null,                 icon: 'bi-speedometer2',   href: 'dashboard.html',      roles: [1,2,4,5] },
+    { key: 'nav.orgs',      shortKey: 'common.orgs_short',  icon: 'bi-building',       href: 'organizations.html',  roles: [0] },
+    { key: 'nav.customers', shortKey: null,                 icon: 'bi-people',         href: 'customers.html',      roles: [1,2,3,4,5] },
+    { key: 'nav.collect',   shortKey: 'common.collect_short',icon: 'bi-cash-coin',     href: 'collect-payment.html',roles: [1,2,3,4] },
+    { key: 'nav.users',     shortKey: null,                 icon: 'bi-person-badge',   href: 'users.html',          roles: [1,2] },
+    { key: 'nav.expenses',  shortKey: null,                 icon: 'bi-receipt',        href: 'expenses.html',       roles: [1,2,3,5] },
+    { key: 'nav.reports',   shortKey: null,                 icon: 'bi-bar-chart-line', href: 'reports.html',        roles: [1,2,5] },
+    { key: 'nav.wallet',    shortKey: null,                 icon: 'bi-wallet2',        href: 'wallet.html',         roles: [1,2] },
+    { key: 'nav.audit',     shortKey: null,                 icon: 'bi-journal-text',   href: 'audit.html',          roles: [0,1] },
+    { key: 'nav.settings',  shortKey: null,                 icon: 'bi-gear',           href: 'settings.html',       roles: [0,1,2,3,4,5] },
   ];
 
   // Priority order for bottom nav (max 4 shown) — most used actions first per role
@@ -46,7 +46,7 @@ try {
     const navHTML = items.map(i => `
       <li class="nav-item">
         <a class="nav-link${cur === i.href ? ' active' : ''}" href="${i.href}">
-          <i class="bi ${i.icon}"></i><span>${i.label}</span>
+          <i class="bi ${i.icon}"></i><span>${t(i.key)}</span>
         </a>
       </li>`).join('');
 
@@ -67,14 +67,14 @@ try {
       </nav>
       <div class="sidebar-footer">
         <label class="theme-toggle-row" for="theme-chk" title="Toggle dark mode">
-          <span><i class="bi bi-sun" id="theme-icon"></i><span id="theme-label">Light Mode</span></span>
+          <span><i class="bi bi-sun" id="theme-icon"></i><span id="theme-label">${t('common.light_mode')}</span></span>
           <div class="theme-switch">
             <input type="checkbox" id="theme-chk">
             <span class="theme-switch-slider"></span>
           </div>
         </label>
         <a class="nav-link" id="logout-btn" style="cursor:pointer;">
-          <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+          <i class="bi bi-box-arrow-right"></i><span>${t('common.logout')}</span>
         </a>
       </div>`;
 
@@ -88,7 +88,7 @@ try {
 
     document.getElementById('logout-btn').addEventListener('click', async (e) => {
       e.preventDefault();
-      const confirmed = await confirmDialog('Are you sure you want to log out?');
+      const confirmed = await confirmDialog(t('common.logout_confirm'));
       if (!confirmed) return;
       try { await api.post('/api/auth/logout'); } catch {}
       auth.logout();
@@ -104,7 +104,7 @@ try {
     const lbl  = document.getElementById('theme-label');
     if (chk)  chk.checked = isDark;
     if (icon) { icon.className = isDark ? 'bi bi-moon-stars' : 'bi bi-sun'; }
-    if (lbl)  lbl.textContent = isDark ? 'Dark Mode' : 'Light Mode';
+    if (lbl)  lbl.textContent = isDark ? t('common.dark_mode') : t('common.light_mode');
   }
   window.applyTheme = _applyTheme;
 
@@ -154,15 +154,15 @@ try {
     const hasMore = allRoleItems.length > items.length;
 
     const btnHTML = items.map(i => `
-      <a class="bottom-nav-item${cur === i.href ? ' active' : ''}" href="${i.href}" aria-label="${i.label}">
+      <a class="bottom-nav-item${cur === i.href ? ' active' : ''}" href="${i.href}" aria-label="${t(i.key)}">
         <i class="bi ${i.icon}"></i>
-        <span>${i.label.replace('Collect Payment','Collect').replace('Organizations','Orgs')}</span>
+        <span>${t(i.shortKey || i.key)}</span>
       </a>`).join('');
 
     const moreBtn = hasMore ? `
-      <button class="bottom-nav-item" id="bnav-more" aria-label="More">
+      <button class="bottom-nav-item" id="bnav-more" aria-label="${t('common.more')}">
         <i class="bi bi-grid-3x3-gap"></i>
-        <span>More</span>
+        <span>${t('common.more')}</span>
       </button>` : '';
 
     el.innerHTML = `<div class="bottom-nav-inner">${btnHTML}${moreBtn}</div>`;
@@ -216,7 +216,7 @@ try {
     if (!ov) {
       ov = document.createElement('div');
       ov.id = 'loading-overlay';
-      ov.innerHTML = '<div class="loading-spinner"><div class="spinner-border" role="status"></div><p>Loading...</p></div>';
+      ov.innerHTML = `<div class="loading-spinner"><div class="spinner-border" role="status"></div><p>${t('common.loading')}</p></div>`;
       document.body.appendChild(ov);
     }
     ov.style.display = 'flex';
@@ -245,7 +245,9 @@ try {
                String(dt.getMonth() + 1).padStart(2,'0') + '/' + dt.getFullYear();
       }
     } catch {}
-    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const moEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const moTa = ['ஜன','பிப்','மார்','ஏப்','மே','ஜூன்','ஜூல்','ஆக்','செப்','அக்','நவ்','டிச்'];
+    const mo = window.TC_LANG === 'ta' ? moTa : moEn;
     return String(dt.getDate()).padStart(2,'0') + ' ' + mo[dt.getMonth()] + ' ' + dt.getFullYear();
   }
 
@@ -253,26 +255,28 @@ try {
     if (!d) return '-';
     const dt = new Date(d);
     if (isNaN(dt.getTime())) return d;
-    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const moEn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const moTa = ['ஜன','பிப்','மார்','ஏப்','மே','ஜூன்','ஜூல்','ஆக்','செப்','அக்','நவ்','டிச்'];
+    const mo = window.TC_LANG === 'ta' ? moTa : moEn;
     const hh = String(dt.getHours()).padStart(2,'0');
     const mm = String(dt.getMinutes()).padStart(2,'0');
     return String(dt.getDate()).padStart(2,'0') + ' ' + mo[dt.getMonth()] + ' ' + dt.getFullYear() + ' ' + hh + ':' + mm;
   }
 
-  function roleName(id) { return ROLE_NAMES[id] || 'Unknown'; }
+  function roleName(id) { return t(ROLE_NAME_KEYS[id] || 'common.role_staff'); }
 
   function statusBadge(status) {
     const s = String(status || '').toUpperCase();
     const m = {
-      'ACTIVE':   '<span class="badge-status badge-active"><i class="bi bi-check-circle-fill"></i> Active</span>',
-      'INACTIVE': '<span class="badge-status badge-inactive"><i class="bi bi-x-circle-fill"></i> Inactive</span>',
-      'OVERDUE':  '<span class="badge-status badge-overdue"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</span>',
-      'CLOSED':   '<span class="badge-status badge-closed"><i class="bi bi-dash-circle"></i> Closed</span>',
-      'PENDING':  '<span class="badge-status badge-pending"><i class="bi bi-clock-fill"></i> Pending</span>',
-      'PARTIAL':  '<span class="badge-status badge-partial"><i class="bi bi-circle-half"></i> Partial</span>',
-      'PAID':     '<span class="badge-status badge-paid"><i class="bi bi-check-circle-fill"></i> Paid</span>',
-      '1':        '<span class="badge-status badge-active"><i class="bi bi-check-circle-fill"></i> Active</span>',
-      '0':        '<span class="badge-status badge-inactive"><i class="bi bi-x-circle-fill"></i> Inactive</span>',
+      'ACTIVE':   `<span class="badge-status badge-active"><i class="bi bi-check-circle-fill"></i> ${t('common.active')}</span>`,
+      'INACTIVE': `<span class="badge-status badge-inactive"><i class="bi bi-x-circle-fill"></i> ${t('common.inactive')}</span>`,
+      'OVERDUE':  `<span class="badge-status badge-overdue"><i class="bi bi-exclamation-triangle-fill"></i> ${t('common.overdue')}</span>`,
+      'CLOSED':   `<span class="badge-status badge-closed"><i class="bi bi-dash-circle"></i> ${t('common.closed')}</span>`,
+      'PENDING':  `<span class="badge-status badge-pending"><i class="bi bi-clock-fill"></i> ${t('common.pending')}</span>`,
+      'PARTIAL':  `<span class="badge-status badge-partial"><i class="bi bi-circle-half"></i> ${t('common.partial')}</span>`,
+      'PAID':     `<span class="badge-status badge-paid"><i class="bi bi-check-circle-fill"></i> ${t('common.paid')}</span>`,
+      '1':        `<span class="badge-status badge-active"><i class="bi bi-check-circle-fill"></i> ${t('common.active')}</span>`,
+      '0':        `<span class="badge-status badge-inactive"><i class="bi bi-x-circle-fill"></i> ${t('common.inactive')}</span>`,
     };
     return m[s] || '<span class="badge-status badge-closed">' + status + '</span>';
   }
@@ -289,12 +293,12 @@ try {
           <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
               <div class="modal-header border-0 pb-0">
-                <h6 class="modal-title fw-600"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Confirm Action</h6>
+                <h6 class="modal-title fw-600"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>${t('common.confirm_title')}</h6>
               </div>
               <div class="modal-body"><p id="confirm-message" class="mb-0" style="font-size:14px;"></p></div>
               <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-sm btn-outline-secondary" id="confirm-no">Cancel</button>
-                <button type="button" class="btn btn-sm btn-danger" id="confirm-yes">Confirm</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="confirm-no">${t('common.confirm_cancel')}</button>
+                <button type="button" class="btn btn-sm btn-danger" id="confirm-yes">${t('common.confirm_btn')}</button>
               </div>
             </div>
           </div>`;
@@ -336,12 +340,12 @@ try {
                     box-shadow:0 4px 24px rgba(0,0,0,.35);
                     font-size:13px;max-width:420px;width:calc(100% - 32px);">
           <i class="bi bi-clock-history" style="font-size:22px;color:#FBBF24;flex-shrink:0;"></i>
-          <span style="flex:1;">You'll be logged out in <strong>5 minutes</strong> due to inactivity.</span>
+          <span style="flex:1;">${t('common.inactivity')}</span>
           <button id="_inactivity-stay-btn"
                   style="background:#2563EB;color:#fff;border:none;border-radius:7px;
                          padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;
                          white-space:nowrap;flex-shrink:0;">
-            Stay Logged In
+            ${t('common.stay_logged')}
           </button>
         </div>`;
       document.body.appendChild(bar);
@@ -379,7 +383,7 @@ try {
   }
 
   const _SETTINGS_KEY = 'tc-settings';
-  const _SETTINGS_DEFAULTS = { fontSize: 'medium', compact: false, dateFormat: 'short', pageSize: 20 };
+  const _SETTINGS_DEFAULTS = { fontSize: 'medium', compact: false, dateFormat: 'short', pageSize: 20, language: 'en' };
 
   window.getSettings = function () {
     try { return Object.assign({}, _SETTINGS_DEFAULTS, JSON.parse(localStorage.getItem(_SETTINGS_KEY) || '{}')); }

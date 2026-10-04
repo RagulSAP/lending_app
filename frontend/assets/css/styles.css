@@ -1,4 +1,15 @@
-/* LendTrack - Main Stylesheet */
+/* Thiruvelan Capitals - Main Stylesheet */
+
+/* Tamil font support */
+html[lang="ta"] body,
+html[lang="ta"] .modal-content,
+html[lang="ta"] .toast-text,
+html[lang="ta"] input,
+html[lang="ta"] select,
+html[lang="ta"] textarea,
+html[lang="ta"] button {
+  font-family: 'Noto Sans Tamil', 'Inter', sans-serif;
+}
 
 /* Remove number input spinners globally */
 input[type="number"]::-webkit-outer-spin-button,

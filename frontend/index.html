@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -9,7 +9,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Sign In - Thiruvelan Capitals</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="assets/css/styles.css">
@@ -29,13 +29,13 @@
         <div class="login-logo-text">Thiruvelan<span> Capitals</span></div>
       </div>
       <div class="mb-4">
-        <h4 class="fw-700 mb-1" style="font-size:22px;color:#0F172A;">Welcome back</h4>
-        <p style="color:#64748B;font-size:14px;">Sign in to your account to continue</p>
+        <h4 class="fw-700 mb-1" id="login-welcome" style="font-size:22px;color:#0F172A;">Welcome back</h4>
+        <p id="login-subtitle" style="color:#64748B;font-size:14px;">Sign in to your account to continue</p>
       </div>
       <div id="error-alert" class="alert alert-danger d-none" role="alert" style="border-radius:8px;font-size:13.5px;"></div>
       <form id="login-form" novalidate>
         <div class="mb-3">
-          <label class="form-label" for="phone">Phone Number</label>
+          <label class="form-label" id="login-phone-label" for="phone">Phone Number</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-phone"></i></span>
             <input type="tel" class="form-control" id="phone" placeholder="Enter 10-digit phone number" maxlength="10" required>
@@ -43,7 +43,7 @@
           <div class="invalid-feedback" id="phone-err">Please enter a valid 10-digit phone number.</div>
         </div>
         <div class="mb-4">
-          <label class="form-label" for="password">Password</label>
+          <label class="form-label" id="login-pass-label" for="password">Password</label>
           <div class="input-group">
             <span class="input-group-text"><i class="bi bi-lock"></i></span>
             <input type="password" class="form-control" id="password" placeholder="Enter your password" required>
@@ -54,17 +54,17 @@
           <div class="invalid-feedback" id="pass-err">Password is required.</div>
         </div>
         <button type="submit" class="btn btn-primary btn-lg w-100" id="signin-btn">
-          <span id="signin-text"><i class="bi bi-box-arrow-in-right me-1"></i> Sign In</span>
-          <span id="signin-loading" class="d-none"><span class="spinner-border spinner-border-sm me-2" role="status"></span>Signing in...</span>
+          <span id="signin-text"><i class="bi bi-box-arrow-in-right me-1"></i> <span id="signin-label">Sign In</span></span>
+          <span id="signin-loading" class="d-none"><span class="spinner-border spinner-border-sm me-2" role="status"></span><span id="signin-loading-label">Signing in...</span></span>
         </button>
       </form>
-      <p class="mt-4 text-center" style="font-size:12px;color:#94A3B8;">Thiruvelan Capitals v1.0 &bull; Microfinance Management System</p>
+      <p class="mt-4 text-center" id="login-footer" style="font-size:12px;color:#94A3B8;">Thiruvelan Capitals v1.0 &bull; Microfinance Management System</p>
     </div>
     <div class="login-right">
       <div class="login-hero-text">
         <div style="font-size:64px;margin-bottom:24px;">&#x1F4B0;</div>
-        <h2>Microfinance<br>Made Simple</h2>
-        <p>Manage loans, collections, customers and reports from a single unified platform designed for modern lending operations.</p>
+        <h2 id="hero-title">Microfinance<br>Made Simple</h2>
+        <p id="hero-sub">Manage loans, collections, customers and reports from a single unified platform designed for modern lending operations.</p>
         <div style="display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap;">
           <div style="background:rgba(255,255,255,0.1);border-radius:10px;padding:12px 20px;text-align:center;">
             <div style="font-size:22px;font-weight:700;color:white;">Multi-Role</div>
@@ -84,8 +84,28 @@
   </div>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
   <script src="assets/js/api.js"></script>
+  <script src="assets/js/locales.js"></script>
   <script>
   (function() {
+    // Apply translations to static login page elements
+    (function applyLoginTranslations() {
+      try {
+        var el = function(id) { return document.getElementById(id); };
+        el('login-welcome').textContent = t('login.welcome');
+        el('login-subtitle').textContent = t('login.subtitle');
+        el('login-phone-label').textContent = t('login.phone');
+        el('login-pass-label').textContent = t('login.password');
+        el('signin-label').textContent = t('login.sign_in');
+        el('signin-loading-label').textContent = t('login.signing_in');
+        el('login-footer').innerHTML = t('login.footer').replace(' • ', ' &bull; ');
+        el('hero-title').innerHTML = t('login.tagline').replace(/,\s*/, ',<br>');
+        el('hero-sub').textContent = t('login.tagline_sub');
+        if (window.TC_LANG === 'ta') {
+          document.documentElement.setAttribute('lang', 'ta');
+        }
+      } catch (e) {}
+    })();
+
     // Redirect if already logged in
     if (auth.isLoggedIn()) {
       const user = auth.getUser();
