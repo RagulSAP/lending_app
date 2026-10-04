@@ -86,7 +86,7 @@
             <div class="modal-header">
               <div>
                 <h5 class="modal-title fw-600" style="font-size:16px;" id="pm-title">Collect Payment</h5>
-                <div id="pm-subtitle" style="font-size:12px;color:#64748B;margin-top:2px;"></div>
+                <div id="pm-subtitle" style="font-size:12px;color:var(--text-secondary);margin-top:2px;"></div>
               </div>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -211,7 +211,7 @@
     const photoUrl = c.photo ? `/api/kyc/${c.photo}` : null;
     const avatarEl = photoUrl
       ? `<img src="${photoUrl}" alt="${c.name}"
-          style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;"
+          style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border);"
           onerror="this.outerHTML='<div class=\\'customer-avatar\\'>${initials}</div>'">`
       : `<div class="customer-avatar">${initials}</div>`;
     document.getElementById('customer-result').innerHTML = `
@@ -220,9 +220,9 @@
           ${avatarEl}
           <div>
             <div class="fw-600" style="font-size:15px;">${c.name}</div>
-            <div style="font-size:13px;color:#64748B;">${c.phone}</div>
-            <div style="font-size:12px;color:#64748B;">${c.city || ''} ${c.state || ''}</div>
-            ${c.onboarded_by ? `<div style="font-size:11px;color:#94A3B8;margin-top:2px;"><i class="bi bi-person-check me-1"></i>Onboarded by ${c.onboarded_by}</div>` : ''}
+            <div style="font-size:13px;color:var(--text-secondary);">${c.phone}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">${c.city || ''} ${c.state || ''}</div>
+            ${c.onboarded_by ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;"><i class="bi bi-person-check me-1"></i>Onboarded by ${c.onboarded_by}</div>` : ''}
           </div>
           <div class="ms-auto">${statusBadge(c.status || 'ACTIVE')}</div>
         </div>
@@ -248,8 +248,8 @@
         listEl.innerHTML = `
           <div class="col-12 text-center py-3">
             <div style="font-size:32px;margin-bottom:8px;">💳</div>
-            <div style="font-size:14px;font-weight:600;color:#334155;margin-bottom:4px;">No active loans</div>
-            <div style="font-size:13px;color:#64748B;margin-bottom:16px;">This customer has no active or pending loans.</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">No active loans</div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">This customer has no active or pending loans.</div>
             <button type="button" class="btn btn-primary" onclick="openAddLoanModal()">
               <i class="bi bi-plus-circle me-2"></i>Add Loan
             </button>
@@ -265,12 +265,12 @@
               ${statusBadge(l.status)}
             </div>
             <div class="row g-1 mb-3" style="font-size:12.5px;">
-              <div class="col-6"><span style="color:#64748B;">Disbursed:</span> ${formatCurrency(l.disbursement_amount)}</div>
-              <div class="col-6"><span style="color:#64748B;">Balance:</span>
+              <div class="col-6"><span style="color:var(--text-secondary);">Disbursed:</span> ${formatCurrency(l.disbursement_amount)}</div>
+              <div class="col-6"><span style="color:var(--text-secondary);">Balance:</span>
                 <span class="fw-600 text-danger">${formatCurrency(l.balance_amount || 0)}</span>
               </div>
-              <div class="col-6"><span style="color:#64748B;">Collection:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
-              <div class="col-6"><span style="color:#64748B;">Type:</span> ${l.installment_type}</div>
+              <div class="col-6"><span style="color:var(--text-secondary);">Collection:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
+              <div class="col-6"><span style="color:var(--text-secondary);">Type:</span> ${l.installment_type}</div>
             </div>
             <button type="button" class="btn btn-success w-100" onclick="selectLoan('${l.loan_id}')">
               <i class="bi bi-cash-coin me-2"></i>Collect Payment
@@ -322,25 +322,25 @@
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-neutral">
           <div class="fw-600" style="font-size:15px;">${formatCurrency(l.disbursement_amount)}</div>
-          <div style="font-size:11px;color:#64748B;">Total Loan</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Total Loan</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-green">
           <div class="fw-600" style="font-size:15px;color:#16a34a;">${formatCurrency(l.total_paid || 0)}</div>
-          <div style="font-size:11px;color:#64748B;">Paid</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Paid</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center balance-stat-box">
           <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(l.balance_amount || 0)}</div>
-          <div style="font-size:11px;color:#64748B;">Balance</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Balance</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-neutral">
           ${statusBadge(l.status)}
-          <div style="font-size:11px;color:#64748B;margin-top:4px;">Status</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Status</div>
         </div>
       </div>`;
 
@@ -516,15 +516,15 @@
                 <div class="col-12" id="al-summary" style="display:none;">
                   <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
                     <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
-                      <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
                       <div id="al-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">₹ 0</div>
                     </div>
                     <div style="flex:1;min-width:120px;padding:10px 8px;">
-                      <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
                       <div id="al-interest" style="font-size:15px;font-weight:700;color:#16A34A;">₹ 0</div>
                     </div>
                     <div style="flex:1 0 100%;padding:8px 10px;border-top:1px solid #BFDBFE;">
-                      <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Disbursement Date</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Disbursement Date</div>
                       <input type="date" class="form-control text-center" id="al-date">
                     </div>
                   </div>
