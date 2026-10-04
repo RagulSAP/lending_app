@@ -1,20 +1,55 @@
 (function () {
   'use strict';
 
-  // Module-level chart references so the theme observer can update them
+  // Module-level state so the theme observer can rebuild charts at any time
   let _custChart  = null;
   let _trendChart = null;
+  let _custCanvas = null;
+  let _custLabels = [];
+  let _custColors = [];
+  let _custData   = [];
 
   const _isDark     = () => document.body.getAttribute('data-theme') === 'dark';
   const _textColor  = () => _isDark() ? '#E6EDF3' : '#0F172A';
   const _mutedColor = () => _isDark() ? '#8B949E' : '#64748B';
   const _gridColor  = () => _isDark() ? '#21262D' : '#F1F5F9';
 
+  function _buildCustChart() {
+    if (!_custCanvas || typeof Chart === 'undefined') return;
+    if (_custChart) { _custChart.destroy(); _custChart = null; }
+    _custChart = new Chart(_custCanvas.getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: _custLabels, datasets: [{ data: _custData, backgroundColor: _custColors, borderWidth: 0, hoverOffset: 6 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              font: { size: 11, family: 'Inter' },
+              padding: 12,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              color: _textColor(),
+              generateLabels: () => _custLabels.map((lbl, i) => ({
+                text: `${lbl}  ${_custData[i]}`,
+                fillStyle: _custColors[i],
+                strokeStyle: _custColors[i],
+                pointStyle: 'circle',
+                fontColor: _textColor(),
+                index: i,
+              })),
+            },
+          },
+        },
+        cutout: '72%',
+      },
+    });
+  }
+
   function _syncChartTheme() {
-    if (_custChart) {
-      _custChart.options.plugins.legend.labels.color = _textColor();
-      _custChart.update();
-    }
+    _buildCustChart(); // Full rebuild guarantees correct colors
     if (_trendChart) {
       _trendChart.options.plugins.legend.labels.color = _textColor();
       _trendChart.options.scales.x.ticks.color        = _mutedColor();
@@ -24,7 +59,7 @@
     }
   }
 
-  // Watch for theme attribute changes and re-colour charts immediately
+  // Rebuild/recolour charts whenever the theme attribute changes
   new MutationObserver(_syncChartTheme)
     .observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
 
@@ -186,52 +221,12 @@
       document.getElementById('mv-month').textContent     = formatCurrency(s.collected_this_month || 0);
       document.getElementById('mv-expenses').textContent  = formatCurrency(s.expenses_this_month  || 0);
 
-      // Customer loan status chart
-      const custActive    = s.customers_with_active_loans    || 0;
-      const custCompleted = s.customers_with_completed_loans || 0;
-      const custNone      = s.customers_without_loans        || 0;
-      const custLabels    = ['Active Loan', 'Completed', 'No Loan'];
-      const custColors    = ['#2563EB', '#16A34A', '#94A3B8'];
-      const custData      = [custActive, custCompleted, custNone];
-      if (typeof Chart !== 'undefined') {
-        _custChart = new Chart(document.getElementById('customer-chart').getContext('2d'), {
-          type: 'doughnut',
-          data: { labels: custLabels, datasets: [{ data: custData, backgroundColor: custColors, borderWidth: 0, hoverOffset: 6 }] },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'right',
-                labels: {
-                  font: { size: 11, family: 'Inter' },
-                  padding: 12,
-                  usePointStyle: true,
-                  pointStyle: 'circle',
-                  color: _textColor(),
-                  generateLabels: () => custLabels.map((lbl, i) => ({
-                    text: `${lbl}  ${custData[i]}`,
-                    fillStyle: custColors[i],
-                    strokeStyle: custColors[i],
-                    pointStyle: 'circle',
-                    color: _textColor(),
-                    index: i,
-                  })),
-                },
-              },
-            },
-            cutout: '72%',
-          },
-        });
-      } else {
-        const rows = [['#2563EB', custActive, 'Active Loan'], ['#16A34A', custCompleted, 'Completed'], ['#94A3B8', custNone, 'No Loan']]
-          .map(([c, v, l]) => `<div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
-            <span style="font-size:22px;font-weight:700;color:${c};">${v}</span>
-            <span style="font-size:12px;color:#64748B;">${l}</span></div>`).join('');
-        document.getElementById('customer-chart').closest('div[style]').innerHTML =
-          `<div style="height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">${rows}</div>`;
-      }
+      // Customer loan status chart — populate module-level state then build
+      _custLabels = ['Active Loan', 'Completed', 'No Loan'];
+      _custColors = ['#2563EB', '#16A34A', '#94A3B8'];
+      _custData   = [s.customers_with_active_loans || 0, s.customers_with_completed_loans || 0, s.customers_without_loans || 0];
+      _custCanvas = document.getElementById('customer-chart');
+      _buildCustChart();
 
       // Trend chart — default last 30 days
       const today = new Date();
