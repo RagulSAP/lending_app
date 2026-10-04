@@ -295,7 +295,6 @@
     LOAN_DISBURSEMENT: { get label() { return t('wallet.type_disbursed'); }, cls: 'badge-overdue',  icon: 'bi-arrow-up-circle-fill',   sign: '-' },
     LOAN_COLLECTION:   { get label() { return t('wallet.type_collected'); }, cls: 'badge-paid',     icon: 'bi-cash-coin',              sign: '+' },
     EXPENSE:           { get label() { return t('wallet.type_expense'); },   cls: 'badge-inactive', icon: 'bi-receipt',                sign: '-' },
-    WALLET_TRANSFER:   { get label() { return t('wallet.type_transfer'); },  cls: 'badge-closed',   icon: 'bi-arrow-left-right',       sign: ''  },
     WALLET_WITHDRAWAL: { get label() { return t('wallet.type_withdrawal'); },cls: 'badge-overdue',  icon: 'bi-box-arrow-up',           sign: '-' },
   };
 

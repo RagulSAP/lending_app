@@ -126,6 +126,9 @@ def get_transactions_report(
         q = q.filter(Transaction.customer_id == customer_id)
 
     total = q.count()
+    total_amount = float(
+        q.with_entities(func.sum(Transaction.amount)).scalar() or 0
+    )
     rows = (
         q.order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
         .offset((page - 1) * per_page)
@@ -148,7 +151,7 @@ def get_transactions_report(
             "loan_id": txn.loan_id,
             "installment_id": txn.installment_id,
         })
-    return records, total
+    return records, total, total_amount
 
 
 def get_loans_report(
@@ -238,6 +241,9 @@ def get_wallet_activity_report(
         .all()
     )
 
+    total_amount = float(
+        q.with_entities(func.sum(Transaction.amount)).scalar() or 0
+    )
     records = []
     for txn, doer_name, partner_name in rows:
         records.append({
@@ -248,7 +254,7 @@ def get_wallet_activity_report(
             "partner_name":     partner_name,
             "remarks":          txn.remarks,
         })
-    return records, total
+    return records, total, total_amount
 
 
 def get_expenses_report(

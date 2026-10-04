@@ -89,8 +89,11 @@
             <label class="form-label">${t('rep.type')}</label>
             <select class="form-select" id="txn-type">
               <option value="">${t('rep.all_types')}</option>
-              <option value="PAYMENT">${t('rep.payment')}</option>
-              <option value="DISBURSEMENT">${t('rep.disbursement')}</option>
+              <option value="LOAN_COLLECTION">${t('rep.payment')}</option>
+              <option value="LOAN_DISBURSEMENT">${t('rep.disbursement')}</option>
+              <option value="EXPENSE">${t('rep.expense')}</option>
+              <option value="WALLET_DEPOSIT">${t('rep.topup')}</option>
+              <option value="WALLET_WITHDRAWAL">${t('rep.withdrawal')}</option>
             </select>
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
@@ -380,11 +383,11 @@
   window.switchTab = function (tab) {
     activeTab = tab;
     currentPage = 1;
-    ['transactions', 'collection', 'loans', 'expenses', 'topup', 'withdrawal'].forEach(t => {
-      const el = document.getElementById('tab-' + t);
-      const link = document.querySelector('[data-tab="' + t + '"]');
-      if (el) el.classList.toggle('d-none', t !== tab);
-      if (link) link.classList.toggle('active', t === tab);
+    ['transactions', 'collection', 'loans', 'expenses', 'topup', 'withdrawal'].forEach(tabKey => {
+      const el = document.getElementById('tab-' + tabKey);
+      const link = document.querySelector('[data-tab="' + tabKey + '"]');
+      if (el) el.classList.toggle('d-none', tabKey !== tab);
+      if (link) link.classList.toggle('active', tabKey === tab);
     });
     fetchReportData(tab);
   };
@@ -500,7 +503,7 @@
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.expense_remark || r.remark || '-'}</td>
         </tr>`).join('');
       } else if (tab === 'topup') {
-        const totalAmt = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('tu-rep-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
@@ -512,7 +515,7 @@
         </tr>`).join('');
       } else {
         // withdrawal
-        const totalAmt = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('wd-rep-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>

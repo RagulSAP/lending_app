@@ -3,7 +3,7 @@ Payment collection routes.
 Blueprint prefix: /api/payments
 """
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, request
 
@@ -98,6 +98,16 @@ def collect_payment():
         if installment.status == "PAID":
             return error_response("Installment is already fully paid")
 
+        # Duplicate-submission guard: reject if a payment for this installment was recorded in the last 30 seconds
+        recent_cutoff = datetime.utcnow() - timedelta(seconds=30)
+        duplicate = db.query(Transaction).filter(
+            Transaction.installment_id == installment_id,
+            Transaction.transaction_type == "LOAN_COLLECTION",
+            Transaction.created_at >= recent_cutoff,
+        ).first()
+        if duplicate:
+            return error_response("A payment for this installment was just recorded. Please wait before retrying.")
+
         current_balance = float(installment.balance_amount or 0)
         if amount > current_balance + 0.005:  # small epsilon for floating point
             return error_response(
@@ -110,7 +120,7 @@ def collect_payment():
         if new_balance <= 0.005:
             new_balance = 0.0
             installment.status = "PAID"
-            installment.paid_date = date.today()
+            installment.paid_date = txn_date
         else:
             installment.status = "PARTIAL"
         installment.paid_amount = new_paid

@@ -473,7 +473,7 @@
       });
       paymentModal.hide();
       showToast('Payment recorded successfully!', 'success');
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
+      if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
     } catch (err) {
       errEl.textContent = err.message;
       errEl.classList.remove('d-none');

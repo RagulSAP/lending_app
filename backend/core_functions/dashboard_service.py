@@ -3,9 +3,26 @@ Role-aware dashboard aggregation queries.
 All functions accept a SQLAlchemy session (db) and return plain dicts.
 """
 from datetime import date, timedelta
-from sqlalchemy import func, distinct, case
-from models import Customer, Loan, Transaction, Wallet, User, Organization
+from sqlalchemy import func, distinct, case, update
+from models import Customer, Loan, LoanInstallment, Transaction, Wallet, User, Organization
 from config import Config
+
+
+def mark_overdue_loans(db, org_id: str) -> int:
+    """Mark ACTIVE loans as OVERDUE when their due_date has passed. Returns count updated."""
+    today = date.today()
+    result = (
+        db.query(Loan)
+        .filter(
+            Loan.org_id == org_id,
+            Loan.status == "ACTIVE",
+            Loan.due_date < today,
+        )
+        .update({"status": "OVERDUE"}, synchronize_session=False)
+    )
+    if result:
+        db.commit()
+    return result or 0
 
 
 # ---------------------------------------------------------------------------
@@ -34,6 +51,9 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
     week_start = _week_start(today)
     month_start = _month_start(today)
 
+    # Auto-mark overdue loans before computing stats
+    mark_overdue_loans(db, org_id)
+
     # Active loan counts
     total_active_loans = (
         db.query(func.count(Loan.loan_id))
@@ -41,9 +61,10 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
+    # All-time total disbursed (all statuses, including CLOSED)
     total_disbursed = float(
         db.query(func.sum(Loan.disbursement_amount))
-        .filter(Loan.org_id == org_id, Loan.status.in_(["ACTIVE", "OVERDUE"]))
+        .filter(Loan.org_id == org_id)
         .scalar() or 0
     )
 

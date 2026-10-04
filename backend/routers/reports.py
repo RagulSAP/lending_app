@@ -55,7 +55,7 @@ def transactions_report():
 
     db = SessionLocal()
     try:
-        records, total = get_transactions_report(
+        records, total, total_amount = get_transactions_report(
             db,
             org_id=current["org_id"],
             date_from=date_from,
@@ -66,7 +66,7 @@ def transactions_report():
             page=page,
             per_page=per_page,
         )
-        return success_response(data=records, total=total, page=page, per_page=per_page)
+        return success_response(data=records, total=total, total_amount=total_amount, page=page, per_page=per_page)
     finally:
         db.close()
 
@@ -155,11 +155,11 @@ def _wallet_activity_endpoint(txn_type):
     per_page  = min(request.args.get("per_page", 50, type=int), 500)
     db = SessionLocal()
     try:
-        records, total = get_wallet_activity_report(
+        records, total, total_amount = get_wallet_activity_report(
             db, org_id=current["org_id"], txn_type=txn_type,
             date_from=date_from, date_to=date_to, page=page, per_page=per_page,
         )
-        return success_response(data=records, total=total, page=page, per_page=per_page)
+        return success_response(data=records, total=total, total_amount=total_amount, page=page, per_page=per_page)
     finally:
         db.close()
 
@@ -169,11 +169,6 @@ def _wallet_activity_endpoint(txn_type):
 def topup_report():
     return _wallet_activity_endpoint("WALLET_DEPOSIT")
 
-
-@reports_bp.route("/wallet-transfer", methods=["GET"])
-@require_roles(*_ALLOWED_ROLES)
-def wallet_transfer_report():
-    return _wallet_activity_endpoint("WALLET_TRANSFER")
 
 
 @reports_bp.route("/withdrawal", methods=["GET"])
@@ -200,7 +195,7 @@ def export_report():
     export_type = (request.args.get("type") or "").lower()
     report_name = (request.args.get("report") or "").lower()
 
-    _VALID_REPORTS = ("transactions", "loans", "expenses", "topup", "wallet-transfer", "withdrawal")
+    _VALID_REPORTS = ("transactions", "loans", "expenses", "topup", "withdrawal")
     if export_type not in ("excel", "pdf"):
         return error_response("type must be 'excel' or 'pdf'")
     if report_name not in _VALID_REPORTS:
@@ -222,7 +217,7 @@ def export_report():
     db = SessionLocal()
     try:
         if report_name == "transactions":
-            records, _ = get_transactions_report(
+            records, _, _ta = get_transactions_report(
                 db,
                 org_id=current["org_id"],
                 date_from=date_from or date_type(2000, 1, 1),
@@ -254,13 +249,12 @@ def export_report():
                 page=page,
                 per_page=per_page,
             )
-        else:  # topup / wallet-transfer / withdrawal
+        else:  # topup / withdrawal
             _TYPE_MAP = {
-                "topup":           "WALLET_DEPOSIT",
-                "wallet-transfer": "WALLET_TRANSFER",
-                "withdrawal":      "WALLET_WITHDRAWAL",
+                "topup":      "WALLET_DEPOSIT",
+                "withdrawal": "WALLET_WITHDRAWAL",
             }
-            records, _ = get_wallet_activity_report(
+            records, _, _ta = get_wallet_activity_report(
                 db,
                 org_id=current["org_id"],
                 txn_type=_TYPE_MAP[report_name],

@@ -165,7 +165,8 @@ def create_expense():
             return error_response("No wallet found for this organisation", 500)
 
         overdraft = float(wallet.invest_balance or 0) < expense_amount
-        wallet.invest_balance = round(float(wallet.invest_balance or 0) - expense_amount, 2)
+        wallet.invest_balance   = round(float(wallet.invest_balance   or 0) - expense_amount, 2)
+        wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - expense_amount, 2)
 
         expense_id = str(uuid.uuid4())
         expense = Expense(
@@ -343,7 +344,8 @@ def update_expense(expense_id):
         if delta != 0:
             wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
             if wallet:
-                wallet.invest_balance = round(float(wallet.invest_balance or 0) - delta, 2)
+                wallet.invest_balance   = round(float(wallet.invest_balance   or 0) - delta, 2)
+                wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - delta, 2)
 
         db.commit()
 
@@ -386,7 +388,8 @@ def delete_expense(expense_id):
         # Reverse invest_balance debit
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if wallet:
-            wallet.invest_balance = round(float(wallet.invest_balance or 0) + amount, 2)
+            wallet.invest_balance   = round(float(wallet.invest_balance   or 0) + amount, 2)
+            wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount, 2)
 
         db.delete(expense)
         db.commit()

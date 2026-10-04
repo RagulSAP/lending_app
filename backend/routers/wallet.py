@@ -226,7 +226,12 @@ def withdraw():
                 )
             wallet.interest_balance = round(available - amount, 2)
 
-        wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - amount, 2)
+        rotation_available = float(wallet.rotation_balance or 0)
+        if amount > rotation_available + 0.005:
+            return error_response(
+                f"Insufficient rotation balance. Available: ₹ {rotation_available:,.2f}", 400
+            )
+        wallet.rotation_balance = round(rotation_available - amount, 2)
 
         remarks = (data.get("remarks") or f"{source.capitalize()} withdrawal").strip()
         txn = Transaction(
