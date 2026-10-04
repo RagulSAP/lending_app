@@ -7,7 +7,8 @@ import uuid
 from flask import Blueprint, request
 
 from database import SessionLocal
-from models import Customer, Loan, User
+from models import Customer, Loan, LoanInstallment, User
+from sqlalchemy import func, and_
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
@@ -179,10 +180,56 @@ def list_customers():
             users = db.query(User).filter(User.user_id.in_(creator_ids)).all()
             creator_map = {u.user_id: u.name for u in users}
 
+        # Batch-fetch next pending installment per customer
+        customer_ids = [c.customer_id for c in customers]
+        next_due_map = {}
+        if customer_ids:
+            min_due_sub = (
+                db.query(
+                    Loan.customer_id.label("cid"),
+                    func.min(LoanInstallment.due_date).label("next_date"),
+                )
+                .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
+                .filter(
+                    Loan.customer_id.in_(customer_ids),
+                    Loan.org_id == org_id,
+                    Loan.status.in_(["ACTIVE", "OVERDUE"]),
+                    LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+                )
+                .group_by(Loan.customer_id)
+                .subquery("nd_sub")
+            )
+            due_rows = (
+                db.query(
+                    Loan.customer_id,
+                    LoanInstallment.due_date,
+                    func.sum(LoanInstallment.balance_amount).label("amount"),
+                )
+                .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
+                .join(min_due_sub, and_(
+                    Loan.customer_id == min_due_sub.c.cid,
+                    LoanInstallment.due_date == min_due_sub.c.next_date,
+                ))
+                .filter(
+                    Loan.status.in_(["ACTIVE", "OVERDUE"]),
+                    LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+                )
+                .group_by(Loan.customer_id, LoanInstallment.due_date)
+                .all()
+            )
+            for row in due_rows:
+                next_due_map[row.customer_id] = {
+                    "next_due_date": row.due_date.isoformat() if row.due_date else None,
+                    "next_due_amount": float(row.amount or 0),
+                }
+
         rows = []
         for c in customers:
             d = model_to_dict(c)
             d["onboarded_by"] = creator_map.get(c.created_by) if c.created_by else None
+            nd = next_due_map.get(c.customer_id, {})
+            d["next_due_date"] = nd.get("next_due_date")
+            d["next_due_amount"] = nd.get("next_due_amount")
             rows.append(d)
 
         return success_response(

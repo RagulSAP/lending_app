@@ -131,7 +131,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Onboarded By</th><th>Status</th><th>Assigned To</th><th>Created</th>
+                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Onboarded By</th><th>Status</th><th>Created</th><th>Next Due</th>
                 ${canEdit ? '<th>Actions</th>' : ''}
               </tr>
             </thead>
@@ -313,6 +313,10 @@
                 </button>` : ''}
               </div>
             </td>` : '';
+          const nextDueCell = c.next_due_date
+            ? `<div style="font-size:13px;">${formatDate(c.next_due_date)}</div>
+               <div style="font-size:12px;font-weight:600;color:#DC2626;">${formatCurrency(c.next_due_amount || 0)}</div>`
+            : `<span style="font-size:12px;color:var(--text-secondary);">—</span>`;
           return `<tr class="clickable" onclick="viewCustomer('${c.customer_id}')">
             <td>${offset + i + 1}</td>
             <td>
@@ -321,12 +325,17 @@
                 <div><div class="fw-600">${c.name}</div></div>
               </div>
             </td>
-            <td>${c.phone || '-'}</td>
+            <td onclick="event.stopPropagation()">
+              <div class="d-flex align-items-center gap-2">
+                <span>${c.phone || '-'}</span>
+                ${c.phone ? `<a href="tel:${c.phone}" title="Call ${c.name}" style="color:var(--text-secondary);line-height:1;" onclick="event.stopPropagation()"><i class="bi bi-telephone-fill" style="font-size:13px;"></i></a>` : ''}
+              </div>
+            </td>
             <td>${c.city || '-'}</td>
             <td>${c.onboarded_by || '-'}</td>
             <td>${statusBadge(c.status || 'ACTIVE')}</td>
-            <td>${c.assigned_user_name || c.assigned_to || '-'}</td>
             <td>${formatDate(c.created_at)}</td>
+            <td>${nextDueCell}</td>
             ${actionsCell}
           </tr>`;
         }).join('');
