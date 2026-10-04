@@ -134,12 +134,13 @@ CREATE TABLE IF NOT EXISTS `loan_installments` (
 -- 7. wallet
 -- ----------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `wallet` (
-  `id`         INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  `wallet_id`  VARCHAR(36)   UNIQUE NOT NULL,
-  `balance`    NUMERIC(10,2) NOT NULL DEFAULT 0,
-  `org_id`     VARCHAR(36)   NOT NULL,
-  `created_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `id`               INT           NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `wallet_id`        VARCHAR(36)   UNIQUE NOT NULL,
+  `invest_balance`   NUMERIC(10,2) NOT NULL DEFAULT 0,
+  `interest_balance` NUMERIC(10,2) NOT NULL DEFAULT 0,
+  `org_id`           VARCHAR(36)   NOT NULL,
+  `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
@@ -271,8 +272,8 @@ INSERT IGNORE INTO `organizations` (id, org_id, name, address, phone, status, cr
 VALUES (0, '00000000-0000-0000-0000-000000000000', 'SYSTEM', NULL, NULL, 'ACTIVE', NOW(), NOW());
 
 -- SYSTEM wallet (balance 0 — placeholder, not used for real transactions)
-INSERT IGNORE INTO `wallet` (id, wallet_id, balance, org_id, created_at, updated_at)
-VALUES (0, '00000000-0000-0000-0000-000000000001', 0.00,
+INSERT IGNORE INTO `wallet` (id, wallet_id, invest_balance, interest_balance, org_id, created_at, updated_at)
+VALUES (0, '00000000-0000-0000-0000-000000000001', 0.00, 0.00,
         '00000000-0000-0000-0000-000000000000', NOW(), NOW());
 
 -- ----------------------------------------------------------------
@@ -290,3 +291,12 @@ INSERT IGNORE INTO `expense_categories` (category_id, org_id, name, description,
   (UUID(), '<YOUR_ORG_ID>', 'Vehicle Maintenance',   'Servicing and repairs for office or field vehicles',   'ACTIVE'),
   (UUID(), '<YOUR_ORG_ID>', 'Marketing',             'Advertising, pamphlets and promotional activities',    'ACTIVE'),
   (UUID(), '<YOUR_ORG_ID>', 'Miscellaneous',         'Other operational expenses not covered above',         'ACTIVE');
+
+
+-- ----------------------------------------------------------------
+-- Migration: rename wallet.balance → invest_balance, add interest_balance
+-- Run this on an existing database (skip if starting fresh).
+-- ----------------------------------------------------------------
+-- ALTER TABLE `wallet`
+--   CHANGE COLUMN `balance` `invest_balance` NUMERIC(10,2) NOT NULL DEFAULT 0,
+--   ADD COLUMN `interest_balance` NUMERIC(10,2) NOT NULL DEFAULT 0 AFTER `invest_balance`;

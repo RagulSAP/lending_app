@@ -30,7 +30,7 @@ def get_wallet():
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return success_response(data={
-                "wallet": {"wallet_id": None, "balance": 0, "org_id": current["org_id"]},
+                "wallet": {"wallet_id": None, "invest_balance": 0, "interest_balance": 0, "org_id": current["org_id"]},
                 "transactions": [],
                 "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0},
             })
@@ -110,7 +110,8 @@ def topup_wallet():
             wallet = Wallet(
                 wallet_id=str(uuid.uuid4()),
                 org_id=current["org_id"],
-                balance=0,
+                invest_balance=0,
+                interest_balance=0,
             )
             db.add(wallet)
             db.flush()
@@ -123,7 +124,7 @@ def topup_wallet():
             if not partner:
                 return error_response("Partner not found", 404)
 
-        wallet.balance = round(float(wallet.balance or 0) + amount, 2)
+        wallet.invest_balance = round(float(wallet.invest_balance or 0) + amount, 2)
 
         txn = Transaction(
             transaction_id=str(uuid.uuid4()),
@@ -140,7 +141,8 @@ def topup_wallet():
         db.commit()
 
         d = model_to_dict(txn)
-        d["wallet_balance"] = float(wallet.balance)
+        d["wallet_invest_balance"]   = float(wallet.invest_balance)
+        d["wallet_interest_balance"] = float(wallet.interest_balance)
         return success_response(data=d, message="Wallet topped up successfully"), 201
     except Exception as exc:
         db.rollback()

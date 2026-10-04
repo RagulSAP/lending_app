@@ -164,8 +164,8 @@ def create_expense():
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
 
-        overdraft = float(wallet.balance or 0) < expense_amount
-        wallet.balance = round(float(wallet.balance or 0) - expense_amount, 2)
+        overdraft = float(wallet.invest_balance or 0) < expense_amount
+        wallet.invest_balance = round(float(wallet.invest_balance or 0) - expense_amount, 2)
 
         expense_id = str(uuid.uuid4())
         expense = Expense(
@@ -200,9 +200,9 @@ def create_expense():
 
         result = model_to_dict(expense)
         result["category_name"] = category.name
-        result["wallet_balance_after"] = float(wallet.balance)
+        result["wallet_invest_balance_after"] = float(wallet.invest_balance)
         if overdraft:
-            result["warning"] = "Wallet balance is now negative (overdraft)"
+            result["warning"] = "Invest balance is now negative (overdraft)"
 
         return success_response(data=result, message="Expense recorded successfully"), 201
 
@@ -362,7 +362,7 @@ def update_expense(expense_id):
         if delta != 0:
             wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
             if wallet:
-                wallet.balance = round(float(wallet.balance or 0) - delta, 2)
+                wallet.invest_balance = round(float(wallet.invest_balance or 0) - delta, 2)
 
         db.commit()
 
@@ -402,10 +402,10 @@ def delete_expense(expense_id):
 
         amount = float(expense.expense_amount or 0)
 
-        # Reverse wallet debit
+        # Reverse invest_balance debit
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if wallet:
-            wallet.balance = round(float(wallet.balance or 0) + amount, 2)
+            wallet.invest_balance = round(float(wallet.invest_balance or 0) + amount, 2)
 
         db.delete(expense)
         db.commit()

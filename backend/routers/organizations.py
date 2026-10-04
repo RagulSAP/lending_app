@@ -64,7 +64,8 @@ def create_org():
         wallet = Wallet(
             wallet_id=wallet_id,
             org_id=org_id,
-            balance=0,
+            invest_balance=0,
+            interest_balance=0,
         )
         admin_user = User(
             user_id=admin_user_id,

@@ -39,7 +39,7 @@ def collect_payment():
     2. Validate amount <= installment balance.
     3. Update installment (paid_amount, balance_amount, status, paid_date).
     4. Update loan (total_paid, balance_amount, status → CLOSED if fully paid).
-    5. Credit wallet.balance.
+    5. Credit wallet (invest_balance + interest_balance split).
     6. Insert Transaction (LOAN_COLLECTION).
     7. If loan closed, record LoanStatusHistory.
     """
@@ -122,11 +122,15 @@ def collect_payment():
             loan.balance_amount = 0.0
             loan.status = "CLOSED"
 
-        # 5. Credit wallet
+        # 5. Credit wallet — split between invest_balance (principal) and interest_balance (interest)
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
-        wallet.balance = round(float(wallet.balance or 0) + amount, 2)
+        total_inst = float(installment.total_amount or 1)
+        principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst, 2)
+        interest_portion  = round(amount - principal_portion, 2)
+        wallet.invest_balance   = round(float(wallet.invest_balance   or 0) + principal_portion, 2)
+        wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_portion,  2)
 
         # 6. Insert transaction
         txn = Transaction(
@@ -164,7 +168,8 @@ def collect_payment():
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status
-        txn_data["wallet_balance"] = float(wallet.balance)
+        txn_data["wallet_invest_balance"]   = float(wallet.invest_balance)
+        txn_data["wallet_interest_balance"] = float(wallet.interest_balance)
 
         return success_response(data=txn_data, message="Payment collected successfully"), 201
 

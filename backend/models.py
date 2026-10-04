@@ -135,12 +135,13 @@ class Transaction(Base):
 
 class Wallet(Base):
     __tablename__ = "wallet"
-    id         = Column(Integer, primary_key=True, autoincrement=True)
-    wallet_id  = Column(String(36), unique=True, nullable=False)
-    balance    = Column(Numeric(10, 2), nullable=False, default=0)
-    org_id     = Column(String(36), ForeignKey("organizations.org_id"), nullable=False)
-    created_at = Column(DateTime, default=_now_ist, server_default=func.now())
-    updated_at = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
+    id               = Column(Integer, primary_key=True, autoincrement=True)
+    wallet_id        = Column(String(36), unique=True, nullable=False)
+    invest_balance   = Column(Numeric(10, 2), nullable=False, default=0)
+    interest_balance = Column(Numeric(10, 2), nullable=False, default=0)
+    org_id           = Column(String(36), ForeignKey("organizations.org_id"), nullable=False)
+    created_at       = Column(DateTime, default=_now_ist, server_default=func.now())
+    updated_at       = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)
 
 
 class ExpenseCategory(Base):

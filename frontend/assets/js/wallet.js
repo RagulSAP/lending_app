@@ -47,8 +47,14 @@
       <div class="row g-3 mb-4" id="stats-row">
         <div class="col-6 col-md-3">
           <div class="card text-center" style="background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;border:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">Current Balance</div>
-            <div id="stat-balance" style="font-size:22px;font-weight:700;">—</div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">Invest Balance</div>
+            <div id="stat-invest-balance" style="font-size:22px;font-weight:700;">—</div>
+          </div>
+        </div>
+        <div class="col-6 col-md-3">
+          <div class="card text-center" style="background:linear-gradient(135deg,#16A34A,#059669);color:#fff;border:none;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">Interest Balance</div>
+            <div id="stat-interest-balance" style="font-size:22px;font-weight:700;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
@@ -234,7 +240,8 @@
   function renderStats(data) {
     const w = data.wallet || {};
     const s = data.stats || {};
-    document.getElementById('stat-balance').textContent  = formatCurrency(w.balance || 0);
+    document.getElementById('stat-invest-balance').textContent   = formatCurrency(w.invest_balance   || 0);
+    document.getElementById('stat-interest-balance').textContent = formatCurrency(w.interest_balance || 0);
     document.getElementById('stat-topup').textContent    = formatCurrency(s.total_topup || 0);
     document.getElementById('stat-disburse').textContent = formatCurrency(s.total_disbursed || 0);
     document.getElementById('stat-collect').textContent  = formatCurrency(s.total_collected || 0);

@@ -79,7 +79,9 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
 
     # Wallet
     wallet = db.query(Wallet).filter(Wallet.org_id == org_id).first()
-    wallet_balance = float(wallet.balance) if wallet else 0.0
+    wallet_invest_balance   = float(wallet.invest_balance)   if wallet else 0.0
+    wallet_interest_balance = float(wallet.interest_balance) if wallet else 0.0
+    wallet_balance = wallet_invest_balance + wallet_interest_balance
 
     # Expenses this month (via EXPENSE transactions)
     expenses_this_month = float(
@@ -170,7 +172,9 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         "collected_this_month": round(collected_this_month, 2),
         "overdue_count": overdue_count,
         "overdue_amount": round(overdue_amount, 2),
-        "wallet_balance": round(wallet_balance, 2),
+        "wallet_balance":          round(wallet_balance, 2),
+        "wallet_invest_balance":   round(wallet_invest_balance, 2),
+        "wallet_interest_balance": round(wallet_interest_balance, 2),
         "expenses_this_month": round(expenses_this_month, 2),
         "active_customers": active_customers,
         "customers_with_active_loans": customers_with_active_loans,
