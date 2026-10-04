@@ -718,6 +718,7 @@
         parseFloat(inst.total_amount) || 0,
         parseFloat(inst.paid_amount) || 0,
         balance,
+        inst.paid_date || '',
         inst.status,
       ];
     });
@@ -740,7 +741,7 @@
 
     // Installment schedule header
     XLSX.utils.sheet_add_aoa(ws, [['INSTALLMENT SCHEDULE']], { origin: r++ });
-    XLSX.utils.sheet_add_aoa(ws, [['#', 'Due Date', 'Total Amount (₹)', 'Paid Amount (₹)', 'Balance (₹)', 'Status']], { origin: r++ });
+    XLSX.utils.sheet_add_aoa(ws, [['#', 'Due Date', 'Total Amount (₹)', 'Paid Amount (₹)', 'Balance (₹)', 'Paid Date', 'Status']], { origin: r++ });
     const instRows = buildInstallmentRows();
     XLSX.utils.sheet_add_aoa(ws, instRows, { origin: r });
 
@@ -890,12 +891,13 @@
       pdfAmt(row[2]),
       pdfAmt(row[3]),
       pdfAmt(row[4]),
-      String(row[5]),
+      row[5] ? String(row[5]) : '—',
+      String(row[6]),
     ]);
 
     doc.autoTable({
       startY: y,
-      head: [['#', 'Due Date', 'Total', 'Paid', 'Balance', 'Status']],
+      head: [['#', 'Due Date', 'Total', 'Paid', 'Balance', 'Paid Date', 'Status']],
       body: instBodyRows,
       theme: 'grid',
       headStyles: {
@@ -904,14 +906,15 @@
       bodyStyles: { fontSize: 8, halign: 'center' },
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
-        1: { cellWidth: 26, halign: 'center' },
+        1: { cellWidth: 24, halign: 'center' },
         2: { halign: 'right' },
         3: { halign: 'right' },
         4: { halign: 'right', fontStyle: 'bold' },
-        5: { cellWidth: 20, halign: 'center' },
+        5: { cellWidth: 24, halign: 'center' },
+        6: { cellWidth: 20, halign: 'center' },
       },
       didParseCell(data) {
-        if (data.section === 'body' && data.column.index === 5) {
+        if (data.section === 'body' && data.column.index === 6) {
           const s = data.cell.raw;
           const fill = statusFill(s);
           data.cell.styles.fillColor = fill;
