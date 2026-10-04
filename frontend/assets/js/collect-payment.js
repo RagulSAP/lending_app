@@ -50,7 +50,7 @@
         <div class="card-header-flex">
           <h6 class="card-title"><span class="badge bg-primary me-2">2</span>${t('pay.select_loan')}</h6>
           <div class="d-flex gap-2 align-items-center">
-            <div id="loan-export-btns" class="d-none d-flex gap-2">
+            <div id="loan-export-btns" style="display:none;gap:0.5rem;">
               <button type="button" class="btn btn-sm btn-outline-success" onclick="exportLoanExcel()">
                 <i class="bi bi-file-earmark-excel me-1"></i>Excel
               </button>
@@ -256,6 +256,8 @@
       const step2 = document.getElementById('step2-card');
       step2.classList.remove('d-none');
       step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const exportBtns = document.getElementById('loan-export-btns');
+      if (exportBtns) exportBtns.style.display = 'none';
 
       const listEl = document.getElementById('loans-list');
       const addLoanBtn = document.getElementById('add-loan-btn');
@@ -315,7 +317,7 @@
       selectedLoan = Object.assign({}, selectedLoan, loanData);
       // Reveal export buttons in step2 header
       const exportBtns = document.getElementById('loan-export-btns');
-      if (exportBtns) exportBtns.classList.remove('d-none');
+      if (exportBtns) exportBtns.style.display = 'flex';
       delete selectedLoan.installments; // keep it in the separate array
       openPaymentModal();
     } catch (err) {
@@ -944,7 +946,7 @@
     const addLoanBtn = document.getElementById('add-loan-btn');
     if (addLoanBtn) addLoanBtn.classList.add('d-none');
     const exportBtns = document.getElementById('loan-export-btns');
-    if (exportBtns) exportBtns.classList.add('d-none');
+    if (exportBtns) exportBtns.style.display = 'none';
   }
 
   init();
