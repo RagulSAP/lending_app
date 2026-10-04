@@ -335,7 +335,7 @@
             <td>${statusBadge(c.status || 'ACTIVE')}</td>
             <td>${c.disbursement_amount != null ? formatCurrency(c.disbursement_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.outstanding_amount != null ? `<span class="fw-600" style="color:#DC2626;">${formatCurrency(c.outstanding_amount)}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
-            <td>${c.installment_amount != null ? formatCurrency(c.installment_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+            <td>${c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${nextDueCell}</td>
             ${actionsCell}
           </tr>`;

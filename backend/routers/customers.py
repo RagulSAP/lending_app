@@ -227,10 +227,11 @@ def list_customers():
             dis_rows = (
                 db.query(
                     Loan.customer_id,
+                    Loan.loan_id,
                     Loan.disbursement_date,
                     Loan.disbursement_amount,
                     Loan.balance_amount,
-                    Loan.installment_amount,
+                    Loan.num_installments,
                 )
                 .join(latest_sub, and_(
                     Loan.customer_id == latest_sub.c.cid,
@@ -239,12 +240,31 @@ def list_customers():
                 .filter(Loan.status.in_(["ACTIVE", "OVERDUE"]))
                 .all()
             )
+            loan_ids = [row.loan_id for row in dis_rows]
+            # Count PAID installments per loan in one query
+            paid_counts = {}
+            if loan_ids:
+                paid_rows = (
+                    db.query(
+                        LoanInstallment.loan_id,
+                        func.count(LoanInstallment.installment_id).label("paid_count"),
+                    )
+                    .filter(
+                        LoanInstallment.loan_id.in_(loan_ids),
+                        LoanInstallment.status == "PAID",
+                    )
+                    .group_by(LoanInstallment.loan_id)
+                    .all()
+                )
+                paid_counts = {r.loan_id: r.paid_count for r in paid_rows}
+
             disburse_map = {
                 row.customer_id: {
                     "date":               row.disbursement_date.isoformat() if row.disbursement_date else None,
                     "disbursement_amount": float(row.disbursement_amount or 0),
                     "balance_amount":      float(row.balance_amount or 0),
-                    "installment_amount":  float(row.installment_amount or 0),
+                    "num_installments":    row.num_installments or 0,
+                    "paid_installments":   paid_counts.get(row.loan_id, 0),
                 }
                 for row in dis_rows
             }
@@ -298,7 +318,8 @@ def list_customers():
             d["loan_disbursed_date"]  = loan_info.get("date")
             d["disbursement_amount"]  = loan_info.get("disbursement_amount")
             d["outstanding_amount"]   = loan_info.get("balance_amount")
-            d["installment_amount"]   = loan_info.get("installment_amount")
+            d["num_installments"]     = loan_info.get("num_installments")
+            d["paid_installments"]    = loan_info.get("paid_installments")
             nd = next_due_map.get(c.customer_id, {})
             d["next_due_date"] = nd.get("next_due_date")
             d["next_due_amount"] = nd.get("next_due_amount")
