@@ -172,7 +172,8 @@ def topup_wallet():
 @wallet_bp.route("/withdraw", methods=["POST"])
 @require_roles(*_ADMIN_ROLES)
 def withdraw():
-    """POST /api/wallet/withdraw — {amount, transaction_date, remarks} — deducts from both invest_balance and rotation_balance."""
+    """POST /api/wallet/withdraw — {amount, source ('invest'|'interest'), partner_id, transaction_date, remarks}
+    Deducts from selected source (invest_balance or interest_balance) AND always reduces rotation_balance."""
     current = get_current_user_info()
     data = request.get_json(silent=True)
     if not data:
@@ -185,6 +186,12 @@ def withdraw():
     if amount <= 0:
         return error_response("amount must be positive")
 
+    source = (data.get("source") or "").strip().lower()
+    if source not in ("invest", "interest"):
+        return error_response("source must be 'invest' or 'interest'")
+
+    partner_id = data.get("partner_id") or None
+
     txn_date_str = data.get("transaction_date")
     txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
     if not txn_date:
@@ -196,15 +203,32 @@ def withdraw():
         if not wallet:
             return error_response("No wallet found for this organisation", 404)
 
-        rotation_avail = float(wallet.rotation_balance or 0)
-        if amount > rotation_avail + 0.005:
-            return error_response(
-                f"Insufficient rotation balance. Available: ₹ {rotation_avail:,.2f}", 400
-            )
+        if partner_id:
+            partner = db.query(Partner).filter(
+                Partner.partner_id == partner_id,
+                Partner.org_id == current["org_id"],
+            ).first()
+            if not partner:
+                return error_response("Partner not found", 404)
 
-        wallet.invest_balance   = round(float(wallet.invest_balance   or 0) - amount, 2)
-        wallet.rotation_balance = round(rotation_avail - amount, 2)
+        if source == "invest":
+            available = float(wallet.invest_balance or 0)
+            if amount > available + 0.005:
+                return error_response(
+                    f"Insufficient investment balance. Available: ₹ {available:,.2f}", 400
+                )
+            wallet.invest_balance = round(available - amount, 2)
+        else:
+            available = float(wallet.interest_balance or 0)
+            if amount > available + 0.005:
+                return error_response(
+                    f"Insufficient interest balance. Available: ₹ {available:,.2f}", 400
+                )
+            wallet.interest_balance = round(available - amount, 2)
 
+        wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - amount, 2)
+
+        remarks = (data.get("remarks") or f"{source.capitalize()} withdrawal").strip()
         txn = Transaction(
             transaction_id=str(uuid.uuid4()),
             user_id=current["user_id"],
@@ -213,7 +237,8 @@ def withdraw():
             transaction_date=txn_date,
             amount=round(amount, 2),
             wallet_id=wallet.wallet_id,
-            remarks=(data.get("remarks") or "Withdrawal").strip(),
+            partner_id=partner_id,
+            remarks=remarks,
         )
         db.add(txn)
         db.commit()

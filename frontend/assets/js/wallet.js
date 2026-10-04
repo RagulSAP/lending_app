@@ -452,11 +452,35 @@
               </div>
               <div class="modal-body">
                 <div id="wd-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
-                <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#92400E;">
-                  <i class="bi bi-info-circle me-1"></i>
-                  ${t('wallet.rotation_bal')}: <strong id="wd-rotation-bal">—</strong>
-                </div>
                 <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">${t('wallet.withdraw_from')} <span class="text-danger">*</span></label>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                      <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-invest">
+                        <input type="radio" name="wd-source" value="invest" style="accent-color:#2563EB;">
+                        <div>
+                          <div style="font-size:13px;font-weight:600;color:#1E40AF;">${t('wallet.invest_bal')}</div>
+                          <div id="wd-invest-bal" style="font-size:12px;color:#64748B;">—</div>
+                        </div>
+                      </label>
+                      <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-interest">
+                        <input type="radio" name="wd-source" value="interest" style="accent-color:#16A34A;">
+                        <div>
+                          <div style="font-size:13px;font-weight:600;color:#166534;">${t('wallet.interest_bal')}</div>
+                          <div id="wd-interest-bal" style="font-size:12px;color:#64748B;">—</div>
+                        </div>
+                      </label>
+                    </div>
+                    <div style="font-size:11px;color:#64748B;margin-top:6px;">
+                      <i class="bi bi-info-circle me-1"></i>${t('wallet.rotation_bal')}: <strong id="wd-rotation-bal">—</strong> — ${t('wallet.withdraw_rotation_note')}
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">${t('wallet.partner')}</label>
+                    <select class="form-select" id="wd-partner">
+                      <option value="">— ${t('wallet.no_partner')} —</option>
+                    </select>
+                  </div>
                   <div class="col-12">
                     <label class="form-label">${t('wallet.amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="wd-amount" placeholder="e.g. 10000" min="1" step="1">
@@ -487,6 +511,9 @@
       document.getElementById('wd-save-btn').addEventListener('click', submitWithdraw);
       document.getElementById('wd-amount').addEventListener('input', function () {
         document.getElementById('wd-amount-words').textContent = amountToWords(parseFloat(this.value) || 0);
+      });
+      document.querySelectorAll('input[name="wd-source"]').forEach(r => {
+        r.addEventListener('change', updateWithdrawSourceHighlight);
       });
     }
 
@@ -668,9 +695,25 @@
     }
   }
 
+  function updateWithdrawSourceHighlight() {
+    const val = document.querySelector('input[name="wd-source"]:checked')?.value;
+    const defBorder = document.body.getAttribute('data-theme') === 'dark' ? '#30363D' : '#E2E8F0';
+    document.getElementById('wd-opt-invest').style.borderColor   = val === 'invest'   ? '#2563EB' : defBorder;
+    document.getElementById('wd-opt-interest').style.borderColor = val === 'interest' ? '#16A34A' : defBorder;
+  }
+
   function openWithdrawModal() {
     const w = (walletData && walletData.wallet) || {};
+    document.getElementById('wd-invest-bal').textContent   = formatCurrency(w.invest_balance   || 0);
+    document.getElementById('wd-interest-bal').textContent = formatCurrency(w.interest_balance || 0);
     document.getElementById('wd-rotation-bal').textContent = formatCurrency(w.rotation_balance || 0);
+
+    const sel = document.getElementById('wd-partner');
+    sel.innerHTML = `<option value="">— ${t('wallet.no_partner')} —</option>` +
+      partners.map(p => `<option value="${p.partner_id}">${p.name}${p.phone ? ' (' + p.phone + ')' : ''}</option>`).join('');
+
+    document.querySelectorAll('input[name="wd-source"]').forEach(r => r.checked = false);
+    updateWithdrawSourceHighlight();
     document.getElementById('wd-amount').value = '';
     document.getElementById('wd-amount-words').textContent = '';
     document.getElementById('wd-date').value = new Date().toISOString().split('T')[0];
@@ -686,16 +729,20 @@
     const errEl = document.getElementById('wd-error');
     errEl.classList.add('d-none');
 
+    const source = document.querySelector('input[name="wd-source"]:checked')?.value || '';
     const amount = parseFloat(document.getElementById('wd-amount').value) || 0;
     const date   = document.getElementById('wd-date').value;
+    const partner_id = document.getElementById('wd-partner').value || null;
 
+    if (!source) { errEl.textContent = 'Please select a source balance.'; errEl.classList.remove('d-none'); return; }
     if (amount <= 0) { errEl.textContent = 'Enter a valid amount.'; errEl.classList.remove('d-none'); return; }
     if (!date) { errEl.textContent = 'Date is required.'; errEl.classList.remove('d-none'); return; }
 
     const w = (walletData && walletData.wallet) || {};
-    const available = w.rotation_balance || 0;
+    const available = source === 'invest' ? (w.invest_balance || 0) : (w.interest_balance || 0);
     if (amount > available + 0.005) {
-      errEl.textContent = `Amount exceeds rotation balance (${formatCurrency(available)}).`;
+      const label = source === 'invest' ? t('wallet.invest_bal') : t('wallet.interest_bal');
+      errEl.textContent = `Amount exceeds ${label} (${formatCurrency(available)}).`;
       errEl.classList.remove('d-none');
       return;
     }
@@ -708,6 +755,8 @@
     try {
       await api.post('/api/wallet/withdraw', {
         amount,
+        source,
+        partner_id,
         transaction_date: date,
         remarks: document.getElementById('wd-remarks').value.trim(),
       });
