@@ -901,13 +901,26 @@ input, textarea, select, button {
 [data-theme="dark"] .form-text { color: var(--text-secondary); }
 [data-theme="dark"] .form-check-label { color: var(--text-primary); }
 
-/* Tables */
-[data-theme="dark"] .table { color: var(--text-primary); }
-[data-theme="dark"] .table thead th {
-  background-color: #0D1117; color: var(--text-secondary); border-bottom-color: #30363D;
+/* Tables — reset Bootstrap's --bs-table-bg which defaults to white */
+[data-theme="dark"] .table {
+  --bs-table-bg: transparent;
+  --bs-table-color: var(--text-primary);
+  --bs-table-border-color: #21262D;
+  --bs-table-striped-bg: #21262D;
+  --bs-table-hover-bg: #21262D;
+  --bs-table-hover-color: var(--text-primary);
+  color: var(--text-primary);
 }
-[data-theme="dark"] .table tbody td { border-bottom-color: #21262D; color: var(--text-primary); }
-[data-theme="dark"] .table tbody tr:hover td { background-color: #21262D; }
+[data-theme="dark"] .table > :not(caption) > * > * {
+  background-color: transparent;
+  color: var(--text-primary);
+  border-bottom-color: #21262D;
+}
+[data-theme="dark"] .table thead th {
+  background-color: #0D1117 !important; color: var(--text-secondary); border-bottom-color: #30363D;
+}
+[data-theme="dark"] .table tbody tr:hover > * { background-color: #21262D !important; }
+[data-theme="dark"] .table tbody tr:last-child td { border-bottom: none; }
 [data-theme="dark"] .table-container { border-color: #30363D; }
 [data-theme="dark"] .table-empty { color: var(--text-secondary); }
 
