@@ -78,59 +78,100 @@
 
   // ---- ADMIN/MANAGER/ACCOUNTANT DASHBOARD ----
   async function renderAdminDashboard() {
+    const dateLabel = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+    const finCard = (id, label, accent) => `
+      <div style="background:#fff;border-radius:12px;padding:14px 16px 14px 20px;border:1px solid #E2E8F0;
+                  box-shadow:0 1px 4px rgba(0,0,0,.05);position:relative;overflow:hidden;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${accent};border-radius:12px 0 0 12px;"></div>
+        <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:5px;">${label}</div>
+        <div id="${id}" style="font-size:18px;font-weight:700;color:#1E293B;line-height:1.2;">—</div>
+      </div>`;
+
+    const miniCard = (id, label, icon, bg, color, subId) => `
+      <div style="background:#fff;border-radius:10px;padding:10px 12px;border:1px solid #F1F5F9;
+                  box-shadow:0 1px 3px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:8px;background:${bg};display:flex;align-items:center;
+                    justify-content:center;flex-shrink:0;">
+          <i class="bi ${icon}" style="font-size:15px;color:${color};"></i>
+        </div>
+        <div style="min-width:0;">
+          <div id="${id}" style="font-size:15px;font-weight:700;color:#1E293B;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+          ${subId ? `<div id="${subId}" style="font-size:10px;color:${color};font-weight:600;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>` : ''}
+          <div style="font-size:11px;color:#94A3B8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+        </div>
+      </div>`;
+
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>Dashboard</h1>
-        <p>Organization overview and key performance indicators</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
+        <h1 style="font-size:20px;font-weight:700;color:#1E293B;margin:0;">Dashboard</h1>
+        <span style="font-size:12px;color:#64748B;background:#F8FAFC;padding:4px 12px;border-radius:20px;border:1px solid #E2E8F0;">${dateLabel}</span>
       </div>
-      <div class="row g-3 mb-4" id="kpi-row"></div>
-      <div class="row g-4">
-        <div class="col-md-6">
+
+      <!-- Financial KPIs -->
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-4">${finCard('kv-invest',    'Invest Balance',    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
+        <div class="col-6 col-md-4">${finCard('kv-interest',  'Interest Balance',  'linear-gradient(135deg,#16A34A,#059669)')}</div>
+        <div class="col-12 col-md-4">${finCard('kv-disbursed', 'Total Disbursed',   '#2563EB')}</div>
+      </div>
+
+      <!-- Operational mini-cards -->
+      <div class="row g-2 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-loans',     'Active Loans',     'bi-file-earmark-text',     '#EFF6FF', '#2563EB')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-overdue',   'Overdue',          'bi-exclamation-triangle',  '#FEF2F2', '#DC2626', 'mv-overdue-amt')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-today',     'Collected Today',  'bi-cash-coin',             '#ECFEFF', '#0891B2')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-month',     'This Month',       'bi-calendar-month',        '#EEF2FF', '#4F46E5')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-expenses',  'Expenses',         'bi-receipt',               '#FFFBEB', '#D97706')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-customers', 'Customers',        'bi-people',                '#FDF2F8', '#DB2777')}</div>
+      </div>
+
+      <!-- Charts + Recent Transactions -->
+      <div class="row g-3">
+        <div class="col-md-6 col-lg-4">
           <div class="card h-100">
-            <div class="card-header-flex"><h6 class="card-title">Loan Status Breakdown</h6></div>
-            <div style="position:relative;height:220px;padding:12px 16px;">
+            <div class="card-header-flex"><h6 class="card-title">Loan Status</h6></div>
+            <div style="position:relative;height:190px;padding:8px 16px;">
               <canvas id="loan-chart"></canvas>
             </div>
           </div>
         </div>
-        <div class="col-md-6">
+        <div class="col-md-6 col-lg-4">
           <div class="card h-100">
-            <div class="card-header-flex"><h6 class="card-title">Customer Loan Status</h6></div>
-            <div style="position:relative;height:220px;padding:12px 16px;">
+            <div class="card-header-flex"><h6 class="card-title">Customer Status</h6></div>
+            <div style="position:relative;height:190px;padding:8px 16px;">
               <canvas id="customer-chart"></canvas>
             </div>
           </div>
         </div>
-      </div>
-      <div class="row g-4 mt-2">
-        <div class="col-12">
-          <div class="card">
-            <div class="card-header-flex">
-              <h6 class="card-title">Recent Transactions</h6>
-            </div>
+        <div class="col-lg-4">
+          <div class="card h-100">
+            <div class="card-header-flex"><h6 class="card-title">Recent Transactions</h6></div>
             <div class="table-container">
-              <table class="table">
-                <thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>Mode</th><th>Collected By</th></tr></thead>
+              <table class="table table-sm" style="font-size:13px;">
+                <thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>By</th></tr></thead>
                 <tbody id="txn-tbody"></tbody>
               </table>
             </div>
           </div>
         </div>
       </div>`;
+
     try {
       showLoading();
       const res = await api.get('/api/dashboard/summary');
       const s = res.data || {};
-      document.getElementById('kpi-row').innerHTML = `
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-file-earmark-text"></i></div><div class="stat-body"><div class="stat-value">${s.total_active_loans || 0}</div><div class="stat-label">Active Loans</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-bank2"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.total_disbursed || 0)}</div><div class="stat-label">Total Disbursed</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon cyan"><i class="bi bi-cash-coin"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.collected_today || 0)}</div><div class="stat-label">Collected Today</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon indigo"><i class="bi bi-calendar-month"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.collected_this_month || 0)}</div><div class="stat-label">Collected This Month</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="stat-body"><div class="stat-value">${s.overdue_count || 0}</div><div class="stat-label">Overdue Loans</div><div class="stat-sub">${formatCurrency(s.overdue_amount || 0)}</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon purple"><i class="bi bi-wallet2"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.wallet_invest_balance || 0)}</div><div class="stat-label">Invest Balance</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-cash-coin"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.wallet_interest_balance || 0)}</div><div class="stat-label">Interest Balance</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon amber"><i class="bi bi-receipt"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.expenses_this_month || 0)}</div><div class="stat-label">Expenses This Month</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon pink"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">${s.active_customers || 0}</div><div class="stat-label">Total Customers</div></div></div></div>`;
+
+      document.getElementById('kv-invest').textContent    = formatCurrency(s.wallet_invest_balance   || 0);
+      document.getElementById('kv-interest').textContent  = formatCurrency(s.wallet_interest_balance || 0);
+      document.getElementById('kv-disbursed').textContent = formatCurrency(s.total_disbursed         || 0);
+      document.getElementById('mv-loans').textContent     = s.total_active_loans || 0;
+      document.getElementById('mv-overdue').textContent   = s.overdue_count || 0;
+      const ovdAmt = document.getElementById('mv-overdue-amt');
+      if (ovdAmt) ovdAmt.textContent = formatCurrency(s.overdue_amount || 0);
+      document.getElementById('mv-today').textContent     = formatCurrency(s.collected_today      || 0);
+      document.getElementById('mv-month').textContent     = formatCurrency(s.collected_this_month || 0);
+      document.getElementById('mv-expenses').textContent  = formatCurrency(s.expenses_this_month  || 0);
+      document.getElementById('mv-customers').textContent = s.active_customers || 0;
 
       // Shared chart options builder
       function makeDoughnutOpts(labels, colors, data) {
@@ -141,13 +182,13 @@
             legend: {
               position: 'right',
               labels: {
-                font: { size: 12, family: 'Inter' },
-                padding: 18,
+                font: { size: 11, family: 'Inter' },
+                padding: 12,
                 usePointStyle: true,
                 pointStyle: 'circle',
                 generateLabels: () =>
                   labels.map((lbl, i) => ({
-                    text: `${lbl}   ${data[i]}`,
+                    text: `${lbl}  ${data[i]}`,
                     fillStyle: colors[i],
                     strokeStyle: colors[i],
                     pointStyle: 'circle',
@@ -156,7 +197,7 @@
               },
             },
           },
-          cutout: '70%',
+          cutout: '72%',
         };
       }
 
@@ -210,9 +251,14 @@
       const txns = s.recent_transactions || [];
       const tbody = document.getElementById('txn-tbody');
       if (!txns.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="table-empty"><i class="bi bi-inbox"></i>No recent transactions</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="table-empty"><i class="bi bi-inbox"></i>No recent transactions</td></tr>';
       } else {
-        tbody.innerHTML = txns.map(t => `<tr><td>${formatDate(t.transaction_date || t.created_at)}</td><td>${t.customer_name || '-'}</td><td>${formatCurrency(t.amount)}</td><td><span class="badge bg-light text-dark">${t.payment_mode || '-'}</span></td><td>${t.collected_by || '-'}</td></tr>`).join('');
+        tbody.innerHTML = txns.map(t => `<tr>
+          <td style="white-space:nowrap;">${formatDate(t.transaction_date || t.created_at)}</td>
+          <td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.customer_name || '-'}</td>
+          <td style="font-weight:600;white-space:nowrap;">${formatCurrency(t.amount)}</td>
+          <td style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${t.collected_by || '-'}</td>
+        </tr>`).join('');
       }
     } catch (err) {
       document.getElementById('page-content').innerHTML += `<div class="alert alert-danger mt-3">${err.message}</div>`;
