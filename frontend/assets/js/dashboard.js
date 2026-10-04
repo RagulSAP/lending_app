@@ -162,10 +162,10 @@
     document.getElementById('page-content').innerHTML = `
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">${finCard('kv-invest',    t('dash.invest_balance'),    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
-        <div class="col-6 col-md-3">${finCard('kv-interest',  t('dash.interest_balance'),  'linear-gradient(135deg,#16A34A,#059669)')}</div>
         <div class="col-6 col-md-3">${finCard('kv-disbursed', t('dash.total_disbursed'),   '#2563EB')}</div>
         <div class="col-6 col-md-3">${finCard('kv-today',     t('dash.collected_today'),   '#0891B2')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-interest',  t('dash.interest_balance'),  'linear-gradient(135deg,#16A34A,#059669)')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-invest',    t('dash.invest_balance'),    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
       </div>
 
       <!-- Operational mini-cards -->
