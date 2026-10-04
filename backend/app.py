@@ -82,7 +82,7 @@ def create_app():
     # ── Health check ─────────────────────────────────────────────────────────
     @app.route("/api/health")
     def health():
-        return {"success": True, "message": "LendTrack API is running"}
+        return {"success": True, "message": "Thiruvelan Capitals API is running"}
 
     return app
 

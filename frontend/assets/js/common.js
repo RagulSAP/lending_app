@@ -1,7 +1,7 @@
 // Apply saved theme immediately to avoid flash
-try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.setAttribute('data-theme', t); } catch {}
+try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttribute('data-theme', t); } catch {}
 
-// LendTrack Common Utilities — IIFE, exposes window globals
+// Thiruvelan Capitals Common Utilities — IIFE, exposes window globals
 (function () {
   'use strict';
 
@@ -47,7 +47,7 @@ try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.se
     el.innerHTML = `
       <a class="sidebar-brand" href="#">
         <div class="brand-icon"><i class="bi bi-currency-rupee"></i></div>
-        <div class="brand-name">Lend<span>Track</span></div>
+        <div class="brand-name">Thiruvelan<span> Capitals</span></div>
       </a>
       <nav class="sidebar-nav">
         <ul class="nav flex-column" style="list-style:none;padding:0;margin:0;">${navHTML}</ul>
@@ -66,7 +66,7 @@ try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.se
       </div>`;
 
     // Apply saved theme
-    const savedTheme = (() => { try { return localStorage.getItem('lendtrack-theme'); } catch { return null; } })();
+    const savedTheme = (() => { try { return localStorage.getItem('tc-theme'); } catch { return null; } })();
     if (savedTheme === 'dark') _applyTheme('dark');
 
     document.getElementById('theme-chk').addEventListener('change', function () {
@@ -85,7 +85,7 @@ try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.se
   function _applyTheme(theme) {
     const isDark = theme === 'dark';
     document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    try { localStorage.setItem('lendtrack-theme', theme); } catch {}
+    try { localStorage.setItem('tc-theme', theme); } catch {}
     const chk = document.getElementById('theme-chk');
     const icon = document.getElementById('theme-icon');
     const lbl  = document.getElementById('theme-label');

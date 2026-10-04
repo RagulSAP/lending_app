@@ -880,7 +880,7 @@ input, textarea, select, button {
   --shadow:         0 4px 6px -1px rgba(0,0,0,.6);
 }
 
-[data-theme="dark"] body { background-color: var(--page-bg); color: var(--text-primary); }
+body[data-theme="dark"] { background-color: var(--page-bg); color: var(--text-primary); }
 
 /* Topbar */
 [data-theme="dark"] #topbar { background-color: #161B22; border-bottom-color: #30363D; }
