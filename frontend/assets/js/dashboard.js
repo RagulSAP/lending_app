@@ -96,6 +96,7 @@
         </div>
       </div>`;
 
+    document.getElementById('page-content').style.cssText = 'display:flex;flex-direction:column;height:calc(100vh - var(--topbar-height) - 48px);';
     document.getElementById('page-content').innerHTML = `
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
@@ -115,17 +116,17 @@
       </div>
 
       <!-- Charts -->
-      <div class="row g-3">
-        <div class="col-md-4">
-          <div class="card h-100">
+      <div class="row g-3" style="flex:1;min-height:0;">
+        <div class="col-md-4" style="display:flex;flex-direction:column;">
+          <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
             <div class="card-header-flex"><h6 class="card-title">Customer Status</h6></div>
-            <div style="position:relative;height:220px;padding:8px 16px;">
+            <div style="position:relative;flex:1;min-height:0;padding:8px 16px;">
               <canvas id="customer-chart"></canvas>
             </div>
           </div>
         </div>
-        <div class="col-md-8">
-          <div class="card h-100">
+        <div class="col-md-8" style="display:flex;flex-direction:column;">
+          <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
             <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
               <h6 class="card-title" style="margin:0;">Collection &amp; Disbursement Trend</h6>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
@@ -136,7 +137,7 @@
                 </button>
               </div>
             </div>
-            <div style="position:relative;height:190px;padding:8px 16px;">
+            <div style="position:relative;flex:1;min-height:0;padding:8px 16px;">
               <canvas id="trend-chart"></canvas>
             </div>
           </div>

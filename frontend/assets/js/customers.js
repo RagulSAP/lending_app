@@ -108,14 +108,6 @@
     const canOnboard = [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF].includes(currentUser.role_id);
     const canEdit = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
-        <div class="d-flex gap-2 flex-wrap">
-          <button type="button" class="btn btn-outline-success" id="export-btn">
-            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
-          </button>
-          ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Onboard Customer</a>' : ''}
-        </div>
-      </div>
       <div class="filter-bar">
         <div class="form-group">
           <label class="form-label">Search</label>
@@ -140,7 +132,13 @@
       <div class="card">
         <div class="card-header-flex">
           <h6 class="card-title">Customers List</h6>
-          <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
+          <div class="d-flex align-items-center gap-2">
+            <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
+            <button type="button" class="btn btn-sm btn-outline-success" id="export-btn">
+              <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+            </button>
+            ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>Onboard Customer</a>' : ''}
+          </div>
         </div>
         <div class="table-container">
           <table class="table">

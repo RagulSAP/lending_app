@@ -38,6 +38,11 @@
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link" href="#" data-tab="collection" onclick="switchTab('collection');return false;">
+            <i class="bi bi-cash-coin me-1"></i>Collection
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link" href="#" data-tab="loans" onclick="switchTab('loans');return false;">
             <i class="bi bi-file-earmark-text me-1"></i>Loans
           </a>
@@ -124,6 +129,61 @@
             </table>
           </div>
           <div class="d-flex justify-content-center mt-3 mb-2" id="txn-pag"></div>
+        </div>
+      </div>
+
+      <!-- Collection Tab -->
+      <div id="tab-collection" class="d-none">
+        <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
+          <div class="form-group">
+            <label class="form-label">Date From <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="col-from" value="${today}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date To <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="col-to" value="${today}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Payment Mode</label>
+            <select class="form-select" id="col-mode">
+              <option value="">All Modes</option>
+              <option value="CASH">Cash</option>
+              <option value="UPI">UPI</option>
+              <option value="BANK_TRANSFER">Bank Transfer</option>
+              <option value="CHEQUE">Cheque</option>
+            </select>
+          </div>
+          <div class="form-group d-flex align-items-end gap-2 flex-wrap">
+            <button class="btn btn-primary" onclick="searchReport('collection')">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel','collection')">
+              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-outline-danger" onclick="exportReport('pdf','collection')">
+              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header-flex">
+            <h6 class="card-title">Collection Records</h6>
+            <div class="d-flex gap-2 align-items-center">
+              <span id="col-total" class="fw-600 text-success" style="font-size:13px;"></span>
+              <span id="col-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr><th>#</th><th>Date</th><th>Customer</th><th>Loan #</th><th>Amount</th><th>Mode</th><th>Collected By</th></tr>
+              </thead>
+              <tbody id="col-tbody">
+                <tr><td colspan="7" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-center mt-3 mb-2" id="col-pag"></div>
         </div>
       </div>
 
@@ -368,7 +428,7 @@
   window.switchTab = function (tab) {
     activeTab = tab;
     currentPage = 1;
-    ['transactions', 'loans', 'expenses', 'topup', 'wallet-transfer', 'withdrawal'].forEach(t => {
+    ['transactions', 'collection', 'loans', 'expenses', 'topup', 'wallet-transfer', 'withdrawal'].forEach(t => {
       const el = document.getElementById('tab-' + t);
       const link = document.querySelector('[data-tab="' + t + '"]');
       if (el) el.classList.toggle('d-none', t !== tab);
@@ -394,6 +454,12 @@
         params.payment_mode = document.getElementById('txn-mode').value;
         params.transaction_type = document.getElementById('txn-type').value;
         tbodyId = 'txn-tbody'; colCount = 8; pagId = 'txn-pag'; countId = 'txn-count';
+      } else if (tab === 'collection') {
+        params.date_from = document.getElementById('col-from').value;
+        params.date_to   = document.getElementById('col-to').value;
+        params.payment_mode = document.getElementById('col-mode').value;
+        params.transaction_type = 'LOAN_COLLECTION';
+        tbodyId = 'col-tbody'; colCount = 7; pagId = 'col-pag'; countId = 'col-count';
       } else if (tab === 'loans') {
         params.date_from = document.getElementById('loan-from').value;
         params.date_to = document.getElementById('loan-to').value;
@@ -446,6 +512,19 @@
           <td class="fw-600">${formatCurrency(r.amount)}</td>
           <td><span class="badge bg-light text-dark">${r.payment_mode || '-'}</span></td>
           <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${r.transaction_type || '-'}</span></td>
+        </tr>`).join('');
+      } else if (tab === 'collection') {
+        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totEl = document.getElementById('col-total');
+        if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
+        tbody.innerHTML = rows.map((r, i) => `<tr>
+          <td>${offset + i + 1}</td>
+          <td>${formatDate(r.transaction_date || r.created_at)}</td>
+          <td>${r.customer_name || '-'}</td>
+          <td style="font-size:12px;color:#64748B;">${r.loan_id ? r.loan_id.slice(0, 8) + '…' : '-'}</td>
+          <td class="fw-600 text-success">${formatCurrency(r.amount)}</td>
+          <td><span class="badge bg-light text-dark">${r.payment_mode || '-'}</span></td>
+          <td style="font-size:12px;color:#64748B;">${r.collected_by || '-'}</td>
         </tr>`).join('');
       } else if (tab === 'loans') {
         tbody.innerHTML = rows.map((r, i) => `<tr>
@@ -522,6 +601,12 @@
         params.date_to = document.getElementById('txn-to').value;
         params.payment_mode = document.getElementById('txn-mode').value;
         params.transaction_type = document.getElementById('txn-type').value;
+      } else if (report === 'collection') {
+        params.report = 'transactions';
+        params.date_from = document.getElementById('col-from').value;
+        params.date_to   = document.getElementById('col-to').value;
+        params.payment_mode = document.getElementById('col-mode').value;
+        params.transaction_type = 'LOAN_COLLECTION';
       } else if (report === 'loans') {
         params.date_from = document.getElementById('loan-from').value;
         params.date_to = document.getElementById('loan-to').value;
