@@ -395,27 +395,40 @@
       const headers = [
         '#', 'Name', 'Phone', 'City', 'State', 'Pincode',
         'Aadhaar', 'PAN', 'ID Proof Type', 'Status',
-        'Assigned To', 'Created At'
+        'Assigned To', 'Created At',
+        'Disbursed (₹)', 'Outstanding (₹)', 'Instalment (Paid/Total)',
+        'Next Due Date', 'Next Due Amount (₹)',
       ];
-      const rows = all.map((c, i) => [
-        i + 1,
-        c.name || '',
-        c.phone || '',
-        c.city || '',
-        c.state || '',
-        c.pincode || '',
-        c.aadhaar || '',
-        c.pan || '',
-        c.id_proof_type || '',
-        c.status || '',
-        c.assigned_user_name || c.assigned_to || '',
-        c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '',
-      ]);
+      const rows = all.map((c, i) => {
+        const instalment = c.num_installments != null
+          ? `${c.paid_installments || 0}/${c.num_installments}`
+          : '';
+        return [
+          i + 1,
+          c.name || '',
+          c.phone || '',
+          c.city || '',
+          c.state || '',
+          c.pincode || '',
+          c.aadhaar || '',
+          c.pan || '',
+          c.id_proof_type || '',
+          c.status || '',
+          c.assigned_user_name || c.assigned_to || '',
+          c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '',
+          c.disbursement_amount != null ? c.disbursement_amount : '',
+          c.outstanding_amount  != null ? c.outstanding_amount  : '',
+          instalment,
+          c.next_due_date   || '',
+          c.next_due_amount != null ? c.next_due_amount : '',
+        ];
+      });
 
       const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
       ws['!cols'] = [
         { wch: 4 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
         { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 16 },
+        { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Customers');
