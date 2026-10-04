@@ -15,10 +15,13 @@ from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory
 # ---------------------------------------------------------------------------
 
 REPORT_HEADERS = {
-    "transactions": ["Date", "Customer", "Amount", "Mode", "Type", "Collected By", "Remarks"],
-    "loans": ["Loan ID", "Customer", "Disbursed", "Rate %", "Interest Type",
-              "Installment Type", "Total Payable", "Total Paid", "Balance", "Status"],
-    "expenses": ["Date", "Category", "Amount", "Entered By", "Remark"],
+    "transactions":    ["Date", "Customer", "Amount", "Mode", "Type", "Collected By", "Remarks"],
+    "loans":           ["Loan ID", "Customer", "Disbursed", "Rate %", "Interest Type",
+                        "Installment Type", "Total Payable", "Total Paid", "Balance", "Status"],
+    "expenses":        ["Date", "Category", "Amount", "Entered By", "Remark"],
+    "topup":           ["Date", "Amount", "Done By", "Remarks"],
+    "wallet-transfer": ["Date", "Amount", "Done By", "Remarks"],
+    "withdrawal":      ["Date", "Amount", "Done By", "Remarks"],
 }
 
 
@@ -59,10 +62,22 @@ def _expense_row(r):
     ]
 
 
+def _wallet_activity_row(r):
+    return [
+        r.get("transaction_date", ""),
+        r.get("amount", ""),
+        r.get("collected_by", ""),
+        r.get("remarks", ""),
+    ]
+
+
 _ROW_BUILDERS = {
-    "transactions": _txn_row,
-    "loans": _loan_row,
-    "expenses": _expense_row,
+    "transactions":    _txn_row,
+    "loans":           _loan_row,
+    "expenses":        _expense_row,
+    "topup":           _wallet_activity_row,
+    "wallet-transfer": _wallet_activity_row,
+    "withdrawal":      _wallet_activity_row,
 }
 
 
@@ -186,6 +201,50 @@ def get_loans_report(
             "balance_amount": float(loan.balance_amount) if loan.balance_amount else 0.0,
             "status": loan.status,
             "disbursement_date": loan.disbursement_date.isoformat() if loan.disbursement_date else None,
+        })
+    return records, total
+
+
+def get_wallet_activity_report(
+    db,
+    org_id: str,
+    txn_type: str,
+    date_from,
+    date_to,
+    page: int = 1,
+    per_page: int = 50,
+):
+    """Returns (records_list, total_count) for wallet-only transactions of a specific type."""
+    DoerUser = aliased(User)
+    q = (
+        db.query(Transaction, DoerUser.name.label("doer_name"))
+        .join(DoerUser, DoerUser.user_id == Transaction.user_id, isouter=True)
+        .filter(
+            Transaction.org_id == org_id,
+            Transaction.transaction_type == txn_type,
+        )
+    )
+    if date_from:
+        q = q.filter(Transaction.transaction_date >= date_from)
+    if date_to:
+        q = q.filter(Transaction.transaction_date <= date_to)
+
+    total = q.count()
+    rows = (
+        q.order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    records = []
+    for txn, doer_name in rows:
+        records.append({
+            "transaction_id":   txn.transaction_id,
+            "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
+            "amount":           float(txn.amount) if txn.amount is not None else 0.0,
+            "collected_by":     doer_name,
+            "remarks":          txn.remarks,
         })
     return records, total
 

@@ -32,7 +32,7 @@ def get_wallet():
             return success_response(data={
                 "wallet": {"wallet_id": None, "invest_balance": 0, "interest_balance": 0, "org_id": current["org_id"]},
                 "transactions": [],
-                "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0},
+                "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0, "total_withdrawn": 0},
             })
 
         txns = (
@@ -67,14 +67,16 @@ def get_wallet():
         total_topup    = sum(float(t.amount) for t in txns if t.transaction_type == "WALLET_DEPOSIT")
         total_disburse = sum(float(t.amount) for t in txns if t.transaction_type == "LOAN_DISBURSEMENT")
         total_collect  = sum(float(t.amount) for t in txns if t.transaction_type == "LOAN_COLLECTION")
+        total_withdraw = sum(float(t.amount) for t in txns if t.transaction_type == "WALLET_WITHDRAWAL")
 
         return success_response(data={
             "wallet": model_to_dict(wallet),
             "transactions": txn_rows,
             "stats": {
-                "total_topup":    round(total_topup, 2),
+                "total_topup":     round(total_topup, 2),
                 "total_disbursed": round(total_disburse, 2),
                 "total_collected": round(total_collect, 2),
+                "total_withdrawn": round(total_withdraw, 2),
             },
         })
     finally:

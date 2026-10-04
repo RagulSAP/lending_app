@@ -36,7 +36,7 @@
       </div>
 
       <!-- Tab Navigation -->
-      <ul class="nav nav-tabs" id="report-tabs" style="margin-bottom:0;border-bottom:none;">
+      <ul class="nav nav-tabs flex-wrap" id="report-tabs" style="margin-bottom:0;border-bottom:none;">
         <li class="nav-item">
           <a class="nav-link active" href="#" data-tab="transactions" onclick="switchTab('transactions');return false;">
             <i class="bi bi-arrow-left-right me-1"></i>Transactions
@@ -50,6 +50,21 @@
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="expenses" onclick="switchTab('expenses');return false;">
             <i class="bi bi-receipt me-1"></i>Expenses
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-tab="topup" onclick="switchTab('topup');return false;">
+            <i class="bi bi-arrow-down-circle me-1"></i>Top Up
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-tab="wallet-transfer" onclick="switchTab('wallet-transfer');return false;">
+            <i class="bi bi-arrow-left-right me-1"></i>Transfer
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="#" data-tab="withdrawal" onclick="switchTab('withdrawal');return false;">
+            <i class="bi bi-box-arrow-up me-1"></i>Withdrawal
           </a>
         </li>
       </ul>
@@ -223,13 +238,142 @@
           </div>
           <div class="d-flex justify-content-center mt-3 mb-2" id="exp-pag"></div>
         </div>
+      </div>
+
+      <!-- Top Up Tab -->
+      <div id="tab-topup" class="d-none">
+        <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
+          <div class="form-group">
+            <label class="form-label">Date From</label>
+            <input type="date" class="form-control" id="tu-rep-from" value="${today}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date To</label>
+            <input type="date" class="form-control" id="tu-rep-to" value="${today}">
+          </div>
+          <div class="form-group d-flex align-items-end gap-2 flex-wrap">
+            <button class="btn btn-primary" onclick="searchReport('topup')">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel','topup')">
+              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-outline-danger" onclick="exportReport('pdf','topup')">
+              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header-flex">
+            <h6 class="card-title">Top Up Records</h6>
+            <div class="d-flex gap-2 align-items-center">
+              <span id="tu-rep-total" class="fw-600 text-success" style="font-size:13px;"></span>
+              <span id="tu-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Done By</th><th>Remarks</th></tr></thead>
+              <tbody id="tu-rep-tbody">
+                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-center mt-3 mb-2" id="tu-rep-pag"></div>
+        </div>
+      </div>
+
+      <!-- Wallet Transfer Tab -->
+      <div id="tab-wallet-transfer" class="d-none">
+        <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
+          <div class="form-group">
+            <label class="form-label">Date From</label>
+            <input type="date" class="form-control" id="wt-rep-from" value="${today}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date To</label>
+            <input type="date" class="form-control" id="wt-rep-to" value="${today}">
+          </div>
+          <div class="form-group d-flex align-items-end gap-2 flex-wrap">
+            <button class="btn btn-primary" onclick="searchReport('wallet-transfer')">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel','wallet-transfer')">
+              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-outline-danger" onclick="exportReport('pdf','wallet-transfer')">
+              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header-flex">
+            <h6 class="card-title">Wallet Transfer Records</h6>
+            <div class="d-flex gap-2 align-items-center">
+              <span id="wt-rep-total" class="fw-600 text-success" style="font-size:13px;"></span>
+              <span id="wt-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Done By</th><th>Remarks</th></tr></thead>
+              <tbody id="wt-rep-tbody">
+                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-center mt-3 mb-2" id="wt-rep-pag"></div>
+        </div>
+      </div>
+
+      <!-- Withdrawal Tab -->
+      <div id="tab-withdrawal" class="d-none">
+        <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
+          <div class="form-group">
+            <label class="form-label">Date From</label>
+            <input type="date" class="form-control" id="wd-rep-from" value="${today}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Date To</label>
+            <input type="date" class="form-control" id="wd-rep-to" value="${today}">
+          </div>
+          <div class="form-group d-flex align-items-end gap-2 flex-wrap">
+            <button class="btn btn-primary" onclick="searchReport('withdrawal')">
+              <i class="bi bi-search me-1"></i>Search
+            </button>
+            <button class="btn btn-outline-success" onclick="exportReport('excel','withdrawal')">
+              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-outline-danger" onclick="exportReport('pdf','withdrawal')">
+              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header-flex">
+            <h6 class="card-title">Withdrawal Records</h6>
+            <div class="d-flex gap-2 align-items-center">
+              <span id="wd-rep-total" class="fw-600 text-warning" style="font-size:13px;"></span>
+              <span id="wd-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="table">
+              <thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Done By</th><th>Remarks</th></tr></thead>
+              <tbody id="wd-rep-tbody">
+                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="d-flex justify-content-center mt-3 mb-2" id="wd-rep-pag"></div>
+        </div>
       </div>`;
   }
 
   window.switchTab = function (tab) {
     activeTab = tab;
     currentPage = 1;
-    ['transactions', 'loans', 'expenses'].forEach(t => {
+    ['transactions', 'loans', 'expenses', 'topup', 'wallet-transfer', 'withdrawal'].forEach(t => {
       const el = document.getElementById('tab-' + t);
       const link = document.querySelector('[data-tab="' + t + '"]');
       if (el) el.classList.toggle('d-none', t !== tab);
@@ -261,11 +405,23 @@
         params.status = document.getElementById('loan-status').value;
         params.interest_type = document.getElementById('loan-int').value;
         tbodyId = 'loan-tbody'; colCount = 9; pagId = 'loan-pag'; countId = 'loan-count';
-      } else {
+      } else if (tab === 'expenses') {
         params.date_from = document.getElementById('rep-exp-from').value;
         params.date_to = document.getElementById('rep-exp-to').value;
         params.category_id = document.getElementById('rep-exp-cat').value;
         tbodyId = 'exp-rep-tbody'; colCount = 6; pagId = 'exp-pag'; countId = 'exp-count';
+      } else if (tab === 'topup') {
+        params.date_from = document.getElementById('tu-rep-from').value;
+        params.date_to   = document.getElementById('tu-rep-to').value;
+        tbodyId = 'tu-rep-tbody'; colCount = 5; pagId = 'tu-rep-pag'; countId = 'tu-rep-count';
+      } else if (tab === 'wallet-transfer') {
+        params.date_from = document.getElementById('wt-rep-from').value;
+        params.date_to   = document.getElementById('wt-rep-to').value;
+        tbodyId = 'wt-rep-tbody'; colCount = 5; pagId = 'wt-rep-pag'; countId = 'wt-rep-count';
+      } else {  // withdrawal
+        params.date_from = document.getElementById('wd-rep-from').value;
+        params.date_to   = document.getElementById('wd-rep-to').value;
+        tbodyId = 'wd-rep-tbody'; colCount = 5; pagId = 'wd-rep-pag'; countId = 'wd-rep-count';
       }
 
       const res = await api.get('/api/reports/' + tab, params);
@@ -308,7 +464,7 @@
           <td>${statusBadge(r.status)}</td>
           <td>${formatDate(r.disbursement_date || r.created_at)}</td>
         </tr>`).join('');
-      } else {
+      } else if (tab === 'expenses') {
         const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.expense_amount || 0), 0);
         const totEl = document.getElementById('exp-total');
         if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
@@ -319,6 +475,20 @@
           <td class="fw-600 text-danger">${formatCurrency(r.expense_amount)}</td>
           <td>${r.entered_by || r.user_name || '-'}</td>
           <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.expense_remark || r.remark || '-'}</td>
+        </tr>`).join('');
+      } else {
+        // topup / wallet-transfer / withdrawal — same columns
+        const totalIdMap = { topup: 'tu-rep-total', 'wallet-transfer': 'wt-rep-total', withdrawal: 'wd-rep-total' };
+        const totalAmt = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totEl = document.getElementById(totalIdMap[tab]);
+        const amtClass = tab === 'withdrawal' ? 'text-warning fw-600' : 'text-success fw-600';
+        if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
+        tbody.innerHTML = rows.map((r, i) => `<tr>
+          <td>${offset + i + 1}</td>
+          <td>${formatDate(r.transaction_date)}</td>
+          <td class="${amtClass}">${formatCurrency(r.amount)}</td>
+          <td>${r.collected_by || '-'}</td>
+          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks || '-'}</td>
         </tr>`).join('');
       }
 
@@ -362,10 +532,19 @@
         params.date_to = document.getElementById('loan-to').value;
         params.status = document.getElementById('loan-status').value;
         params.interest_type = document.getElementById('loan-int').value;
-      } else {
+      } else if (report === 'expenses') {
         params.date_from = document.getElementById('rep-exp-from').value;
         params.date_to = document.getElementById('rep-exp-to').value;
         params.category_id = document.getElementById('rep-exp-cat').value;
+      } else if (report === 'topup') {
+        params.date_from = document.getElementById('tu-rep-from').value;
+        params.date_to   = document.getElementById('tu-rep-to').value;
+      } else if (report === 'wallet-transfer') {
+        params.date_from = document.getElementById('wt-rep-from').value;
+        params.date_to   = document.getElementById('wt-rep-to').value;
+      } else if (report === 'withdrawal') {
+        params.date_from = document.getElementById('wd-rep-from').value;
+        params.date_to   = document.getElementById('wd-rep-to').value;
       }
       showToast('Preparing ' + type.toUpperCase() + ' export...', 'info');
       const ext = type === 'excel' ? 'xlsx' : 'pdf';

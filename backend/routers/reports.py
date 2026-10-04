@@ -16,6 +16,7 @@ from core_functions.report_service import (
     get_transactions_report,
     get_loans_report,
     get_expenses_report,
+    get_wallet_activity_report,
     export_to_excel,
     export_to_pdf,
 )
@@ -143,6 +144,45 @@ def expenses_report():
 
 
 # ---------------------------------------------------------------------------
+# GET /topup | /wallet-transfer | /withdrawal
+# ---------------------------------------------------------------------------
+
+def _wallet_activity_endpoint(txn_type):
+    current = get_current_user_info()
+    date_from = parse_date(request.args.get("date_from"))
+    date_to   = parse_date(request.args.get("date_to"))
+    page      = max(request.args.get("page",     1,  type=int), 1)
+    per_page  = min(request.args.get("per_page", 50, type=int), 500)
+    db = SessionLocal()
+    try:
+        records, total = get_wallet_activity_report(
+            db, org_id=current["org_id"], txn_type=txn_type,
+            date_from=date_from, date_to=date_to, page=page, per_page=per_page,
+        )
+        return success_response(data=records, total=total, page=page, per_page=per_page)
+    finally:
+        db.close()
+
+
+@reports_bp.route("/topup", methods=["GET"])
+@require_roles(*_ALLOWED_ROLES)
+def topup_report():
+    return _wallet_activity_endpoint("WALLET_DEPOSIT")
+
+
+@reports_bp.route("/wallet-transfer", methods=["GET"])
+@require_roles(*_ALLOWED_ROLES)
+def wallet_transfer_report():
+    return _wallet_activity_endpoint("WALLET_TRANSFER")
+
+
+@reports_bp.route("/withdrawal", methods=["GET"])
+@require_roles(*_ALLOWED_ROLES)
+def withdrawal_report():
+    return _wallet_activity_endpoint("WALLET_WITHDRAWAL")
+
+
+# ---------------------------------------------------------------------------
 # GET /export — file download
 # ---------------------------------------------------------------------------
 
@@ -160,10 +200,11 @@ def export_report():
     export_type = (request.args.get("type") or "").lower()
     report_name = (request.args.get("report") or "").lower()
 
+    _VALID_REPORTS = ("transactions", "loans", "expenses", "topup", "wallet-transfer", "withdrawal")
     if export_type not in ("excel", "pdf"):
         return error_response("type must be 'excel' or 'pdf'")
-    if report_name not in ("transactions", "loans", "expenses"):
-        return error_response("report must be 'transactions', 'loans', or 'expenses'")
+    if report_name not in _VALID_REPORTS:
+        return error_response(f"report must be one of: {', '.join(_VALID_REPORTS)}")
 
     # Parse common filters
     date_from = parse_date(request.args.get("date_from"))
@@ -203,13 +244,28 @@ def export_report():
                 page=page,
                 per_page=per_page,
             )
-        else:  # expenses
+        elif report_name == "expenses":
             records, _ = get_expenses_report(
                 db,
                 org_id=current["org_id"],
                 date_from=date_from,
                 date_to=date_to,
                 category_id=request.args.get("category_id") or None,
+                page=page,
+                per_page=per_page,
+            )
+        else:  # topup / wallet-transfer / withdrawal
+            _TYPE_MAP = {
+                "topup":           "WALLET_DEPOSIT",
+                "wallet-transfer": "WALLET_TRANSFER",
+                "withdrawal":      "WALLET_WITHDRAWAL",
+            }
+            records, _ = get_wallet_activity_report(
+                db,
+                org_id=current["org_id"],
+                txn_type=_TYPE_MAP[report_name],
+                date_from=date_from,
+                date_to=date_to,
                 page=page,
                 per_page=per_page,
             )

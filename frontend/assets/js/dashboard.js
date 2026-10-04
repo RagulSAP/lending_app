@@ -130,7 +130,7 @@
         <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon purple"><i class="bi bi-wallet2"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.wallet_invest_balance || 0)}</div><div class="stat-label">Invest Balance</div></div></div></div>
         <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-cash-coin"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.wallet_interest_balance || 0)}</div><div class="stat-label">Interest Balance</div></div></div></div>
         <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon amber"><i class="bi bi-receipt"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.expenses_this_month || 0)}</div><div class="stat-label">Expenses This Month</div></div></div></div>
-        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon pink"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">${s.active_customers || 0}</div><div class="stat-label">Active Customers</div></div></div></div>`;
+        <div class="col-6 col-xl-3"><div class="stat-card"><div class="stat-icon pink"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value">${s.active_customers || 0}</div><div class="stat-label">Total Customers</div></div></div></div>`;
 
       // Shared chart options builder
       function makeDoughnutOpts(labels, colors, data) {

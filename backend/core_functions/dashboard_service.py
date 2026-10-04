@@ -95,10 +95,10 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
-    # Active customers
+    # Total customers
     active_customers = (
         db.query(func.count(Customer.customer_id))
-        .filter(Customer.org_id == org_id, Customer.status == "ACTIVE")
+        .filter(Customer.org_id == org_id)
         .scalar() or 0
     )
 

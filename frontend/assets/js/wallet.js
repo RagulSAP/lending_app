@@ -41,6 +41,9 @@
       <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
         <div><h1>Wallet</h1><p>Manage wallet balance, top-ups and partners</p></div>
         <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn btn-outline-secondary" id="partners-btn">
+            <i class="bi bi-people me-1"></i>Partners
+          </button>
           <button type="button" class="btn btn-outline-warning" id="withdraw-btn">
             <i class="bi bi-box-arrow-up me-1"></i>Withdraw
           </button>
@@ -85,17 +88,12 @@
             <div id="stat-collect" style="font-size:18px;font-weight:700;color:#2563EB;">—</div>
           </div>
         </div>
-      </div>
-
-      <!-- Partners section -->
-      <div class="card mb-4">
-        <div class="card-header-flex">
-          <h6 class="card-title"><i class="bi bi-people me-2 text-primary"></i>Partners</h6>
-          <button type="button" class="btn btn-sm btn-outline-primary" id="add-partner-btn">
-            <i class="bi bi-plus me-1"></i>Add Partner
-          </button>
+        <div class="col-6 col-md-3">
+          <div class="card text-center">
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Withdrawn</div>
+            <div id="stat-withdraw" style="font-size:18px;font-weight:700;color:#D97706;">—</div>
+          </div>
         </div>
-        <div id="partners-list"></div>
       </div>
 
       <!-- Transaction history -->
@@ -161,7 +159,7 @@
     document.getElementById('topup-btn').addEventListener('click', openTopupModal);
     document.getElementById('transfer-btn').addEventListener('click', openTransferModal);
     document.getElementById('withdraw-btn').addEventListener('click', openWithdrawModal);
-    document.getElementById('add-partner-btn').addEventListener('click', openAddPartnerModal);
+    document.getElementById('partners-btn').addEventListener('click', openPartnersModal);
     injectModals();
 
     ['txn-type-filter', 'txn-from-date', 'txn-to-date', 'txn-sort-by'].forEach(id => {
@@ -259,16 +257,18 @@
     document.getElementById('stat-topup').textContent    = formatCurrency(s.total_topup || 0);
     document.getElementById('stat-disburse').textContent = formatCurrency(s.total_disbursed || 0);
     document.getElementById('stat-collect').textContent  = formatCurrency(s.total_collected || 0);
+    document.getElementById('stat-withdraw').textContent = formatCurrency(s.total_withdrawn || 0);
   }
 
   function renderPartners() {
-    const el = document.getElementById('partners-list');
+    const el = document.getElementById('partners-list-modal');
+    if (!el) return;
     if (!partners.length) {
-      el.innerHTML = '<div style="padding:16px;font-size:13px;color:#64748B;">No partners yet. Add one to use in top-ups.</div>';
+      el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:#64748B;text-align:center;"><i class="bi bi-people" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4;"></i>No partners yet. Click Add Partner to create one.</div>';
       return;
     }
-    el.innerHTML = `<div class="table-container"><table class="table table-sm">
-      <thead><tr><th>Name</th><th>Phone</th><th></th></tr></thead>
+    el.innerHTML = `<div class="table-container" style="border-radius:0;"><table class="table table-sm mb-0">
+      <thead><tr><th>Name</th><th>Phone</th><th style="width:48px;"></th></tr></thead>
       <tbody>${partners.map(p => `
         <tr>
           <td class="fw-600">${p.name}</td>
@@ -281,6 +281,11 @@
         </tr>`).join('')}
       </tbody>
     </table></div>`;
+  }
+
+  function openPartnersModal() {
+    renderPartners();
+    window._partnersModal.show();
   }
 
   const TYPE_CONFIG = {
@@ -545,6 +550,38 @@
       });
       document.querySelectorAll('input[name="wd-source"]').forEach(r => {
         r.addEventListener('change', updateWithdrawSourceHighlight);
+      });
+    }
+
+    if (!document.getElementById('partners-modal')) {
+      const el = document.createElement('div');
+      el.innerHTML = `
+        <div class="modal fade" id="partners-modal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title fw-600" style="font-size:16px;">
+                  <i class="bi bi-people me-2 text-primary"></i>Partners
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body" style="padding:0;">
+                <div id="partners-list-modal"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="add-partner-btn">
+                  <i class="bi bi-plus me-1"></i>Add Partner
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(el.firstElementChild);
+      window._partnersModal = new bootstrap.Modal(document.getElementById('partners-modal'));
+      document.getElementById('add-partner-btn').addEventListener('click', () => {
+        window._partnersModal.hide();
+        openAddPartnerModal();
       });
     }
 
