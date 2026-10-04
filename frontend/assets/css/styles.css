@@ -813,10 +813,10 @@ input, textarea, select, button {
 .text-muted-sm { font-size: 12px; color: var(--text-secondary); }
 .no-print { }
 
-/* FONT SIZE VARIANTS */
-body[data-font-size="small"]  { font-size: 12px; }
-body[data-font-size="medium"] { font-size: 14px; }
-body[data-font-size="large"]  { font-size: 16px; }
+/* FONT SIZE VARIANTS — zoom on html scales everything uniformly (px, rem, fixed elements) */
+html[data-font-size="small"]  { zoom: 0.875; }
+html[data-font-size="large"]  { zoom: 1.125; }
+/* medium = zoom:1 (default, no rule needed) */
 
 /* COMPACT MODE */
 body.compact .card { padding: 0; }

@@ -2,7 +2,7 @@
 try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttribute('data-theme', t); } catch {}
 try {
   const _s = JSON.parse(localStorage.getItem('tc-settings') || '{}');
-  if (_s.fontSize) document.body.setAttribute('data-font-size', _s.fontSize);
+  if (_s.fontSize) document.documentElement.setAttribute('data-font-size', _s.fontSize);
   if (_s.compact)  document.body.classList.add('compact');
 } catch {}
 
@@ -396,7 +396,7 @@ try {
 
   window.applySettings = function () {
     const s = window.getSettings();
-    document.body.setAttribute('data-font-size', s.fontSize || 'medium');
+    document.documentElement.setAttribute('data-font-size', s.fontSize || 'medium');
     document.body.classList.toggle('compact', !!s.compact);
   };
 
