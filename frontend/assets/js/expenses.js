@@ -12,7 +12,7 @@
   let editExpModal = null;
 
   async function init() {
-    await initPage('Expenses', [1, 2, 3, 5]);
+    await initPage(t('exp.title'), [1, 2, 3, 5]);
     currentUser = auth.getUser();
     await loadCategories();
     renderPage();
@@ -46,37 +46,37 @@
       <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
         <div class="d-flex gap-2 flex-wrap">
           <button class="btn btn-outline-success" id="export-btn">
-            <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+            <i class="bi bi-file-earmark-excel me-1"></i>${t('exp.export')}
           </button>
-          ${canManage ? '<button class="btn btn-outline-primary" id="add-cat-btn"><i class="bi bi-tags me-1"></i>Add Category</button>' : ''}
-          <button class="btn btn-primary" id="add-exp-btn"><i class="bi bi-plus-lg me-1"></i>Add Expense</button>
+          ${canManage ? `<button class="btn btn-outline-primary" id="add-cat-btn"><i class="bi bi-tags me-1"></i>${t('exp.add_cat')}</button>` : ''}
+          <button class="btn btn-primary" id="add-exp-btn"><i class="bi bi-plus-lg me-1"></i>${t('exp.add')}</button>
         </div>
       </div>
 
       <div class="filter-bar">
         <div class="form-group">
-          <label class="form-label">Category</label>
+          <label class="form-label">${t('exp.category')}</label>
           <select class="form-select" id="f-cat">
-            <option value="">All Categories</option>
+            <option value="">${t('exp.all_cats')}</option>
             ${categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Date From</label>
+          <label class="form-label">${t('common.date_from')}</label>
           <input type="date" class="form-control" id="f-from" value="${firstOfMonth}">
         </div>
         <div class="form-group">
-          <label class="form-label">Date To</label>
+          <label class="form-label">${t('common.date_to')}</label>
           <input type="date" class="form-control" id="f-to" value="${today}">
         </div>
         <div class="form-group d-flex align-items-end">
-          <button class="btn btn-primary" id="search-btn"><i class="bi bi-search me-1"></i>Search</button>
+          <button class="btn btn-primary" id="search-btn"><i class="bi bi-search me-1"></i>${t('common.search')}</button>
         </div>
       </div>
 
       <div class="card">
         <div class="card-header-flex">
-          <h6 class="card-title">Expense Records</h6>
+          <h6 class="card-title">${t('exp.title_list')}</h6>
           <div class="d-flex gap-3 align-items-center flex-wrap">
             <span id="total-badge" class="fw-600 text-danger" style="font-size:14px;"></span>
             <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -87,11 +87,11 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Amount</th>
-                <th>Entered By</th>
-                <th>Remark</th>
+                <th>${t('exp.col_date')}</th>
+                <th>${t('exp.col_category')}</th>
+                <th>${t('exp.col_amount')}</th>
+                <th>${t('exp.col_by')}</th>
+                <th>${t('exp.col_remark')}</th>
                 ${canManage ? '<th>Actions</th>' : ''}
               </tr>
             </thead>
@@ -107,38 +107,38 @@
           <div class="modal-content">
             <div class="modal-header">
               <h6 class="modal-title fw-600">
-                <i class="bi bi-receipt me-2 text-primary"></i>Add Expense
+                <i class="bi bi-receipt me-2 text-primary"></i>${t('exp.add_title')}
               </h6>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <div id="exp-err" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <div class="mb-3">
-                <label class="form-label">Category <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.category')} <span class="text-danger">*</span></label>
                 <select class="form-select" id="e-cat">${getCategoryOptions()}</select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Amount (&#8377;) <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.amount')} <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text">&#8377;</span>
                   <input type="number" class="form-control" id="e-amount" min="0.01" step="0.01" placeholder="0.00">
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Remark</label>
-                <input type="text" class="form-control" id="e-remark" placeholder="Optional description">
+                <label class="form-label">${t('exp.remark')}</label>
+                <input type="text" class="form-control" id="e-remark" placeholder="${t('common.optional')}">
               </div>
               <div class="mb-0">
-                <label class="form-label">Date <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.date')} <span class="text-danger">*</span></label>
                 <input type="date" class="form-control" id="e-date" value="${today}">
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="save-exp-btn">
-                <span id="save-exp-txt"><i class="bi bi-save me-1"></i>Save Expense</span>
+                <span id="save-exp-txt"><i class="bi bi-save me-1"></i>${t('exp.save')}</span>
                 <span id="save-exp-load" class="d-none">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+                  <span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}
                 </span>
               </button>
             </div>
@@ -153,38 +153,38 @@
           <div class="modal-content">
             <div class="modal-header">
               <h6 class="modal-title fw-600">
-                <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Expense
+                <i class="bi bi-pencil-square me-2 text-primary"></i>${t('exp.edit_title')}
               </h6>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <div id="edit-exp-err" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <div class="mb-3">
-                <label class="form-label">Category <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.category')} <span class="text-danger">*</span></label>
                 <select class="form-select" id="ee-cat"></select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Amount (&#8377;) <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.amount')} <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text">&#8377;</span>
                   <input type="number" class="form-control" id="ee-amount" min="0.01" step="0.01">
                 </div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Remark</label>
-                <input type="text" class="form-control" id="ee-remark" placeholder="Optional description">
+                <label class="form-label">${t('exp.remark')}</label>
+                <input type="text" class="form-control" id="ee-remark" placeholder="${t('common.optional')}">
               </div>
               <div class="mb-0">
-                <label class="form-label">Date <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.date')} <span class="text-danger">*</span></label>
                 <input type="date" class="form-control" id="ee-date">
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="update-exp-btn">
-                <span id="update-exp-txt"><i class="bi bi-check-lg me-1"></i>Save Changes</span>
+                <span id="update-exp-txt"><i class="bi bi-check-lg me-1"></i>${t('common.save')}</span>
                 <span id="update-exp-load" class="d-none">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+                  <span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}
                 </span>
               </button>
             </div>
@@ -199,25 +199,25 @@
           <div class="modal-content">
             <div class="modal-header">
               <h6 class="modal-title fw-600">
-                <i class="bi bi-tags me-2 text-primary"></i>Add Category
+                <i class="bi bi-tags me-2 text-primary"></i>${t('exp.cat_title')}
               </h6>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <div id="cat-err" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <div class="mb-3">
-                <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                <label class="form-label">${t('exp.cat_name')} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="cat-name" placeholder="e.g. Office Supplies">
               </div>
               <div class="mb-0">
-                <label class="form-label">Description</label>
-                <input type="text" class="form-control" id="cat-desc" placeholder="Optional description">
+                <label class="form-label">${t('exp.cat_desc')}</label>
+                <input type="text" class="form-control" id="cat-desc" placeholder="${t('common.optional')}">
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="save-cat-btn">
-                <i class="bi bi-plus-lg me-1"></i>Add Category
+                <i class="bi bi-plus-lg me-1"></i>${t('exp.add_cat')}
               </button>
             </div>
           </div>
@@ -271,14 +271,14 @@
       const countBadge = document.getElementById('count-badge');
       const totalBadge = document.getElementById('total-badge');
       if (countBadge) countBadge.textContent = total + ' record' + (total !== 1 ? 's' : '');
-      if (totalBadge) totalBadge.textContent = total > 0 ? 'Total: ' + formatCurrency(totalAmt) : '';
+      if (totalBadge) totalBadge.textContent = total > 0 ? t('common.total') + ': ' + formatCurrency(totalAmt) : '';
 
       const tbody = document.getElementById('exp-tbody');
       const offset = (currentPage - 1) * perPage;
       const colCount = canManage ? 7 : 6;
 
       if (!expenses.length) {
-        tbody.innerHTML = `<tr><td colspan="${colCount}" class="table-empty"><i class="bi bi-receipt"></i>No expenses found for selected filters</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="table-empty"><i class="bi bi-receipt"></i>${t('exp.no_expenses')}</td></tr>`;
       } else {
         tbody.innerHTML = expenses.map((e, i) => {
           const safeRemark = (e.expense_remark || e.remark || '').replace(/"/g, '&quot;');
@@ -295,10 +295,10 @@
               <div class="d-flex gap-1">
                 <button type="button" class="btn btn-sm btn-outline-primary"
                   onclick="openEditExpense('${e.expense_id}','${e.category_id}','${e.expense_amount}','${(e.expense_remark||'').replace(/'/g,"\\'")}','${(e.expense_date||'').slice(0,10)}')"
-                  title="Edit"><i class="bi bi-pencil"></i></button>
+                  title="${t('common.edit')}"><i class="bi bi-pencil"></i></button>
                 <button type="button" class="btn btn-sm btn-outline-danger"
                   onclick="deleteExpense('${e.expense_id}','${formatCurrency(e.expense_amount)}')"
-                  title="Delete"><i class="bi bi-trash"></i></button>
+                  title="${t('common.delete')}"><i class="bi bi-trash"></i></button>
               </div>
             </td>` : ''}
           </tr>`;
@@ -337,7 +337,7 @@
     try {
       await api.post('/api/expenses', { category_id, expense_amount, expense_remark, expense_date });
       addExpModal.hide();
-      showToast('Expense added successfully!', 'success');
+      showToast(t('exp.added'), 'success');
       await loadExpenses();
     } catch (err) {
       errEl.textContent = err.message;
@@ -385,7 +385,7 @@
     try {
       await api.patch(`/api/expenses/${editingExpenseId}`, { category_id, expense_amount, expense_remark, expense_date });
       editExpModal.hide();
-      showToast('Expense updated successfully!', 'success');
+      showToast(t('exp.updated'), 'success');
       await loadExpenses();
     } catch (err) {
       errEl.textContent = err.message;
@@ -400,11 +400,11 @@
   // Delete expense
   // ---------------------------------------------------------------------------
   window.deleteExpense = async function (expenseId, amountStr) {
-    const ok = await confirmDialog(`Delete this expense of ${amountStr}? The wallet balance will be restored.`);
+    const ok = await confirmDialog(t('exp.del_confirm', {amount: amountStr}));
     if (!ok) return;
     try {
       await api.delete(`/api/expenses/${expenseId}`);
-      showToast('Expense deleted and wallet balance restored.', 'success');
+      showToast(t('exp.deleted'), 'success');
       await loadExpenses();
     } catch (err) {
       showToast('Failed to delete: ' + err.message, 'danger');
@@ -427,13 +427,13 @@
     try {
       await api.post('/api/expenses/categories', { name, description });
       bootstrap.Modal.getInstance(document.getElementById('addCatModal')).hide();
-      showToast('Category "' + name + '" added!', 'success');
+      showToast(t('exp.cat_added', {name: name}), 'success');
       document.getElementById('cat-name').value = '';
       document.getElementById('cat-desc').value = '';
       await loadCategories();
       document.getElementById('e-cat').innerHTML = getCategoryOptions();
       const fCat = document.getElementById('f-cat');
-      fCat.innerHTML = '<option value="">All Categories</option>' +
+      fCat.innerHTML = `<option value="">${t('exp.all_cats')}</option>` +
         categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
     } catch (err) {
       errEl.textContent = err.message;
@@ -453,7 +453,7 @@
     }
     const btn = document.getElementById('export-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Exporting...';
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${t('common.exporting')}`;
 
     try {
       const category_id = document.getElementById('f-cat').value;
@@ -471,7 +471,7 @@
         page++;
       }
 
-      const headers = ['#', 'Date', 'Category', 'Amount (₹)', 'Entered By', 'Remark'];
+      const headers = ['#', t('exp.col_date'), t('exp.col_category'), t('exp.amount'), t('exp.col_by'), t('exp.col_remark')];
       const rows = all.map((e, i) => [
         i + 1,
         (e.expense_date || e.created_at || '').slice(0, 10),
@@ -492,7 +492,7 @@
       showToast('Export failed: ' + err.message, 'danger');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-file-earmark-excel me-1"></i>Export Excel';
+      btn.innerHTML = `<i class="bi bi-file-earmark-excel me-1"></i>${t('exp.export')}`;
     }
   }
 

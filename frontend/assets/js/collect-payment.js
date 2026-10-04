@@ -9,7 +9,7 @@
   let paymentModal = null;
 
   async function init() {
-    await initPage('Collect Payment', [1, 2, 3, 4]);
+    await initPage(t('pay.collect'), [1, 2, 3, 4]);
     renderPage();
     injectPaymentModal();
 
@@ -26,11 +26,11 @@
       <!-- Step 1: Find Customer -->
       <div class="card mb-4" id="step1-card">
         <div class="card-header-flex">
-          <h6 class="card-title"><span class="badge bg-primary me-2">1</span>Find Customer</h6>
+          <h6 class="card-title"><span class="badge bg-primary me-2">1</span>${t('pay.find_customer')}</h6>
         </div>
         <div class="row g-2 align-items-end">
           <div class="col-md-5">
-            <label class="form-label">Phone Number</label>
+            <label class="form-label">${t('pay.phone')}</label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-phone"></i></span>
               <input type="tel" class="form-control" id="cust-phone" placeholder="10-digit phone" maxlength="10">
@@ -38,7 +38,7 @@
           </div>
           <div class="col-auto">
             <button type="button" class="btn btn-primary" id="search-cust-btn">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('pay.search')}
             </button>
           </div>
         </div>
@@ -48,13 +48,13 @@
       <!-- Step 2: Select Loan -->
       <div class="card d-none" id="step2-card">
         <div class="card-header-flex">
-          <h6 class="card-title"><span class="badge bg-primary me-2">2</span>Select Loan</h6>
+          <h6 class="card-title"><span class="badge bg-primary me-2">2</span>${t('pay.select_loan')}</h6>
           <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-outline-primary d-none" id="add-loan-btn">
-              <i class="bi bi-plus-circle me-1"></i>Add Loan
+              <i class="bi bi-plus-circle me-1"></i>${t('pay.add_loan')}
             </button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="change-cust-btn">
-              <i class="bi bi-arrow-left me-1"></i>Change Customer
+              <i class="bi bi-arrow-left me-1"></i>${t('pay.change_customer')}
             </button>
           </div>
         </div>
@@ -85,7 +85,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <div>
-                <h5 class="modal-title fw-600" style="font-size:16px;" id="pm-title">Collect Payment</h5>
+                <h5 class="modal-title fw-600" style="font-size:16px;" id="pm-title">${t('pay.collect')}</h5>
                 <div id="pm-subtitle" style="font-size:12px;color:var(--text-secondary);margin-top:2px;"></div>
               </div>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -103,7 +103,7 @@
                   <thead>
                     <tr>
                       <th>#</th><th>Due Date</th><th>Total</th>
-                      <th>Paid</th><th>Balance</th><th>Status</th><th></th>
+                      <th>Paid</th><th>${t('pay.balance')}</th><th>${t('common.status')}</th><th></th>
                     </tr>
                   </thead>
                   <tbody id="pm-inst-tbody"></tbody>
@@ -117,34 +117,34 @@
                 <div id="pm-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">Amount (&#8377;) <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('pay.amount')} <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <span class="input-group-text">&#8377;</span>
                       <input type="number" class="form-control" id="pm-amount" min="0.01" step="0.01">
                     </div>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Payment Mode <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('pay.payment_mode')} <span class="text-danger">*</span></label>
                     <select class="form-select" id="pm-mode">
-                      <option value="CASH">Cash</option>
-                      <option value="UPI">UPI</option>
-                      <option value="BANK_TRANSFER">Bank Transfer</option>
-                      <option value="CHEQUE">Cheque</option>
+                      <option value="CASH">${t('pay.cash')}</option>
+                      <option value="UPI">${t('pay.upi')}</option>
+                      <option value="BANK_TRANSFER">${t('pay.bank')}</option>
+                      <option value="CHEQUE">${t('pay.cheque')}</option>
                     </select>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Transaction Date <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('pay.transaction_date')} <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="pm-date" value="${today}">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Remarks</label>
+                    <label class="form-label">${t('pay.remarks')}</label>
                     <input type="text" class="form-control" id="pm-remarks" placeholder="Optional">
                   </div>
                 </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-success d-none" id="pm-submit-btn">
                 <span id="pm-submit-txt"><i class="bi bi-check-circle me-2"></i>Record Payment</span>
                 <span id="pm-submit-load" class="d-none">
@@ -248,10 +248,10 @@
         listEl.innerHTML = `
           <div class="col-12 text-center py-3">
             <div style="font-size:32px;margin-bottom:8px;">💳</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">No active loans</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">${t('pay.no_active_loans')}</div>
             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">This customer has no active or pending loans.</div>
             <button type="button" class="btn btn-primary" onclick="openAddLoanModal()">
-              <i class="bi bi-plus-circle me-2"></i>Add Loan
+              <i class="bi bi-plus-circle me-2"></i>${t('pay.add_loan')}
             </button>
           </div>`;
         return;
@@ -265,15 +265,15 @@
               ${statusBadge(l.status)}
             </div>
             <div class="row g-1 mb-3" style="font-size:12.5px;">
-              <div class="col-6"><span style="color:var(--text-secondary);">Disbursed:</span> ${formatCurrency(l.disbursement_amount)}</div>
-              <div class="col-6"><span style="color:var(--text-secondary);">Balance:</span>
+              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.disbursed')}:</span> ${formatCurrency(l.disbursement_amount)}</div>
+              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.balance')}:</span>
                 <span class="fw-600 text-danger">${formatCurrency(l.balance_amount || 0)}</span>
               </div>
-              <div class="col-6"><span style="color:var(--text-secondary);">Collection:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
-              <div class="col-6"><span style="color:var(--text-secondary);">Type:</span> ${l.installment_type}</div>
+              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.collection')}:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
+              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
             </div>
             <button type="button" class="btn btn-success w-100" onclick="selectLoan('${l.loan_id}')">
-              <i class="bi bi-cash-coin me-2"></i>Collect Payment
+              <i class="bi bi-cash-coin me-2"></i>${t('pay.collect')}
             </button>
           </div>
         </div>`).join('');
@@ -313,7 +313,7 @@
     const l = selectedLoan;
 
     // Header
-    document.getElementById('pm-title').textContent = 'Collect Payment';
+    document.getElementById('pm-title').textContent = t('pay.collect');
     document.getElementById('pm-subtitle').textContent =
       `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.num_installments} installments · ${formatCurrency(l.installment_amount)} each`;
 
@@ -334,13 +334,13 @@
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center balance-stat-box">
           <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(l.balance_amount || 0)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">Balance</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${t('pay.balance')}</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-neutral">
           ${statusBadge(l.status)}
-          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Status</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${t('common.status')}</div>
         </div>
       </div>`;
 
@@ -485,7 +485,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-600" style="font-size:16px;">
-                <i class="bi bi-plus-circle me-2 text-primary"></i>Add Loan
+                <i class="bi bi-plus-circle me-2 text-primary"></i>${t('pay.add_loan_title')}
               </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -493,50 +493,50 @@
               <div id="al-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Loan Amount (₹) <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('pay.loan_amount')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-amount" placeholder="e.g. 10000" min="1" step="1">
                   <span id="al-wallet-balance" style="font-size:12px;"></span>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Installment Type <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('pay.inst_type')} <span class="text-danger">*</span></label>
                   <select class="form-select" id="al-inst-type">
-                    <option value="WEEKLY">Weekly</option>
-                    <option value="DAILY">Daily</option>
-                    <option value="MONTHLY">Monthly</option>
+                    <option value="WEEKLY">${t('pay.weekly')}</option>
+                    <option value="DAILY">${t('pay.daily')}</option>
+                    <option value="MONTHLY">${t('pay.monthly')}</option>
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Number of Installments <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('pay.num_inst')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-num-inst" placeholder="e.g. 12" min="1" step="1">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Collection Amount / Installment (₹) <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('pay.coll_amount')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-collection" placeholder="e.g. 1000" min="1" step="1">
                 </div>
                 <div class="col-12" id="al-summary" style="display:none;">
                   <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
                     <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
-                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('pay.total_recover')}</div>
                       <div id="al-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">₹ 0</div>
                     </div>
                     <div style="flex:1;min-width:120px;padding:10px 8px;">
-                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('pay.interest_earned')}</div>
                       <div id="al-interest" style="font-size:15px;font-weight:700;color:#16A34A;">₹ 0</div>
                     </div>
                     <div style="flex:1 0 100%;padding:8px 10px;border-top:1px solid #BFDBFE;">
-                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Disbursement Date</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('pay.disb_date')}</div>
                       <input type="date" class="form-control text-center" id="al-date">
                     </div>
                   </div>
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Remarks</label>
+                  <label class="form-label">${t('pay.remarks')}</label>
                   <input type="text" class="form-control" id="al-remarks" placeholder="Optional">
                 </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="al-save-btn">
                 <span id="al-save-txt"><i class="bi bi-check-lg me-1"></i>Create Loan</span>
                 <span id="al-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Creating...</span>

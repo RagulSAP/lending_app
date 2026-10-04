@@ -41,16 +41,16 @@
       <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
         <div class="d-flex flex-wrap gap-2">
           <button type="button" class="btn btn-outline-secondary" id="partners-btn">
-            <i class="bi bi-people me-1"></i>Partners
+            <i class="bi bi-people me-1"></i>${t('wallet.partners')}
           </button>
           <button type="button" class="btn btn-outline-warning" id="withdraw-btn">
-            <i class="bi bi-box-arrow-up me-1"></i>Withdraw
+            <i class="bi bi-box-arrow-up me-1"></i>${t('wallet.withdraw')}
           </button>
           <button type="button" class="btn btn-outline-success" id="transfer-btn">
-            <i class="bi bi-arrow-left-right me-1"></i>Wallet Transfer
+            <i class="bi bi-arrow-left-right me-1"></i>${t('wallet.transfer')}
           </button>
           <button type="button" class="btn btn-primary" id="topup-btn">
-            <i class="bi bi-plus-circle me-1"></i>Top Up Wallet
+            <i class="bi bi-plus-circle me-1"></i>${t('wallet.topup')}
           </button>
         </div>
       </div>
@@ -59,37 +59,37 @@
       <div class="row g-3 mb-4" id="stats-row">
         <div class="col-6 col-md-3">
           <div class="card text-center" style="background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;border:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">Invest Balance</div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.invest_balance')}</div>
             <div id="stat-invest-balance" style="font-size:22px;font-weight:700;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center" style="background:linear-gradient(135deg,#16A34A,#059669);color:#fff;border:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">Interest Balance</div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.interest_balance')}</div>
             <div id="stat-interest-balance" style="font-size:22px;font-weight:700;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Topped Up</div>
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_topped')}</div>
             <div id="stat-topup" style="font-size:18px;font-weight:700;color:#16A34A;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Disbursed</div>
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_disbursed')}</div>
             <div id="stat-disburse" style="font-size:18px;font-weight:700;color:#DC2626;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Collected</div>
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_collected')}</div>
             <div id="stat-collect" style="font-size:18px;font-weight:700;color:#2563EB;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Total Withdrawn</div>
+            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_withdrawn')}</div>
             <div id="stat-withdraw" style="font-size:18px;font-weight:700;color:#D97706;">—</div>
           </div>
         </div>
@@ -98,45 +98,45 @@
       <!-- Transaction history -->
       <div class="card">
         <div class="card-header-flex">
-          <h6 class="card-title"><i class="bi bi-clock-history me-2 text-primary"></i>Transaction History</h6>
+          <h6 class="card-title"><i class="bi bi-clock-history me-2 text-primary"></i>${t('wallet.history')}</h6>
           <button type="button" class="btn btn-sm btn-outline-secondary" id="txn-clear-btn" style="font-size:11px;">
-            <i class="bi bi-x-circle me-1"></i>Clear Filters
+            <i class="bi bi-x-circle me-1"></i>${t('wallet.clear_filters')}
           </button>
         </div>
         <div class="row g-2 mb-3 align-items-end">
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Type</label>
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.type')}</label>
             <select class="form-select form-select-sm" id="txn-type-filter">
               <option value="">All Types</option>
-              <option value="WALLET_DEPOSIT">Top Up</option>
-              <option value="LOAN_DISBURSEMENT">Disbursed</option>
-              <option value="LOAN_COLLECTION">Collected</option>
-              <option value="EXPENSE">Expense</option>
-              <option value="WALLET_TRANSFER">Transfer</option>
-              <option value="WALLET_WITHDRAWAL">Withdrawal</option>
+              <option value="WALLET_DEPOSIT">${t('wallet.type_topup')}</option>
+              <option value="LOAN_DISBURSEMENT">${t('wallet.type_disbursed')}</option>
+              <option value="LOAN_COLLECTION">${t('wallet.type_collected')}</option>
+              <option value="EXPENSE">${t('wallet.type_expense')}</option>
+              <option value="WALLET_TRANSFER">${t('wallet.type_transfer')}</option>
+              <option value="WALLET_WITHDRAWAL">${t('wallet.type_withdrawal')}</option>
             </select>
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">From Date</label>
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('common.date_from')}</label>
             <input type="date" class="form-control form-control-sm" id="txn-from-date">
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">To Date</label>
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('common.date_to')}</label>
             <input type="date" class="form-control form-control-sm" id="txn-to-date">
           </div>
           <div class="col-6 col-md-3">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Partner / Customer</label>
-            <input type="text" class="form-control form-control-sm" id="txn-search" placeholder="Search name…">
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.partner_cust')}</label>
+            <input type="text" class="form-control form-control-sm" id="txn-search" placeholder="${t('common.search')}…">
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Sort By</label>
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.sort_by')}</label>
             <select class="form-select form-select-sm" id="txn-sort-by">
-              <option value="date">Date</option>
-              <option value="amount">Amount</option>
+              <option value="date">${t('wallet.col_date')}</option>
+              <option value="amount">${t('wallet.col_amount')}</option>
             </select>
           </div>
           <div class="col-6 col-md-1 d-flex flex-column">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">Order</label>
+            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.order')}</label>
             <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="txn-sort-dir-btn" title="Toggle sort order">
               <i class="bi bi-sort-down" id="txn-sort-dir-icon"></i>
             </button>
@@ -147,7 +147,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>Date</th><th>Type</th><th>Amount</th><th>Partner</th><th>Customer</th><th>Remarks</th>
+                <th>${t('wallet.col_date')}</th><th>${t('wallet.col_type')}</th><th>${t('wallet.col_amount')}</th><th>${t('wallet.col_partner')}</th><th>${t('wallet.col_customer')}</th><th>${t('wallet.col_remarks')}</th>
               </tr>
             </thead>
             <tbody id="txn-tbody"></tbody>
@@ -220,13 +220,13 @@
 
     let txns = allTransactions.slice();
 
-    if (type)   txns = txns.filter(t => t.transaction_type === type);
-    if (from)   txns = txns.filter(t => (t.transaction_date || '') >= from);
-    if (to)     txns = txns.filter(t => (t.transaction_date || '') <= to);
-    if (search) txns = txns.filter(t =>
-      (t.partner_name  || '').toLowerCase().includes(search) ||
-      (t.customer_name || '').toLowerCase().includes(search) ||
-      (t.remarks       || '').toLowerCase().includes(search)
+    if (type)   txns = txns.filter(tx => tx.transaction_type === type);
+    if (from)   txns = txns.filter(tx => (tx.transaction_date || '') >= from);
+    if (to)     txns = txns.filter(tx => (tx.transaction_date || '') <= to);
+    if (search) txns = txns.filter(tx =>
+      (tx.partner_name  || '').toLowerCase().includes(search) ||
+      (tx.customer_name || '').toLowerCase().includes(search) ||
+      (tx.remarks       || '').toLowerCase().includes(search)
     );
 
     txns.sort((a, b) => {
@@ -263,11 +263,11 @@
     const el = document.getElementById('partners-list-modal');
     if (!el) return;
     if (!partners.length) {
-      el.innerHTML = '<div style="padding:20px 16px;font-size:13px;color:#64748B;text-align:center;"><i class="bi bi-people" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4;"></i>No partners yet. Click Add Partner to create one.</div>';
+      el.innerHTML = `<div style="padding:20px 16px;font-size:13px;color:#64748B;text-align:center;"><i class="bi bi-people" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4;"></i>${t('wallet.no_partners')}</div>`;
       return;
     }
     el.innerHTML = `<div class="table-container" style="border-radius:0;"><table class="table table-sm mb-0">
-      <thead><tr><th>Name</th><th>Phone</th><th style="width:48px;"></th></tr></thead>
+      <thead><tr><th>${t('wallet.partner_name')}</th><th>${t('common.phone')}</th><th style="width:48px;"></th></tr></thead>
       <tbody>${partners.map(p => `
         <tr>
           <td class="fw-600">${p.name}</td>
@@ -287,38 +287,40 @@
     window._partnersModal.show();
   }
 
+  // Labels use getters so t() is evaluated at render time (module-level scope,
+  // not shadowed by the `tx` parameter used in map/filter callbacks).
   const TYPE_CONFIG = {
-    WALLET_DEPOSIT:    { label: 'Top Up',    cls: 'badge-active',   icon: 'bi-arrow-down-circle-fill', sign: '+' },
-    LOAN_DISBURSEMENT: { label: 'Disbursed', cls: 'badge-overdue',  icon: 'bi-arrow-up-circle-fill',   sign: '-' },
-    LOAN_COLLECTION:   { label: 'Collected', cls: 'badge-paid',     icon: 'bi-cash-coin',              sign: '+' },
-    EXPENSE:           { label: 'Expense',   cls: 'badge-inactive', icon: 'bi-receipt',                sign: '-' },
-    WALLET_TRANSFER:   { label: 'Transfer',  cls: 'badge-closed',   icon: 'bi-arrow-left-right',       sign: ''  },
-    WALLET_WITHDRAWAL: { label: 'Withdrawal',cls: 'badge-overdue',  icon: 'bi-box-arrow-up',           sign: '-' },
+    WALLET_DEPOSIT:    { get label() { return t('wallet.type_topup'); },     cls: 'badge-active',   icon: 'bi-arrow-down-circle-fill', sign: '+' },
+    LOAN_DISBURSEMENT: { get label() { return t('wallet.type_disbursed'); }, cls: 'badge-overdue',  icon: 'bi-arrow-up-circle-fill',   sign: '-' },
+    LOAN_COLLECTION:   { get label() { return t('wallet.type_collected'); }, cls: 'badge-paid',     icon: 'bi-cash-coin',              sign: '+' },
+    EXPENSE:           { get label() { return t('wallet.type_expense'); },   cls: 'badge-inactive', icon: 'bi-receipt',                sign: '-' },
+    WALLET_TRANSFER:   { get label() { return t('wallet.type_transfer'); },  cls: 'badge-closed',   icon: 'bi-arrow-left-right',       sign: ''  },
+    WALLET_WITHDRAWAL: { get label() { return t('wallet.type_withdrawal'); },cls: 'badge-overdue',  icon: 'bi-box-arrow-up',           sign: '-' },
   };
 
   function renderTransactions(txns) {
     const tbody = document.getElementById('txn-tbody');
     if (!txns.length) {
-      tbody.innerHTML = '<tr><td colspan="6" class="table-empty"><i class="bi bi-clock-history"></i>No transactions yet</td></tr>';
+      tbody.innerHTML = `<tr><td colspan="6" class="table-empty"><i class="bi bi-clock-history"></i>${t('wallet.no_tx')}</td></tr>`;
       return;
     }
-    tbody.innerHTML = txns.map(t => {
-      const cfg = TYPE_CONFIG[t.transaction_type] || { label: t.transaction_type, cls: 'badge-closed', icon: 'bi-circle', sign: '' };
-      const isDebit = ['LOAN_DISBURSEMENT', 'EXPENSE'].includes(t.transaction_type);
+    tbody.innerHTML = txns.map(tx => {
+      const cfg = TYPE_CONFIG[tx.transaction_type] || { label: tx.transaction_type, cls: 'badge-closed', icon: 'bi-circle', sign: '' };
+      const isDebit = ['LOAN_DISBURSEMENT', 'EXPENSE'].includes(tx.transaction_type);
       const amtColor = isDebit ? '#DC2626' : '#16A34A';
-      const partner  = t.partner_name
-        ? `<span class="fw-600">${t.partner_name}</span>`
+      const partner  = tx.partner_name
+        ? `<span class="fw-600">${tx.partner_name}</span>`
         : `<span style="color:#CBD5E1;">—</span>`;
-      const customer = t.customer_name
-        ? `<span class="fw-600">${t.customer_name}</span>`
+      const customer = tx.customer_name
+        ? `<span class="fw-600">${tx.customer_name}</span>`
         : `<span style="color:#CBD5E1;">—</span>`;
       return `<tr>
-        <td>${formatDate(t.transaction_date)}</td>
+        <td>${formatDate(tx.transaction_date)}</td>
         <td><span class="badge-status ${cfg.cls}"><i class="bi ${cfg.icon} me-1"></i>${cfg.label}</span></td>
-        <td style="font-weight:600;color:${amtColor};">${cfg.sign}${formatCurrency(t.amount)}</td>
+        <td style="font-weight:600;color:${amtColor};">${cfg.sign}${formatCurrency(tx.amount)}</td>
         <td>${partner}</td>
         <td>${customer}</td>
-        <td style="font-size:12px;color:#64748B;">${t.remarks || '-'}</td>
+        <td style="font-size:12px;color:#64748B;">${tx.remarks || '-'}</td>
       </tr>`;
     }).join('');
   }
@@ -333,39 +335,39 @@
           <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title fw-600" style="font-size:16px;"><i class="bi bi-plus-circle me-2 text-primary"></i>Top Up Wallet</h5>
+                <h5 class="modal-title fw-600" style="font-size:16px;"><i class="bi bi-plus-circle me-2 text-primary"></i>${t('wallet.topup_title')}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <div id="topup-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div class="row g-3">
                   <div class="col-12">
-                    <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('wallet.amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="tu-amount" placeholder="e.g. 50000" min="1" step="1">
                     <div id="tu-amount-words" style="font-size:12px;color:#4F46E5;font-style:italic;margin-top:4px;min-height:16px;"></div>
                   </div>
                   <div class="col-12">
-                    <label class="form-label">Partner <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('wallet.partner')} <span class="text-danger">*</span></label>
                     <select class="form-select" id="tu-partner">
                       <option value="">Select partner</option>
                     </select>
                     <div style="font-size:11px;color:#64748B;margin-top:4px;">Add partners in the Partners section first.</div>
                   </div>
                   <div class="col-12">
-                    <label class="form-label">Date <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('common.date')} <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="tu-date">
                   </div>
                   <div class="col-12">
-                    <label class="form-label">Remarks</label>
+                    <label class="form-label">${t('wallet.remarks')}</label>
                     <input type="text" class="form-control" id="tu-remarks" placeholder="Optional">
                   </div>
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
                 <button type="button" class="btn btn-primary" id="tu-save-btn">
-                  <span id="tu-save-txt"><i class="bi bi-check-lg me-1"></i>Top Up</span>
-                  <span id="tu-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+                  <span id="tu-save-txt"><i class="bi bi-check-lg me-1"></i>${t('wallet.doing_topup')}</span>
+                  <span id="tu-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}</span>
                 </button>
               </div>
             </div>
@@ -387,26 +389,26 @@
             <div class="modal-content">
               <div class="modal-header" style="background:#FFFBEB;border-bottom:1px solid #FDE68A;">
                 <h5 class="modal-title fw-600" style="font-size:15px;">
-                  <i class="bi bi-shield-exclamation me-2 text-warning"></i>Confirm Top Up
+                  <i class="bi bi-shield-exclamation me-2 text-warning"></i>${t('wallet.confirm_topup')}
                 </h5>
               </div>
               <div class="modal-body">
                 <p style="font-size:12.5px;color:#64748B;margin-bottom:12px;">
-                  Verify the details below. Transactions <strong>cannot be edited</strong> after submission.
+                  ${t('wallet.confirm_details')}
                 </p>
                 <div style="background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;padding:14px;">
                   <div class="mb-3">
-                    <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Amount</div>
+                    <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('wallet.amount')}</div>
                     <div id="tc-amount" style="font-size:22px;font-weight:700;color:#2563EB;"></div>
                     <div id="tc-amount-words" style="font-size:11px;color:#4F46E5;font-style:italic;margin-top:2px;"></div>
                   </div>
                   <div class="mb-2" style="display:flex;gap:24px;flex-wrap:wrap;">
                     <div>
-                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Partner</div>
+                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('wallet.partner')}</div>
                       <div id="tc-partner" style="font-size:13px;font-weight:600;"></div>
                     </div>
                     <div>
-                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Date</div>
+                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('common.date')}</div>
                       <div id="tc-date" style="font-size:13px;font-weight:600;"></div>
                     </div>
                   </div>
@@ -414,10 +416,10 @@
               </div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" id="tc-cancel-btn">
-                  <i class="bi bi-arrow-left me-1"></i>Go Back
+                  <i class="bi bi-arrow-left me-1"></i>${t('wallet.go_back')}
                 </button>
                 <button type="button" class="btn btn-success" id="tc-confirm-btn">
-                  <i class="bi bi-check-circle me-1"></i>Confirm Top Up
+                  <i class="bi bi-check-circle me-1"></i>${t('wallet.confirm_topup')}
                 </button>
               </div>
             </div>
@@ -443,7 +445,7 @@
             <div class="modal-content">
               <div class="modal-header" style="background:linear-gradient(135deg,#D1FAE5,#A7F3D0);border-bottom:1px solid #6EE7B7;">
                 <h5 class="modal-title fw-600" style="font-size:16px;color:#065F46;">
-                  <i class="bi bi-arrow-left-right me-2"></i>Wallet Transfer
+                  <i class="bi bi-arrow-left-right me-2"></i>${t('wallet.transfer_title')}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
@@ -451,24 +453,24 @@
                 <div id="tr-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:#166534;">
                   <i class="bi bi-info-circle me-1"></i>
-                  Moves interest earnings into your investment capital.
-                  <div style="margin-top:6px;">Interest Balance: <strong id="tr-available">—</strong></div>
+                  ${t('wallet.transfer_info')}
+                  <div style="margin-top:6px;">${t('wallet.interest_bal')}: <strong id="tr-available">—</strong></div>
                 </div>
                 <div class="mb-3">
-                  <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('wallet.amount')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="tr-amount" placeholder="e.g. 5000" min="1" step="1">
                   <div id="tr-amount-words" style="font-size:12px;color:#4F46E5;font-style:italic;margin-top:4px;min-height:16px;"></div>
                 </div>
                 <div>
-                  <label class="form-label">Remarks</label>
+                  <label class="form-label">${t('wallet.remarks')}</label>
                   <input type="text" class="form-control" id="tr-remarks" placeholder="Optional">
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
                 <button type="button" class="btn btn-success" id="tr-save-btn">
-                  <span id="tr-save-txt"><i class="bi bi-arrow-left-right me-1"></i>Transfer</span>
-                  <span id="tr-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Transferring...</span>
+                  <span id="tr-save-txt"><i class="bi bi-arrow-left-right me-1"></i>${t('wallet.doing_transfer')}</span>
+                  <span id="tr-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('wallet.transferring')}</span>
                 </button>
               </div>
             </div>
@@ -490,7 +492,7 @@
             <div class="modal-content">
               <div class="modal-header" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-bottom:1px solid #FCD34D;">
                 <h5 class="modal-title fw-600" style="font-size:16px;color:#92400E;">
-                  <i class="bi bi-box-arrow-up me-2"></i>Withdraw
+                  <i class="bi bi-box-arrow-up me-2"></i>${t('wallet.withdraw_title')}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
@@ -498,44 +500,44 @@
                 <div id="wd-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div class="row g-3">
                   <div class="col-12">
-                    <label class="form-label">Withdraw From <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('wallet.withdraw_from')} <span class="text-danger">*</span></label>
                     <div style="display:flex;gap:12px;flex-wrap:wrap;">
                       <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-invest">
                         <input type="radio" name="wd-source" value="invest" style="accent-color:#2563EB;">
                         <div>
-                          <div style="font-size:13px;font-weight:600;color:#1E40AF;">Invest Balance</div>
+                          <div style="font-size:13px;font-weight:600;color:#1E40AF;">${t('wallet.invest_bal')}</div>
                           <div id="wd-invest-bal" style="font-size:12px;color:#64748B;">—</div>
                         </div>
                       </label>
                       <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-interest">
                         <input type="radio" name="wd-source" value="interest" style="accent-color:#16A34A;">
                         <div>
-                          <div style="font-size:13px;font-weight:600;color:#166534;">Interest Balance</div>
+                          <div style="font-size:13px;font-weight:600;color:#166534;">${t('wallet.interest_bal')}</div>
                           <div id="wd-interest-bal" style="font-size:12px;color:#64748B;">—</div>
                         </div>
                       </label>
                     </div>
                   </div>
                   <div class="col-12">
-                    <label class="form-label">Amount (₹) <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('wallet.amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="wd-amount" placeholder="e.g. 10000" min="1" step="1">
                     <div id="wd-amount-words" style="font-size:12px;color:#4F46E5;font-style:italic;margin-top:4px;min-height:16px;"></div>
                   </div>
                   <div class="col-12">
-                    <label class="form-label">Date <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('common.date')} <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="wd-date">
                   </div>
                   <div class="col-12">
-                    <label class="form-label">Remarks</label>
+                    <label class="form-label">${t('wallet.remarks')}</label>
                     <input type="text" class="form-control" id="wd-remarks" placeholder="Optional">
                   </div>
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
                 <button type="button" class="btn btn-warning" id="wd-save-btn" style="color:#fff;">
-                  <span id="wd-save-txt"><i class="bi bi-box-arrow-up me-1"></i>Withdraw</span>
-                  <span id="wd-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Processing...</span>
+                  <span id="wd-save-txt"><i class="bi bi-box-arrow-up me-1"></i>${t('wallet.doing_withdraw')}</span>
+                  <span id="wd-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('wallet.processing')}</span>
                 </button>
               </div>
             </div>
@@ -560,7 +562,7 @@
             <div class="modal-content">
               <div class="modal-header">
                 <h5 class="modal-title fw-600" style="font-size:16px;">
-                  <i class="bi bi-people me-2 text-primary"></i>Partners
+                  <i class="bi bi-people me-2 text-primary"></i>${t('wallet.partners_title')}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
@@ -568,9 +570,9 @@
                 <div id="partners-list-modal"></div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.close')}</button>
                 <button type="button" class="btn btn-primary" id="add-partner-btn">
-                  <i class="bi bi-plus me-1"></i>Add Partner
+                  <i class="bi bi-plus me-1"></i>${t('wallet.add_partner')}
                 </button>
               </div>
             </div>
@@ -591,24 +593,24 @@
           <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
               <div class="modal-header">
-                <h5 class="modal-title fw-600" style="font-size:16px;"><i class="bi bi-person-plus me-2 text-primary"></i>Add Partner</h5>
+                <h5 class="modal-title fw-600" style="font-size:16px;"><i class="bi bi-person-plus me-2 text-primary"></i>${t('wallet.add_partner_title')}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
               <div class="modal-body">
                 <div id="ap-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div class="mb-3">
-                  <label class="form-label">Name <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('wallet.partner_name')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="ap-name" placeholder="Partner name">
                 </div>
                 <div>
-                  <label class="form-label">Phone</label>
+                  <label class="form-label">${t('common.phone')}</label>
                   <input type="tel" class="form-control" id="ap-phone" placeholder="Phone (optional)" maxlength="10">
                 </div>
               </div>
               <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
                 <button type="button" class="btn btn-primary" id="ap-save-btn">
-                  <span id="ap-save-txt"><i class="bi bi-check-lg me-1"></i>Add</span>
+                  <span id="ap-save-txt"><i class="bi bi-check-lg me-1"></i>${t('common.add')}</span>
                   <span id="ap-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span></span>
                 </button>
               </div>
@@ -690,7 +692,7 @@
         remarks: document.getElementById('tu-remarks').value.trim(),
       });
       topupModal.hide();
-      showToast('Wallet topped up successfully!', 'success');
+      showToast(t('wallet.topped_up'), 'success');
       await loadAll();
     } catch (err) {
       errEl.textContent = err.message;
@@ -719,7 +721,7 @@
       });
       partners.push(res.data);
       addPartnerModal.hide();
-      showToast('Partner added!', 'success');
+      showToast(t('wallet.partner_added'), 'success');
       renderPartners();
     } catch (err) {
       errEl.textContent = err.message;
@@ -768,7 +770,7 @@
         remarks: document.getElementById('tr-remarks').value.trim(),
       });
       transferModal.hide();
-      showToast('Transfer successful!', 'success');
+      showToast(t('wallet.transferred'), 'success');
       await loadAll();
     } catch (err) {
       errEl.textContent = err.message;
@@ -838,7 +840,7 @@
         remarks: document.getElementById('wd-remarks').value.trim(),
       });
       withdrawModal.hide();
-      showToast('Withdrawal successful!', 'success');
+      showToast(t('wallet.withdrawn'), 'success');
       await loadAll();
     } catch (err) {
       errEl.textContent = err.message;
@@ -850,12 +852,12 @@
   }
 
   window.removePartner = async function (partnerId, name) {
-    const ok = await confirmDialog(`Remove partner "${name}"?`);
+    const ok = await confirmDialog(t('wallet.remove_partner', { name }));
     if (!ok) return;
     try {
       await api.delete(`/api/partners/${partnerId}`);
       partners = partners.filter(p => p.partner_id !== partnerId);
-      showToast('Partner removed', 'success');
+      showToast(t('wallet.partner_removed'), 'success');
       renderPartners();
     } catch (err) {
       showToast('Failed: ' + err.message, 'danger');

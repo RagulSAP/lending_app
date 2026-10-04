@@ -30,102 +30,102 @@
           <div class="stepper mb-4">
             <div class="step-item active" id="step-1-indicator">
               <div class="step-circle">1</div>
-              <div class="step-label">Personal Details</div>
+              <div class="step-label">${t('onboard.step1')}</div>
             </div>
             <div class="step-item" id="step-2-indicator">
               <div class="step-circle">2</div>
-              <div class="step-label">KYC Documents</div>
+              <div class="step-label">${t('onboard.step2')}</div>
             </div>
           </div>
 
           <!-- Step 1 -->
           <div class="card" id="step-1-content">
-            <div class="card-header-flex"><h6 class="card-title"><i class="bi bi-person me-2 text-primary"></i>Personal Details</h6></div>
+            <div class="card-header-flex"><h6 class="card-title"><i class="bi bi-person me-2 text-primary"></i>${t('onboard.step1_title')}</h6></div>
             <div id="step1-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <label class="form-label">${t('onboard.full_name')} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="f-name" placeholder="Customer full name">
               </div>
               <div class="col-md-6">
-                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                <label class="form-label">${t('onboard.phone')} <span class="text-danger">*</span></label>
                 <input type="tel" class="form-control" id="f-phone" placeholder="10-digit phone" maxlength="10">
               </div>
               <div class="col-md-3">
-                <label class="form-label">Pincode</label>
+                <label class="form-label">${t('onboard.pincode')}</label>
                 <input type="text" class="form-control" id="f-pincode" placeholder="6-digit" maxlength="6">
                 <span id="f-pincode-feedback" style="font-size:12px;"></span>
               </div>
               <div class="col-md-3">
-                <label class="form-label">Area / Locality</label>
+                <label class="form-label">${t('onboard.area')}</label>
                 <select class="form-select" id="f-area" disabled>
                   <option value="">Enter pincode first</option>
                 </select>
               </div>
               <div class="col-md-3">
-                <label class="form-label">City <span class="text-danger">*</span></label>
+                <label class="form-label">${t('onboard.city')} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="f-city" placeholder="City">
               </div>
               <div class="col-md-3">
-                <label class="form-label">State</label>
+                <label class="form-label">${t('onboard.state')}</label>
                 <input type="text" class="form-control" id="f-state" placeholder="State">
               </div>
               <div class="col-12">
-                <label class="form-label">Address</label>
+                <label class="form-label">${t('onboard.address')}</label>
                 <textarea class="form-control" id="f-address" rows="2" placeholder="Full residential address"></textarea>
               </div>
               <div class="col-md-6">
-                <label class="form-label">Aadhaar Number</label>
+                <label class="form-label">${t('onboard.aadhaar')}</label>
                 <input type="text" class="form-control" id="f-aadhaar" placeholder="12-digit Aadhaar" maxlength="12">
               </div>
               <div class="col-md-6">
-                <label class="form-label">PAN Number</label>
+                <label class="form-label">${t('onboard.pan')}</label>
                 <input type="text" class="form-control" id="f-pan" placeholder="10-char PAN" maxlength="10" style="text-transform:uppercase;">
               </div>
               <div class="col-md-12">
-                <label class="form-label">Assigned Collector</label>
+                <label class="form-label">${t('onboard.collector')}</label>
                 <select class="form-select" id="f-collector">
-                  <option value="">Select collector (optional)</option>
+                  <option value="">${t('onboard.optional_collector')}</option>
                   ${collectorOptions}
                 </select>
               </div>
             </div>
             <div class="d-flex gap-2 mt-4">
-              <a href="customers.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Cancel</a>
-              <button type="button" class="btn btn-primary ms-auto" id="next-btn"><i class="bi bi-arrow-right me-1"></i>Next: KYC Documents</button>
+              <a href="customers.html" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> ${t('onboard.cancel')}</a>
+              <button type="button" class="btn btn-primary ms-auto" id="next-btn"><i class="bi bi-arrow-right me-1"></i>${t('onboard.next')}</button>
             </div>
           </div>
 
           <!-- Step 2 -->
           <div class="card d-none" id="step-2-content">
-            <div class="card-header-flex"><h6 class="card-title"><i class="bi bi-file-earmark-text me-2 text-primary"></i>KYC Documents</h6></div>
+            <div class="card-header-flex"><h6 class="card-title"><i class="bi bi-file-earmark-text me-2 text-primary"></i>${t('onboard.step2_title')}</h6></div>
             <div id="step2-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">Customer Photo <span class="text-danger">*</span></label>
+                <label class="form-label">${t('onboard.photo')} <span class="text-danger">*</span></label>
                 <div class="file-upload-zone" id="photo-zone" onclick="document.getElementById('photo-input').click()">
                   <i class="bi bi-camera"></i>
-                  <p>Click to upload photo<br><small>JPG, PNG or PDF, max 5MB</small></p>
+                  <p>${t('onboard.click_photo')}<br><small>${t('onboard.file_hint')}</small></p>
                 </div>
                 <input type="file" id="photo-input" accept="image/jpeg,image/png,application/pdf" class="d-none">
                 <div id="photo-preview" class="d-none"></div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
-                  <label class="form-label">ID Proof Type <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('onboard.id_type')} <span class="text-danger">*</span></label>
                   <select class="form-select" id="f-id-type">
-                    <option value="">Select type</option>
-                    <option value="PAN">PAN Card</option>
-                    <option value="AADHAAR">Aadhaar Card</option>
-                    <option value="VOTER_ID">Voter ID</option>
-                    <option value="PASSPORT">Passport</option>
-                    <option value="DL">Driving License</option>
+                    <option value="">${t('onboard.id_select')}</option>
+                    <option value="PAN">${t('onboard.id_pan')}</option>
+                    <option value="AADHAAR">${t('onboard.id_aadhaar')}</option>
+                    <option value="VOTER_ID">${t('onboard.id_voter')}</option>
+                    <option value="PASSPORT">${t('onboard.id_passport')}</option>
+                    <option value="DL">${t('onboard.id_driving')}</option>
                   </select>
                 </div>
-                <label class="form-label">ID Proof Document <span class="text-danger">*</span></label>
+                <label class="form-label">${t('onboard.id_doc')} <span class="text-danger">*</span></label>
                 <div class="file-upload-zone" id="id-zone" onclick="document.getElementById('id-input').click()">
                   <i class="bi bi-file-earmark-image"></i>
-                  <p>Click to upload ID proof<br><small>JPG, PNG or PDF, max 5MB</small></p>
+                  <p>${t('onboard.click_id')}<br><small>${t('onboard.file_hint')}</small></p>
                 </div>
                 <input type="file" id="id-input" accept="image/jpeg,image/png,application/pdf" class="d-none">
                 <div id="id-preview" class="d-none"></div>
@@ -135,44 +135,44 @@
             <!-- Optional Loan Section -->
             <div class="mt-4">
               <button type="button" class="btn btn-outline-primary w-100" id="toggle-loan-btn" style="min-height:44px;">
-                <i class="bi bi-plus-circle me-2"></i>Add Loan Details (Optional)
+                <i class="bi bi-plus-circle me-2"></i>${t('onboard.add_loan')}
               </button>
               <div id="loan-section" class="loan-info-box d-none mt-3 p-3">
-                <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Loan Details</h6>
+                <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('onboard.loan_section')}</h6>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">Loan Amount (&#8377;) <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('onboard.loan_amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-amount" placeholder="e.g. 10000" min="1" step="1">
                     <span id="l-wallet-balance" style="font-size:12px;"></span>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Installment Type <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('onboard.inst_type')} <span class="text-danger">*</span></label>
                     <select class="form-select" id="l-inst-type">
-                      <option value="WEEKLY">Weekly</option>
-                      <option value="DAILY">Daily</option>
-                      <option value="MONTHLY">Monthly</option>
+                      <option value="WEEKLY">${t('pay.weekly')}</option>
+                      <option value="DAILY">${t('pay.daily')}</option>
+                      <option value="MONTHLY">${t('pay.monthly')}</option>
                     </select>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Number of Installments <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('onboard.num_inst')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-num-inst" placeholder="e.g. 12" min="1" step="1">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Collection Amount / Installment (&#8377;) <span class="text-danger">*</span></label>
+                    <label class="form-label">${t('onboard.coll_amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-collection" placeholder="e.g. 1000" min="1" step="1">
                   </div>
                   <div class="col-12" id="l-summary" style="display:none;">
                     <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
                       <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
-                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Total to Recover</div>
+                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.total_recover')}</div>
                         <div id="l-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">&#8377; 0</div>
                       </div>
                       <div style="flex:1;min-width:120px;padding:10px 8px;">
-                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Interest Earned</div>
+                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.interest_earned')}</div>
                         <div id="l-interest" style="font-size:15px;font-weight:700;color:#16A34A;">&#8377; 0</div>
                       </div>
                       <div style="flex:1 0 100%;padding:8px 10px;border-top:1px solid #BFDBFE;">
-                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Disbursement Date</div>
+                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('onboard.disb_date')}</div>
                         <input type="date" class="form-control text-center" id="l-date">
                       </div>
                     </div>
@@ -186,10 +186,10 @@
             </div>
 
             <div class="d-flex gap-2 mt-4">
-              <button type="button" class="btn btn-outline-secondary" id="back-btn"><i class="bi bi-arrow-left me-1"></i>Back</button>
+              <button type="button" class="btn btn-outline-secondary" id="back-btn"><i class="bi bi-arrow-left me-1"></i>${t('onboard.back')}</button>
               <button type="button" class="btn btn-primary ms-auto" id="submit-btn">
-                <span id="submit-txt"><i class="bi bi-person-check me-1"></i>Submit</span>
-                <span id="submit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Submitting...</span>
+                <span id="submit-txt"><i class="bi bi-person-check me-1"></i>${t('onboard.submit')}</span>
+                <span id="submit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('onboard.submitting')}</span>
               </button>
             </div>
           </div>
@@ -222,8 +222,8 @@
       const isHidden = sec.classList.contains('d-none');
       sec.classList.toggle('d-none');
       this.innerHTML = isHidden
-        ? '<i class="bi bi-dash-circle me-2"></i>Remove Loan Details'
-        : '<i class="bi bi-plus-circle me-2"></i>Add Loan Details (Optional)';
+        ? `<i class="bi bi-dash-circle me-2"></i>${t('onboard.remove_loan')}`
+        : `<i class="bi bi-plus-circle me-2"></i>${t('onboard.add_loan')}`;
       if (isHidden) {
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('l-date').value = today;
@@ -235,7 +235,7 @@
         } catch (_) {}
         const balEl = document.getElementById('l-wallet-balance');
         if (balEl) {
-          balEl.textContent = 'Wallet balance: ' + formatCurrency(balance);
+          balEl.textContent = `${t('pay.wallet_bal')}: ${formatCurrency(balance)}`;
           balEl.style.color = balance > 0 ? '#16A34A' : '#DC2626';
         }
         document.getElementById('l-amount')._walletBalance = balance;
@@ -256,15 +256,15 @@
       if (balEl) {
         if (walletBal <= 0) {
           balEl.style.color = '#DC2626';
-          balEl.textContent = 'Wallet balance: ₹ 0.00 — wallet is empty!';
+          balEl.textContent = `${t('pay.wallet_bal')}: ₹ 0.00 — ${t('pay.wallet_empty')}`;
           amtEl.style.borderColor = amount > 0 ? '#DC2626' : '';
         } else if (amount > walletBal) {
           balEl.style.color = '#DC2626';
-          balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal) + ' — amount exceeds balance!';
+          balEl.textContent = `${t('pay.wallet_bal')}: ${formatCurrency(walletBal)} — ${t('pay.wallet_exceed')}`;
           amtEl.style.borderColor = '#DC2626';
         } else {
           balEl.style.color = '#16A34A';
-          balEl.textContent = 'Wallet balance: ' + formatCurrency(walletBal);
+          balEl.textContent = `${t('pay.wallet_bal')}: ${formatCurrency(walletBal)}`;
           amtEl.style.borderColor = '';
         }
       }
@@ -304,7 +304,7 @@
     const zoneEl = document.getElementById(type === 'photo' ? 'photo-zone' : 'id-zone');
     const previewEl = document.getElementById(type === 'photo' ? 'photo-preview' : 'id-preview');
     const sizeKB = (file.size / 1024).toFixed(1);
-    const changeBtnHtml = `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearFile('${type}')"><i class="bi bi-arrow-repeat me-1"></i>Change</button>`;
+    const changeBtnHtml = `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearFile('${type}')"><i class="bi bi-arrow-repeat me-1"></i>${t('onboard.change')}</button>`;
 
     if (file.type === 'application/pdf') {
       previewEl.innerHTML = `
@@ -471,7 +471,7 @@
         }
       }
 
-      showToast('Customer onboarded successfully!', 'success');
+      showToast(t('onboard.success'), 'success');
       setTimeout(() => { window.location.href = 'customers.html'; }, 1200);
     } catch (err) {
       errEl.textContent = err.message;

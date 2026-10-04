@@ -9,7 +9,7 @@
   let editModal = null;
 
   async function init() {
-    await initPage('App Users', [1, 2]);
+    await initPage(t('users.title'), [1, 2]);
     currentUser = auth.getUser();
     renderPage();
     if (currentUser && currentUser.role_id === ROLES.ADMIN) injectEditModal();
@@ -23,50 +23,50 @@
     const isAdmin = currentUser && currentUser.role_id === ROLES.ADMIN;
     document.getElementById('page-content').innerHTML = `
       <div class="page-header d-flex align-items-center justify-content-end">
-        ${isAdmin ? '<a href="user-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Add User</a>' : ''}
+        ${isAdmin ? `<a href="user-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> ${t('users.add')}</a>` : ''}
       </div>
       <div class="filter-bar">
         <div class="form-group">
-          <label class="form-label">Role</label>
+          <label class="form-label">${t('users.role')}</label>
           <select class="form-select" id="f-role">
-            <option value="">All Roles</option>
-            <option value="1">Admin</option>
-            <option value="2">Manager</option>
-            <option value="3">Staff</option>
-            <option value="4">Collector</option>
-            <option value="5">Accountant</option>
+            <option value="">${t('users.all_roles')}</option>
+            <option value="1">${t('common.role_admin')}</option>
+            <option value="2">${t('common.role_manager')}</option>
+            <option value="3">${t('common.role_staff')}</option>
+            <option value="4">${t('common.role_collector')}</option>
+            <option value="5">${t('common.role_accountant')}</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Status</label>
+          <label class="form-label">${t('common.status')}</label>
           <select class="form-select" id="f-status">
-            <option value="">All</option>
-            <option value="1">Active</option>
-            <option value="0">Inactive</option>
+            <option value="">${t('common.all_status')}</option>
+            <option value="1">${t('common.active')}</option>
+            <option value="0">${t('common.inactive')}</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">Search</label>
+          <label class="form-label">${t('common.search')}</label>
           <input type="text" class="form-control" id="f-search" placeholder="Name or phone...">
         </div>
         <div class="form-group d-flex align-items-end">
           <button type="button" class="btn btn-primary" id="search-btn">
-            <i class="bi bi-search"></i> Search
+            <i class="bi bi-search"></i> ${t('common.search')}
           </button>
         </div>
       </div>
       <div class="card">
         <div class="card-header-flex">
-          <h6 class="card-title">Users List</h6>
+          <h6 class="card-title">${t('users.list_title')}</h6>
           <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
         </div>
         <div class="table-container">
           <table class="table">
             <thead>
               <tr>
-                <th>#</th><th>Name</th><th>Phone</th><th>Role</th>
-                <th>Status</th><th>Created</th>
-                ${isAdmin ? '<th>Actions</th>' : ''}
+                <th>#</th><th>${t('users.col_name')}</th><th>${t('users.col_phone')}</th><th>${t('users.col_role')}</th>
+                <th>${t('common.status')}</th><th>${t('users.col_created')}</th>
+                ${isAdmin ? `<th>${t('common.actions')}</th>` : ''}
               </tr>
             </thead>
             <tbody id="users-tbody"></tbody>
@@ -93,7 +93,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-600" style="font-size:16px;">
-                <i class="bi bi-pencil-square me-2 text-primary"></i>Edit User
+                <i class="bi bi-pencil-square me-2 text-primary"></i>${t('users.edit_title')}
               </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -101,38 +101,38 @@
               <div id="eu-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('users.full_name')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="eu-name" placeholder="Full name">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Phone <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('common.phone')} <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="eu-phone" placeholder="10-digit phone" maxlength="10">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Role <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('users.role')} <span class="text-danger">*</span></label>
                   <select class="form-select" id="eu-role">
-                    <option value="1">Admin</option>
-                    <option value="2">Manager</option>
-                    <option value="3">Staff</option>
-                    <option value="4">Collector</option>
-                    <option value="5">Accountant</option>
+                    <option value="1">${t('common.role_admin')}</option>
+                    <option value="2">${t('common.role_manager')}</option>
+                    <option value="3">${t('common.role_staff')}</option>
+                    <option value="4">${t('common.role_collector')}</option>
+                    <option value="5">${t('common.role_accountant')}</option>
                   </select>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Password</label>
+                  <label class="form-label">${t('users.password')}</label>
                   <div class="input-group">
-                    <input type="password" class="form-control" id="eu-password" placeholder="Leave blank to keep current">
+                    <input type="password" class="form-control" id="eu-password" placeholder="${t('users.pass_hint')}">
                     <button type="button" class="btn btn-outline-secondary" onclick="togglePass('eu-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
                   </div>
                 </div>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="eu-save-btn">
-                <span id="eu-save-txt"><i class="bi bi-check-lg me-1"></i>Save Changes</span>
+                <span id="eu-save-txt"><i class="bi bi-check-lg me-1"></i>${t('common.save')}</span>
                 <span id="eu-save-load" class="d-none">
-                  <span class="spinner-border spinner-border-sm me-2"></span>Saving...
+                  <span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}
                 </span>
               </button>
             </div>
@@ -169,7 +169,7 @@
       const tbody = document.getElementById('users-tbody');
       const colSpan = isAdmin ? 7 : 6;
       if (!users.length) {
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>No users found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>${t('users.no_users')}</td></tr>`;
       } else {
         const offset = (currentPage - 1) * perPage;
         tbody.innerHTML = users.map((u, i) => {
@@ -186,16 +186,16 @@
               ${u.role_id === 1 ? '<span style="font-size:12px;color:#94a3b8;">—</span>' : `
               <div class="d-flex gap-1 flex-wrap">
                 <button type="button" class="btn btn-sm btn-outline-primary"
-                  onclick="openEditModal('${u.user_id}')" title="Edit">
+                  onclick="openEditModal('${u.user_id}')" title="${t('common.edit')}">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button type="button" class="btn btn-sm ${isActive ? 'btn-warning' : 'btn-success'}"
                   onclick="toggleUserStatus('${u.user_id}', ${u.status})"
-                  title="${isActive ? 'Deactivate' : 'Activate'}">
+                  title="${isActive ? t('common.deactivate') : t('common.activate')}">
                   <i class="bi ${isActive ? 'bi-pause-fill' : 'bi-play-fill'}"></i>
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger"
-                  onclick="deleteUser('${u.user_id}', '${safeName}')" title="Delete">
+                  onclick="deleteUser('${u.user_id}', '${safeName}')" title="${t('common.delete')}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>`}
@@ -295,7 +295,7 @@
     try {
       await api.patch(`/api/users/${editingUserId}`, body);
       editModal.hide();
-      showToast('User updated successfully', 'success');
+      showToast(t('users.updated'), 'success');
       await loadUsers();
     } catch (err) {
       showEuError(err.message);
@@ -316,12 +316,11 @@
   // ---------------------------------------------------------------------------
   window.toggleUserStatus = async function (userId, currentStatus) {
     const isActive = currentStatus == 1 || currentStatus === 'ACTIVE';
-    const action = isActive ? 'deactivate' : 'activate';
-    const ok = await confirmDialog(`Are you sure you want to ${action} this user?`);
+    const ok = await confirmDialog(isActive ? t('users.deact_confirm') : t('users.act_confirm'));
     if (!ok) return;
     try {
       await api.patch(`/api/users/${userId}/status`, { status: isActive ? 0 : 1 });
-      showToast(`User ${action}d successfully`, 'success');
+      showToast(isActive ? t('users.deactivated') : t('users.activated'), 'success');
       await loadUsers();
     } catch (err) {
       showToast('Failed: ' + err.message, 'danger');
@@ -332,11 +331,11 @@
   // Delete
   // ---------------------------------------------------------------------------
   window.deleteUser = async function (userId, name) {
-    const ok = await confirmDialog(`Delete user "${name}"? This action cannot be undone.`);
+    const ok = await confirmDialog(t('users.del_confirm', { name }));
     if (!ok) return;
     try {
       await api.delete(`/api/users/${userId}`);
-      showToast('User deleted successfully', 'success');
+      showToast(t('users.deleted'), 'success');
       await loadUsers();
     } catch (err) {
       showToast('Failed: ' + err.message, 'danger');

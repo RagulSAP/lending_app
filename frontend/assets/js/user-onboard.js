@@ -12,35 +12,35 @@
         <div class="col-lg-6">
           <div class="card">
             <div class="card-header-flex">
-              <h6 class="card-title"><i class="bi bi-person-plus me-2 text-primary"></i>New User Details</h6>
+              <h6 class="card-title"><i class="bi bi-person-plus me-2 text-primary"></i>${t('useronboard.title')}</h6>
             </div>
             <div id="form-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
             <form id="onboard-form" novalidate>
               <div class="mb-3">
-                <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                <label class="form-label">${t('useronboard.full_name')} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="f-name" placeholder="Enter full name" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                <label class="form-label">${t('useronboard.phone')} <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-phone"></i></span>
                   <input type="tel" class="form-control" id="f-phone" placeholder="10-digit phone" maxlength="10" required>
                 </div>
-                <div class="form-text">This will be used as login credential</div>
+                <div class="form-text">${t('useronboard.pass_hint')}</div>
               </div>
               <div class="mb-3">
-                <label class="form-label">Role <span class="text-danger">*</span></label>
+                <label class="form-label">${t('useronboard.role')} <span class="text-danger">*</span></label>
                 <select class="form-select" id="f-role" required>
-                  <option value="">Select a role...</option>
-                  <option value="1">Admin</option>
-                  <option value="2">Manager</option>
-                  <option value="3">Staff</option>
-                  <option value="4">Collector</option>
-                  <option value="5">Accountant</option>
+                  <option value="">${t('useronboard.select_role')}</option>
+                  <option value="1">${t('common.role_admin')}</option>
+                  <option value="2">${t('common.role_manager')}</option>
+                  <option value="3">${t('common.role_staff')}</option>
+                  <option value="4">${t('common.role_collector')}</option>
+                  <option value="5">${t('common.role_accountant')}</option>
                 </select>
               </div>
               <div class="mb-3">
-                <label class="form-label">Password <span class="text-danger">*</span></label>
+                <label class="form-label">${t('useronboard.password')} <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-lock"></i></span>
                   <input type="password" class="form-control" id="f-pass" placeholder="Min 6 characters" required>
@@ -48,17 +48,17 @@
                 </div>
               </div>
               <div class="mb-4">
-                <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                <label class="form-label">${t('useronboard.confirm_pass')} <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
                   <input type="password" class="form-control" id="f-pass2" placeholder="Repeat password" required>
                 </div>
               </div>
               <div class="d-flex gap-2">
-                <a href="users.html" class="btn btn-outline-secondary flex-fill"><i class="bi bi-arrow-left"></i> Back</a>
+                <a href="users.html" class="btn btn-outline-secondary flex-fill"><i class="bi bi-arrow-left"></i> ${t('useronboard.back')}</a>
                 <button type="submit" class="btn btn-primary flex-fill" id="submit-btn">
-                  <span id="submit-txt"><i class="bi bi-person-check me-1"></i>Create User</span>
-                  <span id="submit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Creating...</span>
+                  <span id="submit-txt"><i class="bi bi-person-check me-1"></i>${t('useronboard.create')}</span>
+                  <span id="submit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('useronboard.creating')}</span>
                 </button>
               </div>
             </form>
@@ -99,7 +99,7 @@
 
     try {
       await api.post('/api/users', { name, phone, password, role_id });
-      showToast('User created successfully!', 'success');
+      showToast(t('useronboard.success'), 'success');
       setTimeout(() => { window.location.href = 'users.html'; }, 1200);
     } catch (err) {
       errEl.textContent = err.message;

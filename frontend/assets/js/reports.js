@@ -26,7 +26,7 @@
 
   function renderPage() {
     const today = new Date().toISOString().split('T')[0];
-    const catOpts = '<option value="">All Categories</option>' +
+    const catOpts = `<option value="">${t('exp.all_cats')}</option>` +
       expenseCategories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
 
     document.getElementById('page-content').innerHTML = `
@@ -34,37 +34,37 @@
       <ul class="nav nav-tabs flex-wrap" id="report-tabs" style="margin-bottom:0;border-bottom:none;">
         <li class="nav-item">
           <a class="nav-link active" href="#" data-tab="transactions" onclick="switchTab('transactions');return false;">
-            <i class="bi bi-arrow-left-right me-1"></i>Transactions
+            <i class="bi bi-arrow-left-right me-1"></i>${t('rep.tab_tx')}
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="collection" onclick="switchTab('collection');return false;">
-            <i class="bi bi-cash-coin me-1"></i>Collection
+            <i class="bi bi-cash-coin me-1"></i>${t('rep.tab_coll')}
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="loans" onclick="switchTab('loans');return false;">
-            <i class="bi bi-file-earmark-text me-1"></i>Loans
+            <i class="bi bi-file-earmark-text me-1"></i>${t('rep.tab_loans')}
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="expenses" onclick="switchTab('expenses');return false;">
-            <i class="bi bi-receipt me-1"></i>Expenses
+            <i class="bi bi-receipt me-1"></i>${t('rep.tab_exp')}
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="topup" onclick="switchTab('topup');return false;">
-            <i class="bi bi-arrow-down-circle me-1"></i>Top Up
+            <i class="bi bi-arrow-down-circle me-1"></i>${t('rep.tab_topup')}
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="wallet-transfer" onclick="switchTab('wallet-transfer');return false;">
-            <i class="bi bi-arrow-left-right me-1"></i>Transfer
+            <i class="bi bi-arrow-left-right me-1"></i>${t('rep.tab_transfer')}
           </a>
         </li>
         <li class="nav-item">
           <a class="nav-link" href="#" data-tab="withdrawal" onclick="switchTab('withdrawal');return false;">
-            <i class="bi bi-box-arrow-up me-1"></i>Withdrawal
+            <i class="bi bi-box-arrow-up me-1"></i>${t('rep.tab_withdraw')}
           </a>
         </li>
       </ul>
@@ -73,46 +73,46 @@
       <div id="tab-transactions">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From <span class="text-danger">*</span></label>
+            <label class="form-label">${t('common.date_from')} <span class="text-danger">*</span></label>
             <input type="date" class="form-control" id="txn-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To <span class="text-danger">*</span></label>
+            <label class="form-label">${t('common.date_to')} <span class="text-danger">*</span></label>
             <input type="date" class="form-control" id="txn-to" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Payment Mode</label>
+            <label class="form-label">${t('rep.mode')}</label>
             <select class="form-select" id="txn-mode">
-              <option value="">All Modes</option>
-              <option value="CASH">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
-              <option value="CHEQUE">Cheque</option>
+              <option value="">${t('rep.all_modes')}</option>
+              <option value="CASH">${t('rep.cash')}</option>
+              <option value="UPI">${t('rep.upi')}</option>
+              <option value="BANK_TRANSFER">${t('rep.bank')}</option>
+              <option value="CHEQUE">${t('rep.cheque')}</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Type</label>
+            <label class="form-label">${t('rep.type')}</label>
             <select class="form-select" id="txn-type">
-              <option value="">All Types</option>
-              <option value="PAYMENT">Payment</option>
-              <option value="DISBURSEMENT">Disbursement</option>
+              <option value="">${t('rep.all_types')}</option>
+              <option value="PAYMENT">${t('rep.payment')}</option>
+              <option value="DISBURSEMENT">${t('rep.disbursement')}</option>
             </select>
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('transactions')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','transactions')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','transactions')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Transaction Records</h6>
+            <h6 class="card-title">${t('rep.tx_title')}</h6>
             <div class="d-flex gap-2 align-items-center">
               <span id="txn-total" class="fw-600 text-primary" style="font-size:13px;"></span>
               <span id="txn-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -121,10 +121,10 @@
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Date</th><th>Customer</th><th>Done By</th><th>Loan</th><th>Amount</th><th>Mode</th><th>Type</th></tr>
+                <tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_customer')}</th><th>${t('rep.col_done_by')}</th><th>${t('rep.col_loan')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_mode')}</th><th>${t('rep.type')}</th></tr>
               </thead>
               <tbody id="txn-tbody">
-                <tr><td colspan="8" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="8" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -136,38 +136,38 @@
       <div id="tab-collection" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From <span class="text-danger">*</span></label>
+            <label class="form-label">${t('common.date_from')} <span class="text-danger">*</span></label>
             <input type="date" class="form-control" id="col-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To <span class="text-danger">*</span></label>
+            <label class="form-label">${t('common.date_to')} <span class="text-danger">*</span></label>
             <input type="date" class="form-control" id="col-to" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Payment Mode</label>
+            <label class="form-label">${t('rep.mode')}</label>
             <select class="form-select" id="col-mode">
-              <option value="">All Modes</option>
-              <option value="CASH">Cash</option>
-              <option value="UPI">UPI</option>
-              <option value="BANK_TRANSFER">Bank Transfer</option>
-              <option value="CHEQUE">Cheque</option>
+              <option value="">${t('rep.all_modes')}</option>
+              <option value="CASH">${t('rep.cash')}</option>
+              <option value="UPI">${t('rep.upi')}</option>
+              <option value="BANK_TRANSFER">${t('rep.bank')}</option>
+              <option value="CHEQUE">${t('rep.cheque')}</option>
             </select>
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('collection')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','collection')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','collection')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Collection Records</h6>
+            <h6 class="card-title">${t('rep.coll_title')}</h6>
             <div class="d-flex gap-2 align-items-center">
               <span id="col-total" class="fw-600 text-success" style="font-size:13px;"></span>
               <span id="col-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -176,10 +176,10 @@
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Date</th><th>Customer</th><th>Loan #</th><th>Amount</th><th>Mode</th><th>Collected By</th></tr>
+                <tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_customer')}</th><th>${t('rep.col_loan')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_mode')}</th><th>${t('rep.col_collected_by')}</th></tr>
               </thead>
               <tbody id="col-tbody">
-                <tr><td colspan="7" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="7" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -191,54 +191,54 @@
       <div id="tab-loans" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From</label>
+            <label class="form-label">${t('common.date_from')}</label>
             <input type="date" class="form-control" id="loan-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To</label>
+            <label class="form-label">${t('common.date_to')}</label>
             <input type="date" class="form-control" id="loan-to" value="${today}">
           </div>
           <div class="form-group">
             <label class="form-label">Status</label>
             <select class="form-select" id="loan-status">
-              <option value="">All Statuses</option>
+              <option value="">${t('rep.all_statuses')}</option>
               <option value="ACTIVE">Active</option>
               <option value="OVERDUE">Overdue</option>
               <option value="CLOSED">Closed</option>
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Interest Type</label>
+            <label class="form-label">${t('rep.interest_type')}</label>
             <select class="form-select" id="loan-int">
-              <option value="">All Types</option>
-              <option value="FLAT">Flat</option>
-              <option value="REDUCING">Reducing</option>
+              <option value="">${t('rep.all_types')}</option>
+              <option value="FLAT">${t('rep.flat')}</option>
+              <option value="REDUCING">${t('rep.reducing')}</option>
             </select>
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('loans')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','loans')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','loans')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Loan Records</h6>
+            <h6 class="card-title">${t('rep.loans_title')}</h6>
             <span id="loan-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
           </div>
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Customer</th><th>Onboarded By</th><th>Disbursed</th><th>Outstanding</th><th># Instalments</th><th>Collection Amt</th><th>Status</th><th>Date</th></tr>
+                <tr><th>#</th><th>${t('rep.col_customer')}</th><th>Onboarded By</th><th>Disbursed</th><th>${t('rep.col_outstanding')}</th><th>${t('rep.col_installments')}</th><th>${t('rep.col_coll_amt')}</th><th>Status</th><th>${t('rep.col_date')}</th></tr>
               </thead>
               <tbody id="loan-tbody">
-                <tr><td colspan="9" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="9" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -250,32 +250,32 @@
       <div id="tab-expenses" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From</label>
+            <label class="form-label">${t('common.date_from')}</label>
             <input type="date" class="form-control" id="rep-exp-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To</label>
+            <label class="form-label">${t('common.date_to')}</label>
             <input type="date" class="form-control" id="rep-exp-to" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Category</label>
+            <label class="form-label">${t('exp.category')}</label>
             <select class="form-select" id="rep-exp-cat">${catOpts}</select>
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('expenses')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','expenses')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','expenses')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Expense Records</h6>
+            <h6 class="card-title">${t('rep.exp_title')}</h6>
             <div class="d-flex gap-2 align-items-center">
               <span id="exp-total" class="fw-600 text-danger" style="font-size:13px;"></span>
               <span id="exp-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -284,10 +284,10 @@
           <div class="table-container">
             <table class="table">
               <thead>
-                <tr><th>#</th><th>Date</th><th>Category</th><th>Amount</th><th>By</th><th>Remark</th></tr>
+                <tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('exp.col_category')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_by')}</th><th>${t('exp.col_remark')}</th></tr>
               </thead>
               <tbody id="exp-rep-tbody">
-                <tr><td colspan="6" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="6" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -299,28 +299,28 @@
       <div id="tab-topup" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From</label>
+            <label class="form-label">${t('common.date_from')}</label>
             <input type="date" class="form-control" id="tu-rep-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To</label>
+            <label class="form-label">${t('common.date_to')}</label>
             <input type="date" class="form-control" id="tu-rep-to" value="${today}">
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('topup')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','topup')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','topup')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Top Up Records</h6>
+            <h6 class="card-title">${t('rep.topup_title')}</h6>
             <div class="d-flex gap-2 align-items-center">
               <span id="tu-rep-total" class="fw-600 text-success" style="font-size:13px;"></span>
               <span id="tu-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -328,9 +328,9 @@
           </div>
           <div class="table-container">
             <table class="table">
-              <thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Done By</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>Remarks</th></tr></thead>
               <tbody id="tu-rep-tbody">
-                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -342,28 +342,28 @@
       <div id="tab-wallet-transfer" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From</label>
+            <label class="form-label">${t('common.date_from')}</label>
             <input type="date" class="form-control" id="wt-rep-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To</label>
+            <label class="form-label">${t('common.date_to')}</label>
             <input type="date" class="form-control" id="wt-rep-to" value="${today}">
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('wallet-transfer')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','wallet-transfer')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','wallet-transfer')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Wallet Transfer Records</h6>
+            <h6 class="card-title">${t('rep.transfer_title')}</h6>
             <div class="d-flex gap-2 align-items-center">
               <span id="wt-rep-total" class="fw-600 text-success" style="font-size:13px;"></span>
               <span id="wt-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -371,9 +371,9 @@
           </div>
           <div class="table-container">
             <table class="table">
-              <thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Done By</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>Remarks</th></tr></thead>
               <tbody id="wt-rep-tbody">
-                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -385,28 +385,28 @@
       <div id="tab-withdrawal" class="d-none">
         <div class="filter-bar" style="border-radius:0 12px 12px 12px;">
           <div class="form-group">
-            <label class="form-label">Date From</label>
+            <label class="form-label">${t('common.date_from')}</label>
             <input type="date" class="form-control" id="wd-rep-from" value="${today}">
           </div>
           <div class="form-group">
-            <label class="form-label">Date To</label>
+            <label class="form-label">${t('common.date_to')}</label>
             <input type="date" class="form-control" id="wd-rep-to" value="${today}">
           </div>
           <div class="form-group d-flex align-items-end gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="searchReport('withdrawal')">
-              <i class="bi bi-search me-1"></i>Search
+              <i class="bi bi-search me-1"></i>${t('common.search')}
             </button>
             <button class="btn btn-outline-success" onclick="exportReport('excel','withdrawal')">
-              <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
             </button>
             <button class="btn btn-outline-danger" onclick="exportReport('pdf','withdrawal')">
-              <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              <i class="bi bi-file-earmark-pdf me-1"></i>${t('common.pdf')}
             </button>
           </div>
         </div>
         <div class="card">
           <div class="card-header-flex">
-            <h6 class="card-title">Withdrawal Records</h6>
+            <h6 class="card-title">${t('rep.withdraw_title')}</h6>
             <div class="d-flex gap-2 align-items-center">
               <span id="wd-rep-total" class="fw-600 text-warning" style="font-size:13px;"></span>
               <span id="wd-rep-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
@@ -414,9 +414,9 @@
           </div>
           <div class="table-container">
             <table class="table">
-              <thead><tr><th>#</th><th>Date</th><th>Amount</th><th>Done By</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>Remarks</th></tr></thead>
               <tbody id="wd-rep-tbody">
-                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>Select filters and click Search to view records</td></tr>
+                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -498,11 +498,11 @@
       const offset = (currentPage - 1) * perPage;
 
       if (!rows.length) {
-        tbody.innerHTML = `<tr><td colspan="${colCount}" class="table-empty"><i class="bi bi-inbox"></i>No records found for selected filters</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colCount}" class="table-empty"><i class="bi bi-inbox"></i>${t('rep.no_records')}</td></tr>`;
       } else if (tab === 'transactions') {
         const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('txn-total');
-        if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
+        if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date || r.created_at)}</td>
@@ -516,7 +516,7 @@
       } else if (tab === 'collection') {
         const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('col-total');
-        if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
+        if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date || r.created_at)}</td>
@@ -541,7 +541,7 @@
       } else if (tab === 'expenses') {
         const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.expense_amount || 0), 0);
         const totEl = document.getElementById('exp-total');
-        if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
+        if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.expense_date || r.created_at)}</td>
@@ -556,7 +556,7 @@
         const totalAmt = rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById(totalIdMap[tab]);
         const amtClass = tab === 'withdrawal' ? 'text-warning fw-600' : 'text-success fw-600';
-        if (totEl) totEl.textContent = 'Total: ' + formatCurrency(totalAmt);
+        if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date)}</td>

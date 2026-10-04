@@ -81,25 +81,25 @@
     document.getElementById('page-content').innerHTML = `
       <div class="filter-bar">
         <div class="form-group">
-          <label class="form-label">Date From</label>
+          <label class="form-label">${t('dash.date_from')}</label>
           <input type="date" class="form-control" id="f-from" value="${firstOfMonth}">
         </div>
         <div class="form-group">
-          <label class="form-label">Date To</label>
+          <label class="form-label">${t('dash.date_to')}</label>
           <input type="date" class="form-control" id="f-to" value="${today}">
         </div>
         <div class="form-group d-flex align-items-end">
-          <button class="btn btn-primary" id="filter-btn"><i class="bi bi-search"></i> Search</button>
+          <button class="btn btn-primary" id="filter-btn"><i class="bi bi-search"></i> ${t('common.search')}</button>
         </div>
       </div>
       <div class="row g-3 mb-4" id="collector-stats"></div>
       <div class="card">
         <div class="card-header-flex">
-          <h6 class="card-title">Recent Collections</h6>
+          <h6 class="card-title">${t('dash.recent')}</h6>
         </div>
         <div class="table-container">
           <table class="table">
-            <thead><tr><th>Date</th><th>Customer</th><th>Loan #</th><th>Amount</th><th>Mode</th></tr></thead>
+            <thead><tr><th>${t('dash.col_date')}</th><th>${t('dash.col_customer')}</th><th>${t('dash.col_loan')}</th><th>${t('dash.col_amount')}</th><th>${t('dash.col_mode')}</th></tr></thead>
             <tbody id="coll-tbody"></tbody>
           </table>
         </div>
@@ -116,14 +116,14 @@
       const res = await api.get('/api/dashboard/summary', { date_from: from, date_to: to });
       const s = res.data || {};
       document.getElementById('collector-stats').innerHTML = `
-        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-cash-stack"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.collected_today || 0)}</div><div class="stat-label">Today's Collection</div></div></div></div>
-        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value">${s.total_collections_count || 0}</div><div class="stat-label">Period Count</div></div></div></div>
-        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon cyan"><i class="bi bi-graph-up-arrow"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.total_collections_amount || 0)}</div><div class="stat-label">Period Total</div></div></div></div>
-        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon indigo"><i class="bi bi-calendar-month"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.collected_this_month || 0)}</div><div class="stat-label">This Month</div></div></div></div>`;
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-cash-stack"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.collected_today || 0)}</div><div class="stat-label">${t('dash.today_coll')}</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-calendar-check"></i></div><div class="stat-body"><div class="stat-value">${s.total_collections_count || 0}</div><div class="stat-label">${t('dash.period_count')}</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon cyan"><i class="bi bi-graph-up-arrow"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.total_collections_amount || 0)}</div><div class="stat-label">${t('dash.period_total')}</div></div></div></div>
+        <div class="col-6 col-lg-3"><div class="stat-card"><div class="stat-icon indigo"><i class="bi bi-calendar-month"></i></div><div class="stat-body"><div class="stat-value">${formatCurrency(s.collected_this_month || 0)}</div><div class="stat-label">${t('dash.this_month')}</div></div></div></div>`;
       const payments = s.recent_payments || [];
       const tbody = document.getElementById('coll-tbody');
       if (!payments.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="table-empty"><i class="bi bi-inbox"></i>No recent collections</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="5" class="table-empty"><i class="bi bi-inbox"></i>${t('dash.no_recent')}</td></tr>`;
       } else {
         tbody.innerHTML = payments.map(p => `<tr><td>${formatDate(p.transaction_date)}</td><td>${p.customer_name || '-'}</td><td>#${p.loan_id || '-'}</td><td>${formatCurrency(p.amount)}</td><td><span class="badge bg-light text-dark">${p.payment_mode || '-'}</span></td></tr>`).join('');
       }
@@ -162,26 +162,26 @@
     document.getElementById('page-content').innerHTML = `
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
-        <div class="col-6 col-md-3">${finCard('kv-invest',    'Invest Balance',    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
-        <div class="col-6 col-md-3">${finCard('kv-interest',  'Interest Balance',  'linear-gradient(135deg,#16A34A,#059669)')}</div>
-        <div class="col-6 col-md-3">${finCard('kv-disbursed', 'Total Disbursed',   '#2563EB')}</div>
-        <div class="col-6 col-md-3">${finCard('kv-today',     'Collected Today',   '#0891B2')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-invest',    t('dash.invest_balance'),    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-interest',  t('dash.interest_balance'),  'linear-gradient(135deg,#16A34A,#059669)')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-disbursed', t('dash.total_disbursed'),   '#2563EB')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-today',     t('dash.collected_today'),   '#0891B2')}</div>
       </div>
 
       <!-- Operational mini-cards -->
       <div class="row g-2 mb-4">
-        <div class="col-6 col-md">${miniCard('mv-customers', 'Customers',   'bi-people',                'dash-chip-pink',   '#DB2777')}</div>
-        <div class="col-6 col-md">${miniCard('mv-loans',     'Active Loans','bi-file-earmark-text',     'dash-chip-blue',   '#2563EB')}</div>
-        <div class="col-6 col-md">${miniCard('mv-overdue',   'Overdue',     'bi-exclamation-triangle',  'dash-chip-red',    '#DC2626')}</div>
-        <div class="col-6 col-md">${miniCard('mv-month',     'This Month',  'bi-calendar-month',        'dash-chip-indigo', '#4F46E5')}</div>
-        <div class="col-6 col-md">${miniCard('mv-expenses',  'Expenses',    'bi-receipt',               'dash-chip-amber',  '#D97706')}</div>
+        <div class="col-6 col-md">${miniCard('mv-customers', t('dash.customers'),    'bi-people',               'dash-chip-pink',   '#DB2777')}</div>
+        <div class="col-6 col-md">${miniCard('mv-loans',     t('dash.active_loans'), 'bi-file-earmark-text',    'dash-chip-blue',   '#2563EB')}</div>
+        <div class="col-6 col-md">${miniCard('mv-overdue',   t('dash.overdue'),      'bi-exclamation-triangle', 'dash-chip-red',    '#DC2626')}</div>
+        <div class="col-6 col-md">${miniCard('mv-month',     t('dash.this_month'),   'bi-calendar-month',       'dash-chip-indigo', '#4F46E5')}</div>
+        <div class="col-6 col-md">${miniCard('mv-expenses',  t('dash.expenses'),     'bi-receipt',              'dash-chip-amber',  '#D97706')}</div>
       </div>
 
       <!-- Charts -->
       <div class="row g-3" style="flex:1;min-height:0;">
         <div class="col-md-4" style="display:flex;flex-direction:column;">
           <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
-            <div class="card-header-flex"><h6 class="card-title">Customer Status</h6></div>
+            <div class="card-header-flex"><h6 class="card-title">${t('dash.customer_status')}</h6></div>
             <div style="position:relative;flex:1;min-height:0;padding:8px 16px;">
               <canvas id="customer-chart"></canvas>
             </div>
@@ -190,12 +190,12 @@
         <div class="col-md-8" style="display:flex;flex-direction:column;">
           <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
             <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
-              <h6 class="card-title" style="margin:0;">Collection &amp; Disbursement Trend</h6>
+              <h6 class="card-title" style="margin:0;">${t('dash.collection_trend')}</h6>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                 <input type="date" id="trend-from" class="form-control form-control-sm" style="width:130px;">
                 <input type="date" id="trend-to"   class="form-control form-control-sm" style="width:130px;">
                 <button class="btn btn-sm btn-primary" id="trend-apply" style="padding:3px 10px;font-size:12px;">
-                  <i class="bi bi-search"></i> Apply
+                  <i class="bi bi-search"></i> ${t('common.apply')}
                 </button>
               </div>
             </div>
@@ -222,7 +222,7 @@
       document.getElementById('mv-expenses').textContent  = formatCurrency(s.expenses_this_month  || 0);
 
       // Customer loan status chart — populate module-level state then build
-      _custLabels = ['Active Loan', 'Completed', 'No Loan'];
+      _custLabels = [t('dash.active_loan'), t('dash.completed'), t('dash.no_loan')];
       _custColors = ['#2563EB', '#16A34A', '#94A3B8'];
       _custData   = [s.customers_with_active_loans || 0, s.customers_with_completed_loans || 0, s.customers_without_loans || 0];
       _custCanvas = document.getElementById('customer-chart');
@@ -253,7 +253,7 @@
               datasets: [
                 {
                   type: 'bar',
-                  label: 'Collected',
+                  label: t('dash.collected'),
                   data: collected,
                   backgroundColor: 'rgba(22,163,74,.65)',
                   borderRadius: 3,
@@ -262,7 +262,7 @@
                 },
                 {
                   type: 'line',
-                  label: 'Disbursed',
+                  label: t('dash.disbursed'),
                   data: disbursed,
                   borderColor: '#2563EB',
                   backgroundColor: 'rgba(37,99,235,.08)',

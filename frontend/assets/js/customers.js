@@ -11,7 +11,7 @@
   let photoModal = null;
 
   async function init() {
-    await initPage('Customers', [1, 2, 3, 4, 5]);
+    await initPage(t('cust.title'), [1, 2, 3, 4, 5]);
     currentUser = auth.getUser();
     injectPhotoModal();
     if (currentUser.role_id === ROLES.COLLECTOR) {
@@ -90,11 +90,11 @@
             </div>
           </div>
           <div class="row g-2 mb-3" style="font-size:13px;">
-            <div class="col-6"><span style="color:#64748B;">City:</span> ${c.city || '-'}</div>
+            <div class="col-6"><span style="color:#64748B;">${t('common.city')}:</span> ${c.city || '-'}</div>
             <div class="col-6"><span style="color:#64748B;">State:</span> ${c.state || '-'}</div>
           </div>
           <a href="collect-payment.html?customer_id=${c.customer_id}" class="btn btn-primary w-100">
-            <i class="bi bi-cash-coin me-2"></i>Collect Payment
+            <i class="bi bi-cash-coin me-2"></i>${t('pay.collect')}
           </a>
         </div>`;
     } catch (err) {
@@ -112,27 +112,27 @@
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);">
           <h6 style="margin:0;font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;">Customers List</h6>
           <div style="width:1px;height:22px;background:var(--border);"></div>
-          <input type="text" class="form-control form-control-sm" id="f-search" placeholder="Name or phone…" style="width:155px;">
-          <input type="text" class="form-control form-control-sm" id="f-city" placeholder="City…" style="width:110px;">
+          <input type="text" class="form-control form-control-sm" id="f-search" placeholder="${t('cust.filter_name')}" style="width:155px;">
+          <input type="text" class="form-control form-control-sm" id="f-city" placeholder="${t('cust.filter_city')}" style="width:110px;">
           <select class="form-select form-select-sm" id="f-status" style="width:115px;">
-            <option value="">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="">${t('common.all_status')}</option>
+            <option value="ACTIVE">${t('common.active')}</option>
+            <option value="INACTIVE">${t('common.inactive')}</option>
           </select>
-          <button type="button" class="btn btn-sm btn-primary" id="search-btn"><i class="bi bi-search me-1"></i>Search</button>
+          <button type="button" class="btn btn-sm btn-primary" id="search-btn"><i class="bi bi-search me-1"></i>${t('common.search')}</button>
           <div style="flex:1;"></div>
           <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
           <button type="button" class="btn btn-sm btn-outline-success" id="export-btn">
-            <i class="bi bi-file-earmark-excel me-1"></i>Excel
+            <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
           </button>
-          ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>Onboard</a>' : ''}
+          ${canOnboard ? `<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>${t('cust.onboard')}</a>` : ''}
         </div>
         <div class="table-container">
           <table class="table">
             <thead>
               <tr>
-                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Onboarded By</th><th>Status</th><th>Disbursed</th><th>Next Due</th>
-                ${canEdit ? '<th>Actions</th>' : ''}
+                <th>#</th><th>${t('cust.col_customer')}</th><th>${t('cust.col_phone')}</th><th>${t('cust.col_city')}</th><th>${t('cust.col_onboarded')}</th><th>${t('common.status')}</th><th>${t('cust.col_disbursed')}</th><th>${t('cust.col_next_due')}</th>
+                ${canEdit ? `<th>${t('common.actions')}</th>` : ''}
               </tr>
             </thead>
             <tbody id="cust-tbody"></tbody>
@@ -157,7 +157,7 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" style="font-size:16px;font-weight:600;">
-                <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Customer
+                <i class="bi bi-pencil-square me-2 text-primary"></i>${t('cust.edit_title')}
               </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -169,7 +169,7 @@
                   <input type="text" class="form-control" id="e-name" placeholder="Customer full name">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('pay.phone')} <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="e-phone" placeholder="10-digit phone" maxlength="10">
                 </div>
                 <div class="col-md-3">
@@ -184,7 +184,7 @@
                   </select>
                 </div>
                 <div class="col-md-3">
-                  <label class="form-label">City <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('common.city')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="e-city" placeholder="City">
                 </div>
                 <div class="col-md-3">
@@ -212,10 +212,10 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="save-edit-btn">
-                <span id="save-edit-txt"><i class="bi bi-check-lg me-1"></i>Save Changes</span>
-                <span id="save-edit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+                <span id="save-edit-txt"><i class="bi bi-check-lg me-1"></i>${t('common.save')}</span>
+                <span id="save-edit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}</span>
               </button>
             </div>
           </div>
@@ -286,7 +286,7 @@
       const offset = (currentPage - 1) * perPage;
       const colSpan = canEdit ? 9 : 8;
       if (!customers.length) {
-        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>No customers found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>${t('cust.no_customers')}</td></tr>`;
       } else {
         tbody.innerHTML = customers.map((c, i) => {
           const initials = (c.name || 'C').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -301,14 +301,14 @@
           const actionsCell = canEdit ? `
             <td onclick="event.stopPropagation()">
               <div class="d-flex gap-1">
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditModal('${c.customer_id}')" title="Edit">
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditModal('${c.customer_id}')" title="${t('common.edit')}">
                   <i class="bi bi-pencil"></i>
                 </button>
                 ${isAdmin ? `
-                <button type="button" class="btn btn-sm ${c.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'}" onclick="toggleStatus('${c.customer_id}','${c.status}')" title="${c.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}">
+                <button type="button" class="btn btn-sm ${c.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'}" onclick="toggleStatus('${c.customer_id}','${c.status}')" title="${c.status === 'ACTIVE' ? t('common.deactivate') : t('common.activate')}">
                   <i class="bi ${c.status === 'ACTIVE' ? 'bi-pause-fill' : 'bi-play-fill'}"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCustomer('${c.customer_id}','${c.name.replace(/'/g, "\\'")}')" title="Delete">
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCustomer('${c.customer_id}','${c.name.replace(/'/g, "\\'")}')" title="${t('common.delete')}">
                   <i class="bi bi-trash"></i>
                 </button>` : ''}
               </div>
@@ -425,7 +425,7 @@
       showToast('Export failed: ' + err.message, 'danger');
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-file-earmark-excel me-1"></i>Export Excel';
+      btn.innerHTML = `<i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}`;
     }
   }
 
@@ -536,7 +536,7 @@
 
   window.toggleStatus = async function (customerId, currentStatus) {
     const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const ok = await confirmDialog(`${newStatus === 'ACTIVE' ? 'Activate' : 'Deactivate'} this customer?`);
+    const ok = await confirmDialog(newStatus === 'ACTIVE' ? t('cust.activate_confirm') : t('cust.deactivate_confirm'));
     if (!ok) return;
     try {
       await api.patch(`/api/customers/${customerId}/status`, { status: newStatus });

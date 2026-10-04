@@ -4,7 +4,7 @@
   let orgList = [];
 
   async function init() {
-    await initPage('Organizations', [0]);
+    await initPage(t('org.title'), [0]);
     renderPage();
     await loadOrgs();
   }
@@ -12,19 +12,19 @@
   function renderPage() {
     document.getElementById('page-content').innerHTML = `
       <div class="page-header d-flex align-items-center justify-content-end">
-        <button class="btn btn-primary" id="add-org-btn"><i class="bi bi-plus-lg"></i> Add Organization</button>
+        <button class="btn btn-primary" id="add-org-btn"><i class="bi bi-plus-lg"></i> ${t('org.add')}</button>
       </div>
       <div class="row g-3 mb-4" id="org-stats">
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-building"></i></div><div class="stat-body"><div class="stat-value" id="stat-orgs">-</div><div class="stat-label">Total Organizations</div></div></div></div>
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-person-badge"></i></div><div class="stat-body"><div class="stat-value" id="stat-users">-</div><div class="stat-label">Total Users</div></div></div></div>
-        <div class="col-md-4"><div class="stat-card"><div class="stat-icon cyan"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value" id="stat-borrowers">-</div><div class="stat-label">Total Borrowers</div></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon blue"><i class="bi bi-building"></i></div><div class="stat-body"><div class="stat-value" id="stat-orgs">-</div><div class="stat-label">${t('org.total')}</div></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon green"><i class="bi bi-person-badge"></i></div><div class="stat-body"><div class="stat-value" id="stat-users">-</div><div class="stat-label">${t('org.total_users')}</div></div></div></div>
+        <div class="col-md-4"><div class="stat-card"><div class="stat-icon cyan"><i class="bi bi-people"></i></div><div class="stat-body"><div class="stat-value" id="stat-borrowers">-</div><div class="stat-label">${t('org.total_borrowers')}</div></div></div></div>
       </div>
       <div class="card">
-        <div class="card-header-flex"><h6 class="card-title">All Organizations</h6></div>
+        <div class="card-header-flex"><h6 class="card-title">${t('org.title')}</h6></div>
         <div class="table-container">
           <table class="table">
             <thead>
-              <tr><th>#</th><th>Organization Name</th><th>Phone</th><th>Users</th><th>Borrowers</th><th>Status</th><th>Actions</th></tr>
+              <tr><th>#</th><th>${t('org.col_org')}</th><th>${t('org.col_phone')}</th><th>${t('org.col_users')}</th><th>${t('org.col_borrowers')}</th><th>${t('common.status')}</th><th>${t('common.actions')}</th></tr>
             </thead>
             <tbody id="org-tbody"></tbody>
           </table>
@@ -36,46 +36,46 @@
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h6 class="modal-title fw-600"><i class="bi bi-pencil me-2 text-primary"></i>Edit Organization</h6>
+              <h6 class="modal-title fw-600"><i class="bi bi-pencil me-2 text-primary"></i>${t('org.edit_title')}</h6>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <div id="edit-org-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <input type="hidden" id="edit-org-id">
-              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Organization Details</h6>
+              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_org')}</h6>
               <div class="row g-3">
                 <div class="col-12">
-                  <label class="form-label">Organization Name <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.org_name')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="edit-org-name" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Phone</label>
+                  <label class="form-label">${t('org.org_phone')}</label>
                   <input type="tel" class="form-control" id="edit-org-phone" maxlength="10">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Status</label>
+                  <label class="form-label">${t('common.status')}</label>
                   <select class="form-select" id="edit-org-status">
-                    <option value="ACTIVE">Active</option>
-                    <option value="INACTIVE">Inactive</option>
+                    <option value="ACTIVE">${t('org.status_active')}</option>
+                    <option value="INACTIVE">${t('org.status_inactive')}</option>
                   </select>
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Address</label>
+                  <label class="form-label">${t('org.address')}</label>
                   <textarea class="form-control" id="edit-org-address" rows="2"></textarea>
                 </div>
               </div>
-              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Admin User Details</h6>
+              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_admin')}</h6>
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Admin Name <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.admin_name')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="edit-admin-name">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Admin Phone</label>
+                  <label class="form-label">${t('org.admin_phone')}</label>
                   <input type="tel" class="form-control" id="edit-admin-phone" maxlength="10">
                 </div>
                 <div class="col-12">
-                  <label class="form-label">New Password <span style="font-size:12px;color:#64748B;">(leave blank to keep current)</span></label>
+                  <label class="form-label">${t('org.new_password')} <span style="font-size:12px;color:#64748B;">(${t('org.pass_hint')})</span></label>
                   <div class="input-group">
                     <input type="password" class="form-control" id="edit-admin-password" placeholder="Min 6 characters">
                     <button type="button" class="btn btn-outline-secondary" onclick="togglePass('edit-admin-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
@@ -84,10 +84,10 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="save-edit-org-btn">
-                <span id="save-edit-txt"><i class="bi bi-check-lg me-1"></i>Save Changes</span>
-                <span id="save-edit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+                <span id="save-edit-txt"><i class="bi bi-check-lg me-1"></i>${t('common.save')}</span>
+                <span id="save-edit-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}</span>
               </button>
             </div>
           </div>
@@ -99,25 +99,25 @@
         <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-              <h6 class="modal-title fw-600"><i class="bi bi-exclamation-triangle me-2"></i>Delete Organization</h6>
+              <h6 class="modal-title fw-600"><i class="bi bi-exclamation-triangle me-2"></i>${t('org.delete_title')}</h6>
               <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <div id="del-org-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <input type="hidden" id="del-org-id">
-              <p class="mb-1">You are about to permanently delete <strong id="del-org-name"></strong>.</p>
-              <p class="text-danger mb-3" style="font-size:13px;"><i class="bi bi-exclamation-circle me-1"></i>This will delete all users, customers, loans, transactions, expenses and wallets belonging to this organization. This action cannot be undone.</p>
-              <label class="form-label">Enter your password to confirm <span class="text-danger">*</span></label>
+              <p class="mb-1" id="del-org-body"></p>
+              <p class="text-danger mb-3" style="font-size:13px;"><i class="bi bi-exclamation-circle me-1"></i>${t('org.delete_warning')}</p>
+              <label class="form-label">${t('org.enter_password')} <span class="text-danger">*</span></label>
               <div class="input-group">
                 <input type="password" class="form-control" id="del-org-password" placeholder="Your password">
                 <button type="button" class="btn btn-outline-secondary" onclick="togglePass('del-org-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-danger" id="confirm-del-btn">
-                <span id="confirm-del-txt"><i class="bi bi-trash me-1"></i>Delete</span>
-                <span id="confirm-del-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Deleting...</span>
+                <span id="confirm-del-txt"><i class="bi bi-trash me-1"></i>${t('common.delete')}</span>
+                <span id="confirm-del-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('org.deleting')}</span>
               </button>
             </div>
           </div>
@@ -129,38 +129,38 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header">
-              <h6 class="modal-title fw-600"><i class="bi bi-building-add me-2 text-primary"></i>Add New Organization</h6>
+              <h6 class="modal-title fw-600"><i class="bi bi-building-add me-2 text-primary"></i>${t('org.add_title')}</h6>
               <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
               <div id="org-form-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
-              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Organization Details</h6>
+              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_org')}</h6>
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Organization Name <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.org_name')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="org-name" placeholder="e.g. ABC Finance Pvt Ltd" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Phone Number <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.org_phone')} <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="org-phone" placeholder="10-digit phone" maxlength="10" required>
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Address</label>
+                  <label class="form-label">${t('org.address')}</label>
                   <textarea class="form-control" id="org-address" rows="2" placeholder="Full address"></textarea>
                 </div>
               </div>
-              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">Admin User Details</h6>
+              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_admin')}</h6>
               <div class="row g-3">
                 <div class="col-md-6">
-                  <label class="form-label">Admin Name <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.admin_name')} <span class="text-danger">*</span></label>
                   <input type="text" class="form-control" id="admin-name" placeholder="Full name" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Admin Phone <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.admin_phone')} <span class="text-danger">*</span></label>
                   <input type="tel" class="form-control" id="admin-phone" placeholder="10-digit phone" maxlength="10" required>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Password <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('useronboard.password')} <span class="text-danger">*</span></label>
                   <div class="input-group">
                     <input type="password" class="form-control" id="admin-pass" placeholder="Min 6 characters" required>
                     <button type="button" class="btn btn-outline-secondary" onclick="togglePass('admin-pass', this)" tabindex="-1">
@@ -169,7 +169,7 @@
                   </div>
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                  <label class="form-label">${t('org.confirm_password')} <span class="text-danger">*</span></label>
                   <div class="input-group">
                     <input type="password" class="form-control" id="admin-pass2" placeholder="Repeat password" required>
                     <button type="button" class="btn btn-outline-secondary" onclick="togglePass('admin-pass2', this)" tabindex="-1">
@@ -180,10 +180,10 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="save-org-btn">
-                <span id="save-org-txt"><i class="bi bi-plus-lg me-1"></i>Create Organization</span>
-                <span id="save-org-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Creating...</span>
+                <span id="save-org-txt"><i class="bi bi-plus-lg me-1"></i>${t('org.create')}</span>
+                <span id="save-org-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('org.creating')}</span>
               </button>
             </div>
           </div>
@@ -216,7 +216,7 @@
 
       const tbody = document.getElementById('org-tbody');
       if (!orgList.length) {
-        tbody.innerHTML = '<tr><td colspan="7" class="table-empty"><i class="bi bi-building"></i>No organizations found</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-building"></i>${t('org.no_orgs')}</td></tr>`;
         return;
       }
       tbody.innerHTML = orgList.map((o, i) => `
@@ -228,8 +228,8 @@
           <td><span class="fw-600">${o.borrower_count || 0}</span></td>
           <td>${statusBadge(o.status || 'ACTIVE')}</td>
           <td class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-primary" title="Edit" onclick="editOrg('${o.org_id}')"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteOrg('${o.org_id}')"><i class="bi bi-trash"></i></button>
+            <button class="btn btn-sm btn-outline-primary" title="${t('common.edit')}" onclick="editOrg('${o.org_id}')"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" title="${t('common.delete')}" onclick="deleteOrg('${o.org_id}')"><i class="bi bi-trash"></i></button>
           </td>
         </tr>`).join('');
     } catch (err) {
@@ -265,7 +265,7 @@
     try {
       await api.post('/api/organizations', { name, address, phone, admin_name, admin_phone, admin_password });
       bootstrap.Modal.getInstance(document.getElementById('addOrgModal')).hide();
-      showToast('Organization created successfully!', 'success');
+      showToast(t('org.created'), 'success');
       ['org-name','org-phone','org-address','admin-name','admin-phone','admin-pass','admin-pass2'].forEach(id => { document.getElementById(id).value = ''; });
       await loadOrgs();
     } catch (err) {
@@ -321,7 +321,7 @@
     try {
       await api.patch(`/api/organizations/${orgId}`, payload);
       bootstrap.Modal.getInstance(document.getElementById('editOrgModal')).hide();
-      showToast('Organization updated successfully!', 'success');
+      showToast(t('org.updated'), 'success');
       await loadOrgs();
     } catch (err) {
       errEl.textContent = err.message;
@@ -337,7 +337,7 @@
     const org = orgList.find(o => o.org_id === orgId);
     if (!org) return;
     document.getElementById('del-org-id').value = org.org_id;
-    document.getElementById('del-org-name').textContent = org.name;
+    document.getElementById('del-org-body').textContent = t('org.delete_body', {name: org.name});
     document.getElementById('del-org-password').value = '';
     document.getElementById('del-org-error').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('deleteOrgModal')).show();
@@ -358,7 +358,7 @@
     try {
       await api.delete(`/api/organizations/${orgId}`, { password });
       bootstrap.Modal.getInstance(document.getElementById('deleteOrgModal')).hide();
-      showToast('Organization deleted successfully.', 'success');
+      showToast(t('org.deleted'), 'success');
       await loadOrgs();
     } catch (err) {
       errEl.textContent = err.message;

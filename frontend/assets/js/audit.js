@@ -185,25 +185,25 @@
       <!-- Filter bar -->
       <div class="filter-bar mb-4">
         <div class="form-group">
-          <label class="form-label">From</label>
+          <label class="form-label">${t('audit.from')}</label>
           <input type="date" id="flt-from" class="form-control" value="${today}">
         </div>
         <div class="form-group">
-          <label class="form-label">To</label>
+          <label class="form-label">${t('audit.to')}</label>
           <input type="date" id="flt-to" class="form-control" value="${today}">
         </div>
         <div class="form-group">
-          <label class="form-label">User</label>
+          <label class="form-label">${t('audit.user')}</label>
           <select id="flt-user" class="form-select">
-            <option value="">All users</option>
+            <option value="">${t('audit.all_users')}</option>
           </select>
         </div>
         <div class="d-flex gap-2 align-items-end flex-wrap">
           <button class="btn btn-primary" onclick="auditPage.search()">
-            <i class="bi bi-search me-1"></i>Search
+            <i class="bi bi-search me-1"></i>${t('audit.search')}
           </button>
           <button class="btn btn-outline-secondary" onclick="auditPage.clearFilters()">
-            <i class="bi bi-x-circle me-1"></i>Clear
+            <i class="bi bi-x-circle me-1"></i>${t('audit.clear')}
           </button>
         </div>
         <span id="session-count" class="small text-secondary align-self-center ms-auto"></span>
@@ -226,7 +226,7 @@
             <div id="drawer-user-info"></div>
             <div class="d-flex gap-2 align-items-center">
               <button class="replay-btn" onclick="auditPage.replay()">
-                <i class="bi bi-arrow-repeat me-1"></i>Replay
+                <i class="bi bi-arrow-repeat me-1"></i>${t('audit.replay')}
               </button>
               <button class="btn btn-sm btn-light" onclick="auditPage.closeDrawer()">
                 <i class="bi bi-x-lg"></i>
@@ -272,10 +272,10 @@
       const sessions = res.data.sessions || [];
       const total    = res.data.total || 0;
       document.getElementById('session-count').textContent =
-        total === 0 ? 'No sessions found' : `${total} session${total !== 1 ? 's' : ''} found`;
+        total === 0 ? t('audit.no_sessions') : t('audit.sessions_found', { n: total });
 
       if (sessions.length === 0) {
-        grid.innerHTML = `<div class="col-12"><div class="audit-empty"><i class="bi bi-journal-x fs-2 d-block mb-2"></i>No sessions for this period</div></div>`;
+        grid.innerHTML = `<div class="col-12"><div class="audit-empty"><i class="bi bi-journal-x fs-2 d-block mb-2"></i>${t('audit.no_sessions_period')}</div></div>`;
         return;
       }
 
@@ -310,18 +310,18 @@
           </div>
           <div class="row g-2 mb-3">
             <div class="col-6">
-              <div class="small text-secondary">Started</div>
+              <div class="small text-secondary">${t('audit.started')}</div>
               <div class="fw-semibold small">${startStr}</div>
             </div>
             <div class="col-6">
-              <div class="small text-secondary">Duration</div>
+              <div class="small text-secondary">${t('audit.duration')}</div>
               <div class="fw-semibold small">${durStr}</div>
             </div>
           </div>
           <div class="d-flex align-items-center justify-content-between">
             <div class="d-flex gap-2">
               <span class="action-badge" style="background:#EEF2FF; color:#6366F1;">
-                <i class="bi bi-activity"></i> ${s.action_count} actions
+                <i class="bi bi-activity"></i> ${s.action_count} ${t('audit.actions')}
               </span>
               ${s.ip_address ? `<span class="action-badge" style="background:#F1F5F9; color:#64748B;"><i class="bi bi-router"></i> ${esc(s.ip_address)}</span>` : ''}
             </div>
@@ -384,7 +384,7 @@
     const dur     = fmtDuration(s.duration_seconds);
     const sidStr  = s.session_id ? s.session_id.slice(0, 16) + '…' : '—';
     const items   = [
-      `<span><i class="bi bi-activity me-1"></i>${s.action_count} actions</span>`,
+      `<span><i class="bi bi-activity me-1"></i>${s.action_count} ${t('audit.actions')}</span>`,
       `<span><i class="bi bi-clock me-1"></i>${dur}</span>`,
       s.ip_address ? `<span><i class="bi bi-router me-1"></i>${esc(s.ip_address)}</span>` : '',
       `<span style="font-family:monospace; font-size:10px; color:#94A3B8;">${sidStr}</span>`,
@@ -394,7 +394,7 @@
 
   /* ── Timeline HTML ───────────────────────────────────────────────────────── */
   function buildTimelineHTML(actions) {
-    if (!actions.length) return '<div class="audit-empty">No actions recorded</div>';
+    if (!actions.length) return `<div class="audit-empty">${t('audit.no_actions')}</div>`;
 
     return `<div class="timeline-wrap">${actions.map((a, i) => {
       const c   = cat(a.action_category);
