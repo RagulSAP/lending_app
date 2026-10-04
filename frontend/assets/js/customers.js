@@ -131,7 +131,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>#</th><th>${t('cust.col_customer')}</th><th>${t('cust.col_phone')}</th><th>${t('cust.col_city')}</th><th>${t('cust.col_onboarded')}</th><th>${t('common.status')}</th><th>${t('cust.col_disbursed')}</th><th>${t('cust.col_next_due')}</th>
+                <th>#</th><th>${t('cust.col_customer')}</th><th>${t('cust.col_phone')}</th><th>${t('cust.col_city')}</th><th>${t('common.status')}</th><th>${t('cust.col_disbursed')}</th><th>${t('cust.col_outstanding')}</th><th>${t('cust.col_installment')}</th><th>${t('cust.col_next_due')}</th>
                 ${canEdit ? `<th>${t('common.actions')}</th>` : ''}
               </tr>
             </thead>
@@ -284,7 +284,7 @@
 
       const tbody = document.getElementById('cust-tbody');
       const offset = (currentPage - 1) * perPage;
-      const colSpan = canEdit ? 9 : 8;
+      const colSpan = canEdit ? 10 : 9;
       if (!customers.length) {
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>${t('cust.no_customers')}</td></tr>`;
       } else {
@@ -332,9 +332,10 @@
               </div>
             </td>
             <td>${c.city || '-'}</td>
-            <td>${c.onboarded_by || '-'}</td>
             <td>${statusBadge(c.status || 'ACTIVE')}</td>
-            <td>${c.loan_disbursed_date ? formatDate(c.loan_disbursed_date) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+            <td>${c.disbursement_amount != null ? formatCurrency(c.disbursement_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+            <td>${c.outstanding_amount != null ? `<span class="fw-600" style="color:#DC2626;">${formatCurrency(c.outstanding_amount)}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+            <td>${c.installment_amount != null ? formatCurrency(c.installment_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${nextDueCell}</td>
             ${actionsCell}
           </tr>`;
@@ -342,7 +343,7 @@
       }
       renderPagination();
     } catch (err) {
-      document.getElementById('cust-tbody').innerHTML = `<tr><td colspan="9" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
+      document.getElementById('cust-tbody').innerHTML = `<tr><td colspan="10" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
       showToast('Failed to load customers: ' + err.message, 'danger');
     } finally {
       hideLoading();

@@ -207,13 +207,14 @@ def list_customers():
         # Batch-fetch loan info per customer
         customer_ids = [c.customer_id for c in customers]
 
-        # Most recent active loan's disbursement date per customer
+        # Most recent active loan summary per customer
         disburse_map = {}
         if customer_ids:
-            dis_rows = (
+            # Subquery: latest disbursement_date per customer
+            latest_sub = (
                 db.query(
-                    Loan.customer_id,
-                    func.max(Loan.disbursement_date).label("dis_date"),
+                    Loan.customer_id.label("cid"),
+                    func.max(Loan.disbursement_date).label("max_date"),
                 )
                 .filter(
                     Loan.customer_id.in_(customer_ids),
@@ -221,10 +222,30 @@ def list_customers():
                     Loan.status.in_(["ACTIVE", "OVERDUE"]),
                 )
                 .group_by(Loan.customer_id)
+                .subquery("latest_sub")
+            )
+            dis_rows = (
+                db.query(
+                    Loan.customer_id,
+                    Loan.disbursement_date,
+                    Loan.disbursement_amount,
+                    Loan.balance_amount,
+                    Loan.installment_amount,
+                )
+                .join(latest_sub, and_(
+                    Loan.customer_id == latest_sub.c.cid,
+                    Loan.disbursement_date == latest_sub.c.max_date,
+                ))
+                .filter(Loan.status.in_(["ACTIVE", "OVERDUE"]))
                 .all()
             )
             disburse_map = {
-                row.customer_id: row.dis_date.isoformat() if row.dis_date else None
+                row.customer_id: {
+                    "date":               row.disbursement_date.isoformat() if row.disbursement_date else None,
+                    "disbursement_amount": float(row.disbursement_amount or 0),
+                    "balance_amount":      float(row.balance_amount or 0),
+                    "installment_amount":  float(row.installment_amount or 0),
+                }
                 for row in dis_rows
             }
 
@@ -273,7 +294,11 @@ def list_customers():
         for c in customers:
             d = model_to_dict(c)
             d["onboarded_by"] = creator_map.get(c.created_by) if c.created_by else None
-            d["loan_disbursed_date"] = disburse_map.get(c.customer_id)
+            loan_info = disburse_map.get(c.customer_id) or {}
+            d["loan_disbursed_date"]  = loan_info.get("date")
+            d["disbursement_amount"]  = loan_info.get("disbursement_amount")
+            d["outstanding_amount"]   = loan_info.get("balance_amount")
+            d["installment_amount"]   = loan_info.get("installment_amount")
             nd = next_due_map.get(c.customer_id, {})
             d["next_due_date"] = nd.get("next_due_date")
             d["next_due_amount"] = nd.get("next_due_amount")
