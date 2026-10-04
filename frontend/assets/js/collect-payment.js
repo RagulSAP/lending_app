@@ -49,7 +49,15 @@
       <div class="card d-none" id="step2-card">
         <div class="card-header-flex">
           <h6 class="card-title"><span class="badge bg-primary me-2">2</span>${t('pay.select_loan')}</h6>
-          <div class="d-flex gap-2">
+          <div class="d-flex gap-2 align-items-center">
+            <div id="loan-export-btns" class="d-none d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-outline-success" onclick="exportLoanExcel()">
+                <i class="bi bi-file-earmark-excel me-1"></i>Excel
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-danger" onclick="exportLoanPdf()">
+                <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+              </button>
+            </div>
             <button type="button" class="btn btn-sm btn-outline-primary d-none" id="add-loan-btn">
               <i class="bi bi-plus-circle me-1"></i>${t('pay.add_loan')}
             </button>
@@ -144,6 +152,14 @@
               </div>
             </div>
             <div class="modal-footer">
+              <div class="me-auto d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="exportLoanExcel()">
+                  <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger" onclick="exportLoanPdf()">
+                  <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                </button>
+              </div>
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-success d-none" id="pm-submit-btn">
                 <span id="pm-submit-txt"><i class="bi bi-check-circle me-2"></i>Record Payment</span>
@@ -297,6 +313,9 @@
       installments = loanData.installments || [];
       // Merge full API data (has total_paid, balance_amount, etc.) onto selected
       selectedLoan = Object.assign({}, selectedLoan, loanData);
+      // Reveal export buttons in step2 header
+      const exportBtns = document.getElementById('loan-export-btns');
+      if (exportBtns) exportBtns.classList.remove('d-none');
       delete selectedLoan.installments; // keep it in the separate array
       openPaymentModal();
     } catch (err) {
@@ -672,6 +691,157 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Export helpers
+  // ---------------------------------------------------------------------------
+  function buildLoanSummaryRows() {
+    const l = selectedLoan;
+    const c = selectedCustomer;
+    const totalPayable = l.total_payable || (parseFloat(l.installment_amount) * parseInt(l.num_installments));
+    return [
+      ['Customer Name', c ? c.name : ''],
+      ['Phone', c ? c.phone : ''],
+      ['City', c ? (c.city || '') : ''],
+      [],
+      ['Loan ID', l.loan_id],
+      ['Disbursed Amount', parseFloat(l.disbursement_amount) || 0],
+      ['Installment Type', l.installment_type],
+      ['No. of Installments', l.num_installments],
+      ['Installment Amount', parseFloat(l.installment_amount) || 0],
+      ['Total Payable', parseFloat(totalPayable) || 0],
+      ['Total Paid', parseFloat(l.total_paid) || 0],
+      ['Balance Amount', parseFloat(l.balance_amount) || 0],
+      ['Status', l.status],
+      ['Disbursement Date', l.disbursement_date || ''],
+    ];
+  }
+
+  function buildInstallmentRows() {
+    return installments.map(inst => {
+      const balance = parseFloat(inst.balance_amount || 0) ||
+        ((parseFloat(inst.total_amount) || 0) - (parseFloat(inst.paid_amount) || 0));
+      return [
+        inst.installment_number,
+        inst.due_date || '',
+        parseFloat(inst.total_amount) || 0,
+        parseFloat(inst.paid_amount) || 0,
+        balance,
+        inst.status,
+      ];
+    });
+  }
+
+  window.exportLoanExcel = function () {
+    if (!selectedLoan || !selectedCustomer) return;
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([]);
+    let r = 0;
+
+    // Title
+    XLSX.utils.sheet_add_aoa(ws, [['LOAN DETAILS']], { origin: r++ });
+    XLSX.utils.sheet_add_aoa(ws, [['']], { origin: r++ });
+
+    // Summary
+    const summaryRows = buildLoanSummaryRows();
+    XLSX.utils.sheet_add_aoa(ws, summaryRows, { origin: r });
+    r += summaryRows.length + 1;
+
+    // Installment schedule header
+    XLSX.utils.sheet_add_aoa(ws, [['INSTALLMENT SCHEDULE']], { origin: r++ });
+    XLSX.utils.sheet_add_aoa(ws, [['#', 'Due Date', 'Total Amount (₹)', 'Paid Amount (₹)', 'Balance (₹)', 'Status']], { origin: r++ });
+    const instRows = buildInstallmentRows();
+    XLSX.utils.sheet_add_aoa(ws, instRows, { origin: r });
+
+    // Column widths
+    ws['!cols'] = [{ wch: 22 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 16 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Loan Details');
+
+    const name = selectedCustomer.name.replace(/\s+/g, '_');
+    XLSX.writeFile(wb, `Loan_${name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  window.exportLoanPdf = function () {
+    if (!selectedLoan || !selectedCustomer) return;
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const l = selectedLoan;
+    const c = selectedCustomer;
+    const totalPayable = l.total_payable || (parseFloat(l.installment_amount) * parseInt(l.num_installments));
+    let y = 15;
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Loan Details', 14, y);
+    y += 8;
+
+    // Customer block
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Customer: ${c.name}   |   Phone: ${c.phone}${c.city ? '   |   City: ' + c.city : ''}`, 14, y);
+    y += 6;
+    doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, 14, y);
+    y += 6;
+
+    // Loan summary table
+    doc.autoTable({
+      startY: y,
+      head: [['Field', 'Value']],
+      body: [
+        ['Loan ID', l.loan_id],
+        ['Disbursed Amount', formatCurrency(l.disbursement_amount)],
+        ['Installment Type', l.installment_type],
+        ['No. of Installments', String(l.num_installments)],
+        ['Installment Amount', formatCurrency(l.installment_amount)],
+        ['Total Payable', formatCurrency(totalPayable)],
+        ['Total Paid', formatCurrency(l.total_paid || 0)],
+        ['Balance Amount', formatCurrency(l.balance_amount || 0)],
+        ['Status', l.status],
+        ['Disbursement Date', l.disbursement_date || '—'],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [0, 51, 102], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9 },
+      columnStyles: { 0: { fontStyle: 'bold', cellWidth: 55 } },
+      margin: { left: 14, right: 14 },
+    });
+
+    y = doc.lastAutoTable.finalY + 8;
+
+    // Installment schedule header
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('Installment Schedule', 14, y);
+    y += 4;
+
+    const instRows = buildInstallmentRows().map(row => [
+      String(row[0]),
+      String(row[1]),
+      formatCurrency(row[2]),
+      formatCurrency(row[3]),
+      formatCurrency(row[4]),
+      String(row[5]),
+    ]);
+
+    doc.autoTable({
+      startY: y,
+      head: [['#', 'Due Date', 'Total', 'Paid', 'Balance', 'Status']],
+      body: instRows,
+      theme: 'grid',
+      headStyles: { fillColor: [0, 51, 102], textColor: 255, fontSize: 9, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 8 },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 28 },
+        5: { cellWidth: 22 },
+      },
+      margin: { left: 14, right: 14 },
+    });
+
+    const name = c.name.replace(/\s+/g, '_');
+    doc.save(`Loan_${name}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  // ---------------------------------------------------------------------------
   // Reset
   // ---------------------------------------------------------------------------
   function resetToStep1() {
@@ -685,6 +855,8 @@
     document.getElementById('step2-card').classList.add('d-none');
     const addLoanBtn = document.getElementById('add-loan-btn');
     if (addLoanBtn) addLoanBtn.classList.add('d-none');
+    const exportBtns = document.getElementById('loan-export-btns');
+    if (exportBtns) exportBtns.classList.add('d-none');
   }
 
   init();
