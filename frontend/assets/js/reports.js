@@ -31,7 +31,7 @@
 
     document.getElementById('page-content').innerHTML = `
       <!-- Tab Navigation -->
-      <ul class="nav nav-tabs flex-wrap" id="report-tabs" style="margin-bottom:0;border-bottom:none;">
+      <ul class="nav nav-tabs" id="report-tabs" style="margin-bottom:0;border-bottom:none;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
         <li class="nav-item">
           <a class="nav-link active" href="#" data-tab="transactions" onclick="switchTab('transactions');return false;">
             <i class="bi bi-arrow-left-right me-1"></i>${t('rep.tab_tx')}
@@ -117,7 +117,7 @@
             </div>
           </div>
           <div class="table-container">
-            <table class="table">
+            <table class="table table-wide">
               <thead>
                 <tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_customer')}</th><th>${t('rep.col_done_by')}</th><th>${t('rep.col_loan')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_mode')}</th><th>${t('rep.type')}</th></tr>
               </thead>
@@ -172,7 +172,7 @@
             </div>
           </div>
           <div class="table-container">
-            <table class="table">
+            <table class="table table-wide">
               <thead>
                 <tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_customer')}</th><th>${t('rep.col_loan')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_mode')}</th><th>${t('rep.col_collected_by')}</th></tr>
               </thead>
@@ -231,7 +231,7 @@
             <span id="loan-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
           </div>
           <div class="table-container">
-            <table class="table">
+            <table class="table table-wide">
               <thead>
                 <tr><th>#</th><th>${t('rep.col_customer')}</th><th>Onboarded By</th><th>Disbursed</th><th>${t('rep.col_outstanding')}</th><th>${t('rep.col_installments')}</th><th>${t('rep.col_coll_amt')}</th><th>Status</th><th>${t('rep.col_date')}</th></tr>
               </thead>
@@ -500,7 +500,7 @@
           <td>${r.category_name || '-'}</td>
           <td class="fw-600 text-danger">${formatCurrency(r.expense_amount)}</td>
           <td>${r.entered_by || r.user_name || '-'}</td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.expense_remark || r.remark || '-'}</td>
+          <td style="max-width:200px;word-break:break-word;white-space:normal;">${r.expense_remark || r.remark || '-'}</td>
         </tr>`).join('');
       } else if (tab === 'topup') {
         const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
@@ -511,7 +511,7 @@
           <td>${formatDate(r.transaction_date)}</td>
           <td class="text-success fw-600">${formatCurrency(r.amount)}</td>
           <td>${r.collected_by || '-'}</td>
-          <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks || '-'}</td>
+          <td style="max-width:220px;word-break:break-word;white-space:normal;">${r.remarks || '-'}</td>
         </tr>`).join('');
       } else {
         // withdrawal
@@ -524,7 +524,7 @@
           <td class="text-warning fw-600">${formatCurrency(r.amount)}</td>
           <td>${r.collected_by || '-'}</td>
           <td>${r.partner_name ? `<span class="fw-600">${r.partner_name}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
-          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks || '-'}</td>
+          <td style="max-width:200px;word-break:break-word;white-space:normal;">${r.remarks || '-'}</td>
         </tr>`).join('');
       }
 

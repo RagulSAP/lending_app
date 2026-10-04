@@ -184,7 +184,7 @@
             <td>${formatDate(u.created_at)}</td>
             ${isAdmin ? `<td>
               ${u.role_id === 1 ? '<span style="font-size:12px;color:#94a3b8;">—</span>' : `
-              <div class="d-flex gap-1 flex-wrap">
+              <div class="d-flex gap-1 flex-wrap action-btns">
                 <button type="button" class="btn btn-sm btn-outline-primary"
                   onclick="openEditModal('${u.user_id}')" title="${t('common.edit')}">
                   <i class="bi bi-pencil"></i>

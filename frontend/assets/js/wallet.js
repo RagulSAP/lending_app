@@ -56,43 +56,43 @@
         <div class="col-6 col-md-3">
           <div class="card text-center" style="background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;border:none;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.invest_balance')}</div>
-            <div id="stat-invest-balance" style="font-size:22px;font-weight:700;">—</div>
+            <div id="stat-invest-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.rotation_balance')}</div>
-            <div id="stat-rotation-balance" style="font-size:22px;font-weight:700;">—</div>
+            <div id="stat-rotation-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center" style="background:linear-gradient(135deg,#16A34A,#059669);color:#fff;border:none;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.interest_balance')}</div>
-            <div id="stat-interest-balance" style="font-size:22px;font-weight:700;">—</div>
+            <div id="stat-interest-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_topped')}</div>
-            <div id="stat-topup" style="font-size:18px;font-weight:700;color:#16A34A;">—</div>
+            <div id="stat-topup" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#16A34A;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_disbursed')}</div>
-            <div id="stat-disburse" style="font-size:18px;font-weight:700;color:#DC2626;">—</div>
+            <div id="stat-disburse" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#DC2626;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_collected')}</div>
-            <div id="stat-collect" style="font-size:18px;font-weight:700;color:#2563EB;">—</div>
+            <div id="stat-collect" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#2563EB;">—</div>
           </div>
         </div>
         <div class="col-6 col-md-3">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_withdrawn')}</div>
-            <div id="stat-withdraw" style="font-size:18px;font-weight:700;color:#D97706;">—</div>
+            <div id="stat-withdraw" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#D97706;">—</div>
           </div>
         </div>
       </div>
@@ -459,14 +459,14 @@
                         <input type="radio" name="wd-source" value="invest" style="accent-color:#2563EB;">
                         <div>
                           <div style="font-size:13px;font-weight:600;color:#1E40AF;">${t('wallet.invest_bal')}</div>
-                          <div id="wd-invest-bal" style="font-size:12px;color:#64748B;">—</div>
+                          <div id="wd-invest-bal" style="font-size:12px;color:#64748B;word-break:break-all;line-height:1.3;">—</div>
                         </div>
                       </label>
                       <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-interest">
                         <input type="radio" name="wd-source" value="interest" style="accent-color:#16A34A;">
                         <div>
                           <div style="font-size:13px;font-weight:600;color:#166534;">${t('wallet.interest_bal')}</div>
-                          <div id="wd-interest-bal" style="font-size:12px;color:#64748B;">—</div>
+                          <div id="wd-interest-bal" style="font-size:12px;color:#64748B;word-break:break-all;line-height:1.3;">—</div>
                         </div>
                       </label>
                     </div>

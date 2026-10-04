@@ -83,7 +83,7 @@
           </div>
         </div>
         <div class="table-container">
-          <table class="table">
+          <table class="table table-wide">
             <thead>
               <tr>
                 <th>#</th>
@@ -289,10 +289,9 @@
             <td>${e.category_name || '-'}</td>
             <td class="fw-600 text-danger">${formatCurrency(e.expense_amount)}</td>
             <td>${e.entered_by || '-'}</td>
-            <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-                title="${safeRemark}">${e.expense_remark || e.remark || '-'}</td>
+            <td style="max-width:180px;word-break:break-word;white-space:normal;">${e.expense_remark || e.remark || '-'}</td>
             ${canManage ? `<td>
-              <div class="d-flex gap-1">
+              <div class="d-flex gap-1 action-btns">
                 <button type="button" class="btn btn-sm btn-outline-primary"
                   onclick="openEditExpense('${e.expense_id}','${e.category_id}','${e.expense_amount}','${(e.expense_remark||'').replace(/'/g,"\\'")}','${(e.expense_date||'').slice(0,10)}')"
                   title="${t('common.edit')}"><i class="bi bi-pencil"></i></button>

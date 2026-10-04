@@ -290,7 +290,7 @@ try {
         modal.className = 'modal fade';
         modal.tabIndex = -1;
         modal.innerHTML = `
-          <div class="modal-dialog modal-dialog-centered modal-sm">
+          <div class="modal-dialog">
             <div class="modal-content">
               <div class="modal-header border-0 pb-0">
                 <h6 class="modal-title fw-600"><i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>${t('common.confirm_title')}</h6>

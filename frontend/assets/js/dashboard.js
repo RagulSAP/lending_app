@@ -152,7 +152,7 @@
           <i class="bi ${icon}" style="font-size:15px;color:${color};"></i>
         </div>
         <div style="min-width:0;">
-          <div id="${id}" style="font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+          <div id="${id}" style="font-size:clamp(12px,3.5vw,15px);font-weight:700;color:var(--text-primary);line-height:1.2;word-break:break-word;">—</div>
           ${subId ? `<div id="${subId}" style="font-size:10px;color:${color};font-weight:600;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>` : ''}
           <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
         </div>
@@ -193,9 +193,9 @@
             <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
               <h6 class="card-title" style="margin:0;">${t('dash.collection_trend')}</h6>
               <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                <input type="date" id="trend-from" class="form-control form-control-sm" style="width:130px;">
-                <input type="date" id="trend-to"   class="form-control form-control-sm" style="width:130px;">
-                <button class="btn btn-sm btn-primary" id="trend-apply" style="padding:3px 10px;font-size:12px;">
+                <input type="date" id="trend-from" class="form-control form-control-sm" style="flex:1;min-width:110px;">
+                <input type="date" id="trend-to"   class="form-control form-control-sm" style="flex:1;min-width:110px;">
+                <button class="btn btn-sm btn-primary" id="trend-apply">
                   <i class="bi bi-search"></i> ${t('common.apply')}
                 </button>
               </div>

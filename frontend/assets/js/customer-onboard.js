@@ -163,10 +163,11 @@
                   </div>
                   <div class="col-12" id="l-summary" style="display:none;">
                     <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
-                      <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
+                      <div style="flex:1;min-width:120px;padding:10px 8px;">
                         <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.total_recover')}</div>
                         <div id="l-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">&#8377; 0</div>
                       </div>
+                      <div style="width:1px;background:#BFDBFE;align-self:stretch;flex-shrink:0;"></div>
                       <div style="flex:1;min-width:120px;padding:10px 8px;">
                         <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.interest_earned')}</div>
                         <div id="l-interest" style="font-size:15px;font-weight:700;color:#16A34A;">&#8377; 0</div>

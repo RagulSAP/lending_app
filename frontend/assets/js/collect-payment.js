@@ -98,7 +98,7 @@
               <div class="fw-600 mb-2" style="font-size:13px;">
                 <i class="bi bi-list-check me-1 text-primary"></i>Select an Installment
               </div>
-              <div class="table-container mb-3" style="max-height:240px;overflow-y:auto;">
+              <div class="table-container mb-3">
                 <table class="table table-sm">
                   <thead>
                     <tr>

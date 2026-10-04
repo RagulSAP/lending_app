@@ -29,14 +29,14 @@
   let _sessionsMap = {};   // session_id → session object
 
   /* ── Bootstrap ───────────────────────────────────────────────────────────── */
-  function init() {
+  async function init() {
     if (!auth.requireLogin()) return;
     const user = auth.getUser();
     if (!user || user.role_id > 1) {
       window.location.href = '/dashboard.html';
       return;
     }
-    if (typeof initPage === 'function') initPage({ title: 'Audit Log', subtitle: 'User activity grouped by session' });
+    await initPage('Audit Log', [0, 1]);
     if (typeof initAutoLogout === 'function') initAutoLogout();
     renderPage();
     loadUsers();

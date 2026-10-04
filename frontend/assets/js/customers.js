@@ -111,24 +111,24 @@
       <div class="card">
         <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;border-bottom:1px solid var(--border);">
           <h6 style="margin:0;font-size:14px;font-weight:600;color:var(--text-primary);white-space:nowrap;">Customers List</h6>
-          <div style="width:1px;height:22px;background:var(--border);"></div>
-          <input type="text" class="form-control form-control-sm" id="f-search" placeholder="${t('cust.filter_name')}" style="width:155px;">
-          <input type="text" class="form-control form-control-sm" id="f-city" placeholder="${t('cust.filter_city')}" style="width:110px;">
-          <select class="form-select form-select-sm" id="f-status" style="width:115px;">
+          <input type="text" class="form-control form-control-sm" id="f-search" placeholder="${t('cust.filter_name')}" style="flex:1;min-width:120px;">
+          <input type="text" class="form-control form-control-sm" id="f-city" placeholder="${t('cust.filter_city')}" style="flex:1;min-width:90px;">
+          <select class="form-select form-select-sm" id="f-status" style="flex:1;min-width:100px;">
             <option value="">${t('common.all_status')}</option>
             <option value="ACTIVE">${t('common.active')}</option>
             <option value="INACTIVE">${t('common.inactive')}</option>
           </select>
           <button type="button" class="btn btn-sm btn-primary" id="search-btn"><i class="bi bi-search me-1"></i>${t('common.search')}</button>
-          <div style="flex:1;"></div>
-          <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
-          <button type="button" class="btn btn-sm btn-outline-success" id="export-btn">
-            <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
-          </button>
-          ${canOnboard ? `<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>${t('cust.onboard')}</a>` : ''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
+            <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
+            <button type="button" class="btn btn-sm btn-outline-success" id="export-btn">
+              <i class="bi bi-file-earmark-excel me-1"></i>${t('common.excel')}
+            </button>
+            ${canOnboard ? `<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>${t('cust.onboard')}</a>` : ''}
+          </div>
         </div>
         <div class="table-container">
-          <table class="table">
+          <table class="table table-xwide">
             <thead>
               <tr>
                 <th>#</th><th>${t('cust.col_customer')}</th><th>${t('cust.col_phone')}</th><th>${t('cust.col_city')}</th><th>${t('common.status')}</th><th>${t('cust.col_disbursed')}</th><th>${t('cust.col_outstanding')}</th><th>${t('cust.col_installment')}</th><th>${t('cust.col_next_due')}</th>
@@ -243,7 +243,7 @@
     const el = document.createElement('div');
     el.innerHTML = `
       <div class="modal fade" id="photo-view-modal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" style="max-width:360px;">
+        <div class="modal-dialog modal-dialog-centered">
           <div class="modal-content">
             <div class="modal-header py-2 px-3">
               <h6 class="modal-title fw-600" id="photo-modal-name" style="font-size:14px;"></h6>
@@ -300,7 +300,7 @@
             : `<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#7C3AED);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;flex-shrink:0;">${initials}</div>`;
           const actionsCell = canEdit ? `
             <td onclick="event.stopPropagation()">
-              <div class="d-flex gap-1">
+              <div class="d-flex gap-1 action-btns">
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditModal('${c.customer_id}')" title="${t('common.edit')}">
                   <i class="bi bi-pencil"></i>
                 </button>

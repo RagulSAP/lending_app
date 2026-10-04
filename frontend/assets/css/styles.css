@@ -800,6 +800,17 @@ input, textarea, select, button {
 
   /* Reports max-width remark cells: let them flow on mobile */
   .table td[style*="max-width"] { max-width: 120px !important; }
+
+  /* Report tabs: horizontal swipe on mobile — no wrapping */
+  #report-tabs { flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+  #report-tabs .nav-link { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
+
+  /* Wide data tables need more horizontal scroll room */
+  .table-wide { min-width: 700px; }
+  .table-xwide { min-width: 800px; }
+
+  /* Icon-only action buttons: meet 44px minimum touch width */
+  .action-btns .btn-sm { min-width: 44px; justify-content: center; }
 }
 
 /* ── DASHBOARD LAYOUT ───────────────────────────────────────────────────── */
