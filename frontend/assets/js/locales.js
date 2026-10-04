@@ -103,8 +103,9 @@
       'login.footer':        'Thiruvelan Capitals v1.0 • Microfinance Management System',
 
       // Dashboard
-      'dash.invest_balance':   'Investment',
-      'dash.interest_balance': 'Interest',
+      'dash.invest_balance':    'Investment',
+      'dash.rotation_balance':  'Rotation',
+      'dash.interest_balance':  'Interest',
       'dash.total_disbursed':  'Total Disbursed',
       'dash.collected_today':  'Collected Today',
       'dash.customers':        'Customers',
@@ -592,6 +593,7 @@
 
       // Dashboard
       'dash.invest_balance':   'முதலீடு',
+      'dash.rotation_balance': 'சுழற்சி',
       'dash.interest_balance': 'வட்டி',
       'dash.total_disbursed':  'மொத்த வழங்கல்',
       'dash.collected_today':  'இன்று வசூல்',
