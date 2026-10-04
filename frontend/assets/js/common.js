@@ -54,7 +54,7 @@ try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.se
       </nav>
       <div class="sidebar-footer">
         <label class="theme-toggle-row" for="theme-chk" title="Toggle dark mode">
-          <span><i class="bi bi-moon-stars" id="theme-icon"></i><span id="theme-label">Dark Mode</span></span>
+          <span><i class="bi bi-sun" id="theme-icon"></i><span id="theme-label">Light Mode</span></span>
           <div class="theme-switch">
             <input type="checkbox" id="theme-chk">
             <span class="theme-switch-slider"></span>
@@ -90,8 +90,8 @@ try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.se
     const icon = document.getElementById('theme-icon');
     const lbl  = document.getElementById('theme-label');
     if (chk)  chk.checked = isDark;
-    if (icon) { icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars'; }
-    if (lbl)  lbl.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    if (icon) { icon.className = isDark ? 'bi bi-moon-stars' : 'bi bi-sun'; }
+    if (lbl)  lbl.textContent = isDark ? 'Dark Mode' : 'Light Mode';
   }
 
   function renderTopbar(pageTitle) {
