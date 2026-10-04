@@ -880,7 +880,15 @@ input, textarea, select, button {
   --shadow:         0 4px 6px -1px rgba(0,0,0,.6);
 }
 
-body[data-theme="dark"] { background-color: var(--page-bg); color: var(--text-primary); }
+body[data-theme="dark"] {
+  --bs-body-color:     #E6EDF3;
+  --bs-body-bg:        #0D1117;
+  --bs-border-color:   #30363D;
+  --bs-card-bg:        #161B22;
+  --bs-card-color:     #E6EDF3;
+  background-color: var(--page-bg);
+  color: var(--text-primary);
+}
 
 /* Topbar */
 [data-theme="dark"] #topbar { background-color: #161B22; border-bottom-color: #30363D; }
@@ -996,8 +1004,11 @@ body[data-theme="dark"] { background-color: var(--page-bg); color: var(--text-pr
 [data-theme="dark"] .pagination .page-item.active .page-link { background-color: var(--primary); border-color: var(--primary); color: white; }
 [data-theme="dark"] .pagination .page-item.disabled .page-link { color: #4B5563; background-color: #0D1117; }
 
+/* Bootstrap card color fix — .card sets --bs-card-color locally, breaking normal inheritance */
+[data-theme="dark"] .card { color: var(--text-primary); }
+
 /* Loan cards */
-[data-theme="dark"] .loan-card { background: #161B22; border-color: #30363D; }
+[data-theme="dark"] .loan-card { background: #161B22; border-color: #30363D; color: var(--text-primary); }
 [data-theme="dark"] .loan-card:hover,
 [data-theme="dark"] .loan-card.selected { border-color: var(--primary); background: #1e3a5f; }
 
@@ -1006,7 +1017,7 @@ body[data-theme="dark"] { background-color: var(--page-bg); color: var(--text-pr
 [data-theme="dark"] .installment-row.selected td { background: #1e3a5f !important; }
 
 /* Search result card */
-[data-theme="dark"] .search-result-card { background: #161B22; border-color: #30363D; }
+[data-theme="dark"] .search-result-card { background: #161B22; border-color: #30363D; color: var(--text-primary); }
 
 /* File upload */
 [data-theme="dark"] .file-upload-zone { background: #0D1117; border-color: #30363D; }
