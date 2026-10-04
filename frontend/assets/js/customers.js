@@ -108,36 +108,23 @@
     const canOnboard = [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF].includes(currentUser.role_id);
     const canEdit = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
     document.getElementById('page-content').innerHTML = `
-      <div class="filter-bar">
-        <div class="form-group">
-          <label class="form-label">Search</label>
-          <input type="text" class="form-control" id="f-search" placeholder="Name or phone...">
-        </div>
-        <div class="form-group">
-          <label class="form-label">City</label>
-          <input type="text" class="form-control" id="f-city" placeholder="City name">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <select class="form-select" id="f-status">
-            <option value="">All</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
-          </select>
-        </div>
-        <div class="form-group d-flex align-items-end">
-          <button type="button" class="btn btn-primary" id="search-btn"><i class="bi bi-search"></i> Search</button>
-        </div>
-      </div>
       <div class="card">
-        <div class="card-header-flex">
-          <h6 class="card-title">Customers List</h6>
-          <div class="d-flex align-items-center gap-2">
+        <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;padding:10px 16px;">
+          <h6 class="card-title" style="margin:0;white-space:nowrap;">Customers List</h6>
+          <div style="display:flex;align-items:center;gap:6px;flex:1;flex-wrap:wrap;justify-content:flex-end;">
+            <input type="text" class="form-control form-control-sm" id="f-search" placeholder="Name or phone…" style="width:150px;min-width:100px;">
+            <input type="text" class="form-control form-control-sm" id="f-city" placeholder="City…" style="width:110px;min-width:80px;">
+            <select class="form-select form-select-sm" id="f-status" style="width:110px;">
+              <option value="">All Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="INACTIVE">Inactive</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-primary" id="search-btn"><i class="bi bi-search"></i></button>
             <span id="count-badge" class="badge bg-light text-dark" style="font-size:12px;"></span>
             <button type="button" class="btn btn-sm btn-outline-success" id="export-btn">
-              <i class="bi bi-file-earmark-excel me-1"></i>Export Excel
+              <i class="bi bi-file-earmark-excel me-1"></i>Excel
             </button>
-            ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>Onboard Customer</a>' : ''}
+            ${canOnboard ? '<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>Onboard</a>' : ''}
           </div>
         </div>
         <div class="table-container">
