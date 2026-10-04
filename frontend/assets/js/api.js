@@ -19,7 +19,7 @@
     isLoggedIn() { return !!this.getToken(); },
     requireLogin() {
       if (!this.isLoggedIn()) {
-        window.location.href = '/frontend/index.html';
+        window.location.href = '/index.html';
         return false;
       }
       return true;
@@ -35,7 +35,7 @@
     logout() {
       this.clearToken();
       this.clearUser();
-      window.location.href = '/frontend/index.html';
+      window.location.href = '/index.html';
     }
   };
 
@@ -55,14 +55,14 @@
 
   function isLoginPage() {
     const p = window.location.pathname;
-    return p.endsWith('index.html') || p.endsWith('/frontend/') || p === '/';
+    return p.endsWith('index.html') || p === '/';
   }
 
   async function handleResponse(res) {
     if (res.status === 401 && !isLoginPage()) {
       // Session expired on a protected page — clear and redirect to login
       auth.clearToken(); auth.clearUser();
-      window.location.href = '/frontend/index.html';
+      window.location.href = '/index.html';
       throw new Error('Session expired. Please log in again.');
     }
     const ct = res.headers.get('content-type') || '';

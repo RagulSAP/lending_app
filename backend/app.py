@@ -64,13 +64,17 @@ def create_app():
     app.after_request(audit_after_request)
 
     # ── Serve frontend static files ───────────────────────────────────────────
+    # Serve all frontend files at root level so relative asset paths (assets/css/...,
+    # assets/js/...) resolve correctly regardless of which page is loaded.
+    # API routes (/api/*) and KYC route are registered before this catch-all
+    # so they always take priority.
     frontend_dir = os.path.join(os.path.dirname(__file__), "..", "frontend")
 
     @app.route("/")
     def root():
         return send_from_directory(frontend_dir, "index.html")
 
-    @app.route("/frontend/<path:filename>")
+    @app.route("/<path:filename>")
     def frontend_static(filename):
         return send_from_directory(frontend_dir, filename)
 

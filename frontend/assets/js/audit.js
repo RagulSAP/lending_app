@@ -33,7 +33,7 @@
     if (!auth.requireLogin()) return;
     const user = auth.getUser();
     if (!user || user.role_id > 1) {
-      window.location.href = '/frontend/dashboard.html';
+      window.location.href = '/dashboard.html';
       return;
     }
     if (typeof initPage === 'function') initPage({ title: 'Audit Log', subtitle: 'User activity grouped by session' });
