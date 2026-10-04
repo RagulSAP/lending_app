@@ -181,14 +181,19 @@
                   padding: 12,
                   usePointStyle: true,
                   pointStyle: 'circle',
-                  generateLabels: () =>
-                    custLabels.map((lbl, i) => ({
+                  color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#0F172A',
+                  generateLabels: () => {
+                    const labelColor = getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#0F172A';
+                    return custLabels.map((lbl, i) => ({
                       text: `${lbl}  ${custData[i]}`,
                       fillStyle: custColors[i],
                       strokeStyle: custColors[i],
                       pointStyle: 'circle',
+                      fontColor: labelColor,
+                      color: labelColor,
                       index: i,
-                    })),
+                    }));
+                  },
                 },
               },
             },
@@ -260,7 +265,10 @@
               plugins: {
                 legend: {
                   position: 'top',
-                  labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 14 },
+                  labels: {
+                    font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 14,
+                    color: getComputedStyle(document.body).getPropertyValue('--text-primary').trim() || '#0F172A',
+                  },
                 },
                 tooltip: {
                   callbacks: {
@@ -271,12 +279,16 @@
               scales: {
                 x: {
                   grid: { display: false },
-                  ticks: { font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0 },
+                  ticks: {
+                    font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0,
+                    color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#64748B',
+                  },
                 },
                 y: {
                   grid: { color: document.body.getAttribute('data-theme') === 'dark' ? '#21262D' : '#F1F5F9' },
                   ticks: {
                     font: { size: 10 },
+                    color: getComputedStyle(document.body).getPropertyValue('--text-secondary').trim() || '#64748B',
                     callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
                   },
                 },
