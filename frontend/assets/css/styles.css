@@ -842,9 +842,13 @@ input, textarea, select, button {
 [data-theme="dark"] .loan-info-box [style*="border-right"] { border-right-color: #30363D !important; }
 [data-theme="dark"] .loan-info-box [style*="border-top"]   { border-top-color: #30363D !important; }
 
-/* Collect-payment balance stat box */
-.balance-stat-box { background: #fff7ed; }
-[data-theme="dark"] .balance-stat-box { background: #422006; }
+/* Collect-payment loan insight stat boxes */
+.loan-stat-neutral { background: #f1f5f9; }
+.loan-stat-green   { background: #f0fdf4; }
+.balance-stat-box  { background: #fff7ed; }
+[data-theme="dark"] .loan-stat-neutral { background: #21262D; }
+[data-theme="dark"] .loan-stat-green   { background: #052e16; }
+[data-theme="dark"] .balance-stat-box  { background: #422006; }
 
 /* Loan summary calculation box */
 .loan-summary-box { background: #EFF6FF; border: 1px solid #BFDBFE; }

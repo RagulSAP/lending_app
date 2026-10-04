@@ -320,13 +320,13 @@
     // Loan summary mini-cards
     document.getElementById('pm-loan-summary').innerHTML = `
       <div class="col-6 col-md-3">
-        <div class="p-2 rounded text-center" style="background:#f1f5f9;">
+        <div class="p-2 rounded text-center loan-stat-neutral">
           <div class="fw-600" style="font-size:15px;">${formatCurrency(l.disbursement_amount)}</div>
           <div style="font-size:11px;color:#64748B;">Total Loan</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="p-2 rounded text-center" style="background:#f0fdf4;">
+        <div class="p-2 rounded text-center loan-stat-green">
           <div class="fw-600" style="font-size:15px;color:#16a34a;">${formatCurrency(l.total_paid || 0)}</div>
           <div style="font-size:11px;color:#64748B;">Paid</div>
         </div>
@@ -338,7 +338,7 @@
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="p-2 rounded text-center" style="background:#f1f5f9;">
+        <div class="p-2 rounded text-center loan-stat-neutral">
           ${statusBadge(l.status)}
           <div style="font-size:11px;color:#64748B;margin-top:4px;">Status</div>
         </div>
