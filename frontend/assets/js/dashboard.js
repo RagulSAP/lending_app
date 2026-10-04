@@ -110,47 +110,45 @@
 
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
-        <div class="col-6 col-md-4">${finCard('kv-invest',    'Invest Balance',    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
-        <div class="col-6 col-md-4">${finCard('kv-interest',  'Interest Balance',  'linear-gradient(135deg,#16A34A,#059669)')}</div>
-        <div class="col-12 col-md-4">${finCard('kv-disbursed', 'Total Disbursed',   '#2563EB')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-invest',    'Invest Balance',    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-interest',  'Interest Balance',  'linear-gradient(135deg,#16A34A,#059669)')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-disbursed', 'Total Disbursed',   '#2563EB')}</div>
+        <div class="col-6 col-md-3">${finCard('kv-today',     'Collected Today',   '#0891B2')}</div>
       </div>
 
       <!-- Operational mini-cards -->
       <div class="row g-2 mb-4">
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-loans',     'Active Loans',     'bi-file-earmark-text',     '#EFF6FF', '#2563EB')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-overdue',   'Overdue',          'bi-exclamation-triangle',  '#FEF2F2', '#DC2626', 'mv-overdue-amt')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-today',     'Collected Today',  'bi-cash-coin',             '#ECFEFF', '#0891B2')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-month',     'This Month',       'bi-calendar-month',        '#EEF2FF', '#4F46E5')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-expenses',  'Expenses',         'bi-receipt',               '#FFFBEB', '#D97706')}</div>
-        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-customers', 'Customers',        'bi-people',                '#FDF2F8', '#DB2777')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-customers', 'Customers',   'bi-people',                '#FDF2F8', '#DB2777')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-loans',     'Active Loans','bi-file-earmark-text',     '#EFF6FF', '#2563EB')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-overdue',   'Overdue',     'bi-exclamation-triangle',  '#FEF2F2', '#DC2626', 'mv-overdue-amt')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-month',     'This Month',  'bi-calendar-month',        '#EEF2FF', '#4F46E5')}</div>
+        <div class="col-6 col-md-4 col-xl-2">${miniCard('mv-expenses',  'Expenses',    'bi-receipt',               '#FFFBEB', '#D97706')}</div>
       </div>
 
-      <!-- Charts + Recent Transactions -->
+      <!-- Charts -->
       <div class="row g-3">
-        <div class="col-md-6 col-lg-4">
-          <div class="card h-100">
-            <div class="card-header-flex"><h6 class="card-title">Loan Status</h6></div>
-            <div style="position:relative;height:190px;padding:8px 16px;">
-              <canvas id="loan-chart"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-5">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Customer Status</h6></div>
-            <div style="position:relative;height:190px;padding:8px 16px;">
+            <div style="position:relative;height:220px;padding:8px 16px;">
               <canvas id="customer-chart"></canvas>
             </div>
           </div>
         </div>
-        <div class="col-lg-4">
+        <div class="col-md-7">
           <div class="card h-100">
-            <div class="card-header-flex"><h6 class="card-title">Recent Transactions</h6></div>
-            <div class="table-container">
-              <table class="table table-sm" style="font-size:13px;">
-                <thead><tr><th>Date</th><th>Customer</th><th>Amount</th><th>By</th></tr></thead>
-                <tbody id="txn-tbody"></tbody>
-              </table>
+            <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
+              <h6 class="card-title" style="margin:0;">Collection &amp; Disbursement Trend</h6>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                <input type="date" id="trend-from" class="form-control form-control-sm" style="width:130px;">
+                <input type="date" id="trend-to"   class="form-control form-control-sm" style="width:130px;">
+                <button class="btn btn-sm btn-primary" id="trend-apply" style="padding:3px 10px;font-size:12px;">
+                  <i class="bi bi-search"></i> Apply
+                </button>
+              </div>
+            </div>
+            <div style="position:relative;height:190px;padding:8px 16px;">
+              <canvas id="trend-chart"></canvas>
             </div>
           </div>
         </div>
@@ -164,16 +162,16 @@
       document.getElementById('kv-invest').textContent    = formatCurrency(s.wallet_invest_balance   || 0);
       document.getElementById('kv-interest').textContent  = formatCurrency(s.wallet_interest_balance || 0);
       document.getElementById('kv-disbursed').textContent = formatCurrency(s.total_disbursed         || 0);
+      document.getElementById('kv-today').textContent     = formatCurrency(s.collected_today         || 0);
+      document.getElementById('mv-customers').textContent = s.active_customers   || 0;
       document.getElementById('mv-loans').textContent     = s.total_active_loans || 0;
-      document.getElementById('mv-overdue').textContent   = s.overdue_count || 0;
+      document.getElementById('mv-overdue').textContent   = s.overdue_count      || 0;
       const ovdAmt = document.getElementById('mv-overdue-amt');
       if (ovdAmt) ovdAmt.textContent = formatCurrency(s.overdue_amount || 0);
-      document.getElementById('mv-today').textContent     = formatCurrency(s.collected_today      || 0);
       document.getElementById('mv-month').textContent     = formatCurrency(s.collected_this_month || 0);
       document.getElementById('mv-expenses').textContent  = formatCurrency(s.expenses_this_month  || 0);
-      document.getElementById('mv-customers').textContent = s.active_customers || 0;
 
-      // Shared chart options builder
+      // Shared doughnut options builder
       function makeDoughnutOpts(labels, colors, data) {
         return {
           responsive: true,
@@ -201,23 +199,6 @@
         };
       }
 
-      // Loan status chart
-      const activeOnly   = Math.max((s.total_active_loans || 0) - (s.overdue_count || 0), 0);
-      const overdueCount = s.overdue_count || 0;
-      const loanLabels   = ['Active', 'Overdue'];
-      const loanColors   = ['#2563EB', '#DC2626'];
-      const loanData     = [activeOnly, overdueCount];
-      if (typeof Chart !== 'undefined') {
-        new Chart(document.getElementById('loan-chart').getContext('2d'), {
-          type: 'doughnut',
-          data: { labels: loanLabels, datasets: [{ data: loanData, backgroundColor: loanColors, borderWidth: 0, hoverOffset: 6 }] },
-          options: makeDoughnutOpts(loanLabels, loanColors, loanData),
-        });
-      } else {
-        document.getElementById('loan-chart').closest('div[style]').innerHTML =
-          fallbackChart([['#2563EB', activeOnly, 'Active'], ['#DC2626', overdueCount, 'Overdue']]);
-      }
-
       // Customer loan status chart
       const custActive    = s.customers_with_active_loans    || 0;
       const custCompleted = s.customers_with_completed_loans || 0;
@@ -232,34 +213,103 @@
           options: makeDoughnutOpts(custLabels, custColors, custData),
         });
       } else {
+        const rows = [['#2563EB', custActive, 'Active Loan'], ['#16A34A', custCompleted, 'Completed'], ['#94A3B8', custNone, 'No Loan']]
+          .map(([c, v, l]) => `<div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+            <span style="font-size:22px;font-weight:700;color:${c};">${v}</span>
+            <span style="font-size:12px;color:#64748B;">${l}</span></div>`).join('');
         document.getElementById('customer-chart').closest('div[style]').innerHTML =
-          fallbackChart([['#2563EB', custActive, 'Active Loan'], ['#16A34A', custCompleted, 'Completed'], ['#94A3B8', custNone, 'No Loan']]);
+          `<div style="height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">${rows}</div>`;
       }
 
-      function fallbackChart(items) {
-        const rows = items.map(([color, val, label]) =>
-          `<div style="display:flex;align-items:center;gap:10px;">
-             <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;"></div>
-             <span style="font-size:22px;font-weight:700;color:${color};">${val}</span>
-             <span style="font-size:12px;color:#64748B;">${label}</span>
-           </div>`
-        ).join('<div style="width:40px;height:1px;background:#e2e8f0;margin:2px 0;"></div>');
-        return `<div style="height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">${rows}</div>`;
+      // Trend chart — default last 30 days
+      let trendChartInstance = null;
+      const today = new Date();
+      const d30ago = new Date(today); d30ago.setDate(d30ago.getDate() - 29);
+      const fmtDate = d => d.toISOString().split('T')[0];
+      document.getElementById('trend-from').value = fmtDate(d30ago);
+      document.getElementById('trend-to').value   = fmtDate(today);
+
+      async function loadTrendChart(from, to) {
+        try {
+          const res = await api.get('/api/dashboard/trend', { date_from: from, date_to: to });
+          const td = res.data || {};
+          const dates     = td.dates     || [];
+          const collected = td.collected || [];
+          const disbursed = td.disbursed || [];
+
+          if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null; }
+
+          if (typeof Chart === 'undefined') return;
+
+          trendChartInstance = new Chart(document.getElementById('trend-chart').getContext('2d'), {
+            data: {
+              labels: dates,
+              datasets: [
+                {
+                  type: 'bar',
+                  label: 'Collected',
+                  data: collected,
+                  backgroundColor: 'rgba(22,163,74,.65)',
+                  borderRadius: 3,
+                  order: 2,
+                  yAxisID: 'y',
+                },
+                {
+                  type: 'line',
+                  label: 'Disbursed',
+                  data: disbursed,
+                  borderColor: '#2563EB',
+                  backgroundColor: 'rgba(37,99,235,.08)',
+                  borderWidth: 2,
+                  pointRadius: dates.length > 60 ? 0 : 3,
+                  tension: 0.35,
+                  fill: true,
+                  order: 1,
+                  yAxisID: 'y',
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              interaction: { mode: 'index', intersect: false },
+              plugins: {
+                legend: {
+                  position: 'top',
+                  labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'circle', padding: 14 },
+                },
+                tooltip: {
+                  callbacks: {
+                    label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)}`,
+                  },
+                },
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { font: { size: 10 }, maxTicksLimit: 12, maxRotation: 0 },
+                },
+                y: {
+                  grid: { color: '#F1F5F9' },
+                  ticks: {
+                    font: { size: 10 },
+                    callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
+                  },
+                },
+              },
+            },
+          });
+        } catch (e) {
+          console.warn('Trend chart load failed', e);
+        }
       }
 
-      // Recent transactions
-      const txns = s.recent_transactions || [];
-      const tbody = document.getElementById('txn-tbody');
-      if (!txns.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="table-empty"><i class="bi bi-inbox"></i>No recent transactions</td></tr>';
-      } else {
-        tbody.innerHTML = txns.map(t => `<tr>
-          <td style="white-space:nowrap;">${formatDate(t.transaction_date || t.created_at)}</td>
-          <td style="max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.customer_name || '-'}</td>
-          <td style="font-weight:600;white-space:nowrap;">${formatCurrency(t.amount)}</td>
-          <td style="font-size:11px;color:#64748B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${t.collected_by || '-'}</td>
-        </tr>`).join('');
-      }
+      document.getElementById('trend-apply').addEventListener('click', () => {
+        loadTrendChart(document.getElementById('trend-from').value, document.getElementById('trend-to').value);
+      });
+      await loadTrendChart(fmtDate(d30ago), fmtDate(today));
+
     } catch (err) {
       document.getElementById('page-content').innerHTML += `<div class="alert alert-danger mt-3">${err.message}</div>`;
     } finally {
