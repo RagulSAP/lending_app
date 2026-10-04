@@ -76,7 +76,7 @@ def collect_payment():
 
     db = SessionLocal()
     try:
-        # Load and validate loan
+        # Load loan + customer in one go (customer is needed for the response)
         loan = db.query(Loan).filter(
             Loan.loan_id == loan_id,
             Loan.org_id == current["org_id"],
@@ -85,6 +85,8 @@ def collect_payment():
             return error_response("Loan not found", 404)
         if loan.status == "CLOSED":
             return error_response("Loan is already closed")
+
+        customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
 
         # Load installment
         installment = db.query(LoanInstallment).filter(
@@ -163,8 +165,6 @@ def collect_payment():
 
         db.commit()
 
-        # Build response
-        customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status

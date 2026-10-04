@@ -17,6 +17,15 @@ from core_functions.responses import success_response, error_response
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
+_ROLE_CACHE: dict[int, str] = {}
+
+def _get_role_name(db, role_id: int) -> str:
+    """Return role_name from an in-process cache; populates on first miss."""
+    if role_id not in _ROLE_CACHE:
+        rows = db.query(Role.id, Role.role_name).all()
+        _ROLE_CACHE.update({r.id: r.role_name for r in rows})
+    return _ROLE_CACHE.get(role_id, "")
+
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
@@ -44,8 +53,7 @@ def login():
         if user.status != 1:
             return error_response("Account is inactive. Contact your administrator.", 403)
 
-        role = db.query(Role).filter(Role.id == user.role_id).first()
-        role_name = role.role_name if role else ""
+        role_name = _get_role_name(db, user.role_id)
 
         # Record login timestamp
         user.last_login = _now_ist()
@@ -86,13 +94,12 @@ def me():
         if not user:
             return error_response("User not found", 404)
 
-        role = db.query(Role).filter(Role.id == user.role_id).first()
         return success_response(data={
             "user_id": user.user_id,
             "name": user.name,
             "phone": user.phone,
             "role_id": user.role_id,
-            "role_name": role.role_name if role else "",
+            "role_name": _get_role_name(db, user.role_id),
             "org_id": user.org_id,
             "status": user.status,
             "last_login": user.last_login.isoformat() if user.last_login else None,

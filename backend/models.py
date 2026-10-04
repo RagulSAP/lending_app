@@ -7,7 +7,7 @@ def _now_ist():
 
 from sqlalchemy import (
     Column, Integer, String, Numeric, Date, DateTime,
-    ForeignKey, Text, func
+    ForeignKey, Text, func, Index
 )
 from database import Base
 
@@ -32,6 +32,9 @@ class Role(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        Index("ix_users_phone", "phone"),
+    )
     id            = Column(Integer, primary_key=True, autoincrement=True)
     user_id       = Column(String(36), unique=True, nullable=False)
     org_id        = Column(String(36), ForeignKey("organizations.org_id"), nullable=False)
@@ -71,6 +74,10 @@ class Customer(Base):
 
 class Loan(Base):
     __tablename__ = "loans"
+    __table_args__ = (
+        Index("ix_loans_status", "status"),
+        Index("ix_loans_org_status", "org_id", "status"),
+    )
     id                  = Column(Integer, primary_key=True, autoincrement=True)
     loan_id             = Column(String(36), unique=True, nullable=False)
     customer_id         = Column(String(36), ForeignKey("customers.customer_id"), nullable=False)
@@ -115,6 +122,11 @@ class LoanInstallment(Base):
 
 class Transaction(Base):
     __tablename__ = "transaction"
+    __table_args__ = (
+        Index("ix_transaction_type", "transaction_type"),
+        Index("ix_transaction_date", "transaction_date"),
+        Index("ix_transaction_org_type_date", "org_id", "transaction_type", "transaction_date"),
+    )
     id               = Column(Integer, primary_key=True, autoincrement=True)
     transaction_id   = Column(String(36), unique=True, nullable=False)
     loan_id          = Column(String(36), ForeignKey("loans.loan_id"))
@@ -195,6 +207,11 @@ class LoanStatusHistory(Base):
 
 class AuditLog(Base):
     __tablename__ = "audit_log"
+    __table_args__ = (
+        Index("ix_audit_session_id", "session_id"),
+        Index("ix_audit_created_at", "created_at"),
+        Index("ix_audit_org_user",   "org_id", "user_id"),
+    )
     id              = Column(Integer, primary_key=True, autoincrement=True)
     log_id          = Column(String(36), unique=True, nullable=False)
     session_id      = Column(String(36))          # JWT jti — one login session

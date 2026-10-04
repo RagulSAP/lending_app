@@ -112,7 +112,7 @@ def get_session_detail(session_id):
         if info["role_id"] != 0:
             q = q.filter(AuditLog.org_id == info["org_id"])
 
-        logs = q.order_by(AuditLog.created_at.asc()).all()
+        logs = q.order_by(AuditLog.created_at.asc()).limit(1000).all()
         if not logs:
             return error_response("Session not found", 404)
 

@@ -256,28 +256,9 @@ def list_expenses():
 
         total = base_q.count()
 
-        # Total amount across all filtered rows (not just the current page)
-        total_amount = db.query(sqlfunc.sum(Expense.expense_amount)).join(
-            ExpenseCategory, ExpenseCategory.category_id == Expense.category_id
-        ).filter(ExpenseCategory.org_id == org_id).scalar() or 0.0
-        if category_id:
-            total_amount_q = db.query(sqlfunc.sum(Expense.expense_amount)).join(
-                ExpenseCategory, ExpenseCategory.category_id == Expense.category_id
-            ).filter(ExpenseCategory.org_id == org_id, Expense.category_id == category_id)
-            if date_from:
-                total_amount_q = total_amount_q.filter(Expense.expense_date >= date_from)
-            if date_to:
-                total_amount_q = total_amount_q.filter(Expense.expense_date <= date_to_end)
-            total_amount = total_amount_q.scalar() or 0.0
-        elif date_from or date_to:
-            total_amount_q = db.query(sqlfunc.sum(Expense.expense_amount)).join(
-                ExpenseCategory, ExpenseCategory.category_id == Expense.category_id
-            ).filter(ExpenseCategory.org_id == org_id)
-            if date_from:
-                total_amount_q = total_amount_q.filter(Expense.expense_date >= date_from)
-            if date_to:
-                total_amount_q = total_amount_q.filter(Expense.expense_date <= date_to_end)
-            total_amount = total_amount_q.scalar() or 0.0
+        # Derive total_amount from the already-filtered base_q (single query, no duplication)
+        total_amount_q = base_q.with_entities(sqlfunc.sum(Expense.expense_amount))
+        total_amount = total_amount_q.scalar() or 0.0
 
         rows = (
             base_q.order_by(Expense.expense_date.desc(), Expense.created_at.desc())

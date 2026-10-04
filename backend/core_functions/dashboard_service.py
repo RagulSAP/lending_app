@@ -3,7 +3,7 @@ Role-aware dashboard aggregation queries.
 All functions accept a SQLAlchemy session (db) and return plain dicts.
 """
 from datetime import date, timedelta
-from sqlalchemy import func, distinct
+from sqlalchemy import func, distinct, case
 from models import Customer, Loan, Transaction, Wallet, User, Organization
 from config import Config
 
@@ -47,35 +47,42 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
-    # Collection aggregates
-    def _collection_sum(date_from, date_to=None):
-        q = (
-            db.query(func.sum(Transaction.amount))
-            .filter(
-                Transaction.org_id == org_id,
-                Transaction.transaction_type == "LOAN_COLLECTION",
-                Transaction.transaction_date >= date_from,
-            )
+    # Collection aggregates — single query with conditional sums (replaces 3 queries)
+    coll_row = (
+        db.query(
+            func.sum(case((Transaction.transaction_date == today,               Transaction.amount), else_=0)).label("today"),
+            func.sum(case((Transaction.transaction_date >= week_start,          Transaction.amount), else_=0)).label("week"),
+            func.sum(case((Transaction.transaction_date >= month_start,         Transaction.amount), else_=0)).label("month"),
         )
-        if date_to is not None:
-            q = q.filter(Transaction.transaction_date <= date_to)
-        return float(q.scalar() or 0)
-
-    collected_today = _collection_sum(today, today)
-    collected_this_week = _collection_sum(week_start, today)
-    collected_this_month = _collection_sum(month_start, today)
-
-    # Overdue
-    overdue_count = (
-        db.query(func.count(Loan.loan_id))
-        .filter(Loan.org_id == org_id, Loan.status == "OVERDUE")
+        .filter(
+            Transaction.org_id == org_id,
+            Transaction.transaction_type == "LOAN_COLLECTION",
+            Transaction.transaction_date >= week_start,
+            Transaction.transaction_date <= today,
+        )
+        .one()
+    )
+    collected_today      = float(coll_row.today or 0)
+    collected_this_week  = float(coll_row.week  or 0)
+    collected_this_month = float(
+        db.query(func.sum(Transaction.amount))
+        .filter(
+            Transaction.org_id == org_id,
+            Transaction.transaction_type == "LOAN_COLLECTION",
+            Transaction.transaction_date >= month_start,
+            Transaction.transaction_date <= today,
+        )
         .scalar() or 0
     )
-    overdue_amount = float(
-        db.query(func.sum(Loan.balance_amount))
+
+    # Overdue — single query for both count and amount (replaces 2 queries)
+    overdue_row = (
+        db.query(func.count(Loan.loan_id), func.sum(Loan.balance_amount))
         .filter(Loan.org_id == org_id, Loan.status == "OVERDUE")
-        .scalar() or 0
+        .one()
     )
+    overdue_count  = overdue_row[0] or 0
+    overdue_amount = float(overdue_row[1] or 0)
 
     # Wallet
     wallet = db.query(Wallet).filter(Wallet.org_id == org_id).first()
@@ -95,14 +102,7 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
-    # Total customers
-    active_customers = (
-        db.query(func.count(Customer.customer_id))
-        .filter(Customer.org_id == org_id)
-        .scalar() or 0
-    )
-
-    # Customer loan status breakdown
+    # Customer loan status breakdown — 2 queries (replaces 5 queries)
     _active_loan_custs = (
         db.query(Loan.customer_id)
         .filter(Loan.org_id == org_id, Loan.status.in_(["ACTIVE", "OVERDUE"]))
@@ -115,23 +115,20 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .distinct()
         .subquery()
     )
-    customers_with_active_loans = (
-        db.query(func.count(Customer.customer_id))
-        .filter(Customer.org_id == org_id, Customer.customer_id.in_(_active_loan_custs))
-        .scalar() or 0
-    )
-    customers_without_loans = (
-        db.query(func.count(Customer.customer_id))
-        .filter(Customer.org_id == org_id, Customer.customer_id.notin_(_any_loan_custs))
-        .scalar() or 0
-    )
-    total_all_customers = (
-        db.query(func.count(Customer.customer_id))
+    cust_breakdown = (
+        db.query(
+            func.count(Customer.customer_id).label("total"),
+            func.sum(case((Customer.customer_id.in_(_active_loan_custs),  1), else_=0)).label("with_active"),
+            func.sum(case((Customer.customer_id.notin_(_any_loan_custs),  1), else_=0)).label("without_loan"),
+        )
         .filter(Customer.org_id == org_id)
-        .scalar() or 0
+        .one()
     )
+    active_customers            = cust_breakdown.total        or 0
+    customers_with_active_loans = cust_breakdown.with_active  or 0
+    customers_without_loans     = cust_breakdown.without_loan or 0
     customers_with_completed_loans = max(
-        total_all_customers - customers_with_active_loans - customers_without_loans, 0
+        active_customers - customers_with_active_loans - customers_without_loans, 0
     )
 
     # Recent loan collection transactions
@@ -295,25 +292,30 @@ def get_super_admin_dashboard(db) -> dict:
         .all()
     )
 
-    orgs = []
-    for org in orgs_raw:
-        user_count = (
-            db.query(func.count(User.user_id))
-            .filter(User.org_id == org.org_id)
-            .scalar() or 0
-        )
-        borrower_count = (
-            db.query(func.count(Customer.customer_id))
-            .filter(Customer.org_id == org.org_id)
-            .scalar() or 0
-        )
-        orgs.append({
+    # Batch aggregates — 2 queries regardless of org count (replaces N+1)
+    user_counts = dict(
+        db.query(User.org_id, func.count(User.user_id))
+        .filter(User.org_id != system_org)
+        .group_by(User.org_id)
+        .all()
+    )
+    borrower_counts = dict(
+        db.query(Customer.org_id, func.count(Customer.customer_id))
+        .filter(Customer.org_id != system_org)
+        .group_by(Customer.org_id)
+        .all()
+    )
+
+    orgs = [
+        {
             "org_id": org.org_id,
             "name": org.name,
-            "user_count": user_count,
-            "borrower_count": borrower_count,
+            "user_count": user_counts.get(org.org_id, 0),
+            "borrower_count": borrower_counts.get(org.org_id, 0),
             "status": org.status,
-        })
+        }
+        for org in orgs_raw
+    ]
 
     return {
         "total_orgs": total_orgs,

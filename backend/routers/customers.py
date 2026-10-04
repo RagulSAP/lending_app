@@ -233,16 +233,11 @@ def get_customer(customer_id):
             "overdue_count": sum(1 for l in active_loans if l.status == "OVERDUE"),
         }
 
-        # Assigned user name
-        assigned_user = None
-        if customer.user_id:
-            u = db.query(User).filter(User.user_id == customer.user_id).first()
-            assigned_user = u.name if u else None
-
-        onboarded_by = None
-        if customer.created_by:
-            creator = db.query(User).filter(User.user_id == customer.created_by).first()
-            onboarded_by = creator.name if creator else None
+        # Batch user lookups into a single IN query
+        user_ids = list({uid for uid in (customer.user_id, customer.created_by) if uid})
+        user_map = {u.user_id: u.name for u in db.query(User).filter(User.user_id.in_(user_ids)).all()} if user_ids else {}
+        assigned_user = user_map.get(customer.user_id)
+        onboarded_by  = user_map.get(customer.created_by)
 
         data = model_to_dict(customer)
         data["loan_summary"] = loan_summary

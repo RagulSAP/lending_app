@@ -15,6 +15,13 @@ from core_functions.responses import success_response, error_response, model_to_
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
 
+_ROLE_CACHE: dict[int, str] = {}
+
+def _role_map(db) -> dict[int, str]:
+    if not _ROLE_CACHE:
+        _ROLE_CACHE.update({r.id: r.role_name for r in db.query(Role.id, Role.role_name).all()})
+    return _ROLE_CACHE
+
 _ALLOWED_ROLE_IDS = {
     Config.ROLE_ADMIN,
     Config.ROLE_MANAGER,
@@ -125,8 +132,7 @@ def list_users():
         total = q.count()
         users = q.order_by(User.created_at.desc()).offset((page - 1) * per_page).limit(per_page).all()
 
-        # Enrich with role_name
-        role_map = {r.id: r.role_name for r in db.query(Role).all()}
+        role_map = _role_map(db)
         result = []
         for u in users:
             d = model_to_dict(u)

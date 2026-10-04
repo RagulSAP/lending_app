@@ -6,6 +6,7 @@ import uuid
 from datetime import date
 
 from flask import Blueprint, request
+from sqlalchemy import func, case
 
 from database import SessionLocal
 from models import Wallet, Transaction, Partner, Customer
@@ -35,6 +36,23 @@ def get_wallet():
                 "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0, "total_withdrawn": 0},
             })
 
+        # Accurate lifetime stats from DB aggregation (not limited to last 100)
+        stats_row = (
+            db.query(
+                func.sum(case((Transaction.transaction_type == "WALLET_DEPOSIT",    Transaction.amount), else_=0)).label("topup"),
+                func.sum(case((Transaction.transaction_type == "LOAN_DISBURSEMENT", Transaction.amount), else_=0)).label("disburse"),
+                func.sum(case((Transaction.transaction_type == "LOAN_COLLECTION",   Transaction.amount), else_=0)).label("collect"),
+                func.sum(case((Transaction.transaction_type == "WALLET_WITHDRAWAL", Transaction.amount), else_=0)).label("withdraw"),
+            )
+            .filter(Transaction.org_id == current["org_id"])
+            .one()
+        )
+        total_topup    = float(stats_row.topup    or 0)
+        total_disburse = float(stats_row.disburse or 0)
+        total_collect  = float(stats_row.collect  or 0)
+        total_withdraw = float(stats_row.withdraw or 0)
+
+        # Recent 100 transactions for display
         txns = (
             db.query(Transaction)
             .filter(Transaction.org_id == current["org_id"])
@@ -62,12 +80,6 @@ def get_wallet():
             d["partner_name"]  = partner_map.get(t.partner_id)  if t.partner_id  else None
             d["customer_name"] = customer_map.get(t.customer_id) if t.customer_id else None
             txn_rows.append(d)
-
-        # Summary stats
-        total_topup    = sum(float(t.amount) for t in txns if t.transaction_type == "WALLET_DEPOSIT")
-        total_disburse = sum(float(t.amount) for t in txns if t.transaction_type == "LOAN_DISBURSEMENT")
-        total_collect  = sum(float(t.amount) for t in txns if t.transaction_type == "LOAN_COLLECTION")
-        total_withdraw = sum(float(t.amount) for t in txns if t.transaction_type == "WALLET_WITHDRAWAL")
 
         return success_response(data={
             "wallet": model_to_dict(wallet),
