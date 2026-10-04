@@ -24,10 +24,6 @@
   function renderPage() {
     const collectorOptions = collectors.map(c => `<option value="${c.user_id}">${c.name} (${c.phone || ''})</option>`).join('');
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>Onboard Customer</h1>
-        <p>Register a new customer and optionally create their first loan</p>
-      </div>
       <div class="row justify-content-center">
         <div class="col-lg-8">
           <!-- Stepper -->

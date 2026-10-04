@@ -43,11 +43,7 @@
     const firstOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
 
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
-        <div>
-          <h1>Expenses</h1>
-          <p>Track and manage organizational expenses</p>
-        </div>
+      <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
         <div class="d-flex gap-2 flex-wrap">
           <button class="btn btn-outline-success" id="export-btn">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel

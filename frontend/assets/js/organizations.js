@@ -11,11 +11,7 @@
 
   function renderPage() {
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
-        <div>
-          <h1>Organizations</h1>
-          <p>Manage all lending organizations on the platform</p>
-        </div>
+      <div class="page-header d-flex align-items-center justify-content-end">
         <button class="btn btn-primary" id="add-org-btn"><i class="bi bi-plus-lg"></i> Add Organization</button>
       </div>
       <div class="row g-3 mb-4" id="org-stats">

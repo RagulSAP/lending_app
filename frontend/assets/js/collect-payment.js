@@ -23,11 +23,6 @@
   // ---------------------------------------------------------------------------
   function renderPage() {
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>Collect Payment</h1>
-        <p>Search customer, select a loan and record the payment</p>
-      </div>
-
       <!-- Step 1: Find Customer -->
       <div class="card mb-4" id="step1-card">
         <div class="card-header-flex">

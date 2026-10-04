@@ -17,10 +17,6 @@
     const today = new Date().toISOString().split('T')[0];
     const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>My Collections</h1>
-        <p>Track your daily and monthly collection performance</p>
-      </div>
       <div class="filter-bar">
         <div class="form-group">
           <label class="form-label">Date From</label>
@@ -78,8 +74,6 @@
 
   // ---- ADMIN/MANAGER/ACCOUNTANT DASHBOARD ----
   async function renderAdminDashboard() {
-    const dateLabel = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-
     const finCard = (id, label, accent) => `
       <div style="background:#fff;border-radius:12px;padding:14px 16px 14px 20px;border:1px solid #E2E8F0;
                   box-shadow:0 1px 4px rgba(0,0,0,.05);position:relative;overflow:hidden;">
@@ -103,10 +97,6 @@
       </div>`;
 
     document.getElementById('page-content').innerHTML = `
-      <div style="display:flex;justify-content:flex-end;margin-bottom:14px;">
-        <span style="font-size:12px;color:#64748B;background:#F8FAFC;padding:4px 12px;border-radius:20px;border:1px solid #E2E8F0;">${dateLabel}</span>
-      </div>
-
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">${finCard('kv-invest',    'Invest Balance',    'linear-gradient(135deg,#7C3AED,#2563EB)')}</div>
@@ -126,7 +116,7 @@
 
       <!-- Charts -->
       <div class="row g-3">
-        <div class="col-md-5">
+        <div class="col-md-4">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Customer Status</h6></div>
             <div style="position:relative;height:220px;padding:8px 16px;">
@@ -134,7 +124,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-7">
+        <div class="col-md-8">
           <div class="card h-100">
             <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
               <h6 class="card-title" style="margin:0;">Collection &amp; Disbursement Trend</h6>

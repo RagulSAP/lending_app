@@ -22,11 +22,7 @@
   function renderPage() {
     const isAdmin = currentUser && currentUser.role_id === ROLES.ADMIN;
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
-        <div>
-          <h1>App Users</h1>
-          <p>Manage staff, collectors, and accountant accounts</p>
-        </div>
+      <div class="page-header d-flex align-items-center justify-content-end">
         ${isAdmin ? '<a href="user-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> Add User</a>' : ''}
       </div>
       <div class="filter-bar">

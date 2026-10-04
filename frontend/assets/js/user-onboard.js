@@ -8,10 +8,6 @@
 
   function renderForm() {
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>Onboard New User</h1>
-        <p>Create a new staff account for your organization</p>
-      </div>
       <div class="row justify-content-center">
         <div class="col-lg-6">
           <div class="card">

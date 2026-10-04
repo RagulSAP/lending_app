@@ -35,10 +35,6 @@
 
   function renderCollectorView() {
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>Find Customer</h1>
-        <p>Search customer by phone number to collect payment</p>
-      </div>
       <div class="row justify-content-center">
         <div class="col-lg-5">
           <div class="card">
@@ -112,8 +108,7 @@
     const canOnboard = [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF].includes(currentUser.role_id);
     const canEdit = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
-        <div><h1>Customers</h1><p>Manage and view all customer accounts and loans</p></div>
+      <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
         <div class="d-flex gap-2 flex-wrap">
           <button type="button" class="btn btn-outline-success" id="export-btn">
             <i class="bi bi-file-earmark-excel me-1"></i>Export Excel

@@ -38,8 +38,7 @@
 
   function renderPage() {
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-start justify-content-between flex-wrap gap-3">
-        <div><h1>Wallet</h1><p>Manage wallet balance, top-ups and partners</p></div>
+      <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
         <div class="d-flex flex-wrap gap-2">
           <button type="button" class="btn btn-outline-secondary" id="partners-btn">
             <i class="bi bi-people me-1"></i>Partners

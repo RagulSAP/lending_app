@@ -30,11 +30,6 @@
       expenseCategories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
 
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header">
-        <h1>Reports</h1>
-        <p>View, filter and export financial reports</p>
-      </div>
-
       <!-- Tab Navigation -->
       <ul class="nav nav-tabs flex-wrap" id="report-tabs" style="margin-bottom:0;border-bottom:none;">
         <li class="nav-item">
