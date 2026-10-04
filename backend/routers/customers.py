@@ -8,7 +8,7 @@ from flask import Blueprint, request
 
 from database import SessionLocal
 from models import Customer, Loan, LoanInstallment, User
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, case
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
@@ -139,20 +139,41 @@ def list_customers():
 
     db = SessionLocal()
     try:
-        q = db.query(Customer).filter(Customer.org_id == org_id)
-
         if role_id == Config.ROLE_COLLECTOR:
             # Collectors may ONLY do a phone search
             if not phone:
                 return error_response("Collectors must provide a phone number to search", 400)
-            q = q.filter(Customer.phone == phone)
-            customers = q.all()
+            customers = db.query(Customer).filter(
+                Customer.org_id == org_id, Customer.phone == phone
+            ).all()
             return success_response(
                 data=[model_to_dict(c) for c in customers],
                 total=len(customers),
             )
 
-        # Full-access roles
+        # Subquery: earliest pending installment date per customer (for sorting)
+        sort_sub = (
+            db.query(
+                Loan.customer_id.label("cid"),
+                func.min(LoanInstallment.due_date).label("next_date"),
+            )
+            .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
+            .filter(
+                Loan.org_id == org_id,
+                Loan.status.in_(["ACTIVE", "OVERDUE"]),
+                LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+            )
+            .group_by(Loan.customer_id)
+            .subquery("sort_sub")
+        )
+
+        q = (
+            db.query(Customer)
+            .outerjoin(sort_sub, Customer.customer_id == sort_sub.c.cid)
+            .filter(Customer.org_id == org_id)
+        )
+
+        # Full-access roles filters
         if phone:
             q = q.filter(Customer.phone.ilike(f"%{phone}%"))
         if city:
@@ -167,7 +188,10 @@ def list_customers():
 
         total = q.count()
         customers = (
-            q.order_by(Customer.created_at.desc())
+            q.order_by(
+                case((sort_sub.c.next_date.is_(None), 1), else_=0),
+                sort_sub.c.next_date.asc(),
+            )
             .offset((page - 1) * per_page)
             .limit(per_page)
             .all()
@@ -180,8 +204,30 @@ def list_customers():
             users = db.query(User).filter(User.user_id.in_(creator_ids)).all()
             creator_map = {u.user_id: u.name for u in users}
 
-        # Batch-fetch next pending installment per customer
+        # Batch-fetch loan info per customer
         customer_ids = [c.customer_id for c in customers]
+
+        # Most recent active loan's disbursement date per customer
+        disburse_map = {}
+        if customer_ids:
+            dis_rows = (
+                db.query(
+                    Loan.customer_id,
+                    func.max(Loan.disbursement_date).label("dis_date"),
+                )
+                .filter(
+                    Loan.customer_id.in_(customer_ids),
+                    Loan.org_id == org_id,
+                    Loan.status.in_(["ACTIVE", "OVERDUE"]),
+                )
+                .group_by(Loan.customer_id)
+                .all()
+            )
+            disburse_map = {
+                row.customer_id: row.dis_date.isoformat() if row.dis_date else None
+                for row in dis_rows
+            }
+
         next_due_map = {}
         if customer_ids:
             min_due_sub = (
@@ -227,6 +273,7 @@ def list_customers():
         for c in customers:
             d = model_to_dict(c)
             d["onboarded_by"] = creator_map.get(c.created_by) if c.created_by else None
+            d["loan_disbursed_date"] = disburse_map.get(c.customer_id)
             nd = next_due_map.get(c.customer_id, {})
             d["next_due_date"] = nd.get("next_due_date")
             d["next_due_amount"] = nd.get("next_due_amount")

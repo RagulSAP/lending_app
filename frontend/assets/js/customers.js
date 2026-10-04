@@ -131,7 +131,7 @@
           <table class="table">
             <thead>
               <tr>
-                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Onboarded By</th><th>Status</th><th>Created</th><th>Next Due</th>
+                <th>#</th><th>Customer</th><th>Phone</th><th>City</th><th>Onboarded By</th><th>Status</th><th>Disbursed</th><th>Next Due</th>
                 ${canEdit ? '<th>Actions</th>' : ''}
               </tr>
             </thead>
@@ -334,7 +334,7 @@
             <td>${c.city || '-'}</td>
             <td>${c.onboarded_by || '-'}</td>
             <td>${statusBadge(c.status || 'ACTIVE')}</td>
-            <td>${formatDate(c.created_at)}</td>
+            <td>${c.loan_disbursed_date ? formatDate(c.loan_disbursed_date) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${nextDueCell}</td>
             ${actionsCell}
           </tr>`;
