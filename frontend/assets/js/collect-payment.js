@@ -459,8 +459,7 @@
       });
       paymentModal.hide();
       showToast('Payment recorded successfully!', 'success');
-      // Refresh loan cards
-      if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
     } catch (err) {
       errEl.textContent = err.message;
       errEl.classList.remove('d-none');
