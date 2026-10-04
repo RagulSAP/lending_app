@@ -1,3 +1,6 @@
+// Apply saved theme immediately to avoid flash
+try { const t = localStorage.getItem('lendtrack-theme'); if (t) document.body.setAttribute('data-theme', t); } catch {}
+
 // LendTrack Common Utilities — IIFE, exposes window globals
 (function () {
   'use strict';
@@ -50,10 +53,25 @@
         <ul class="nav flex-column" style="list-style:none;padding:0;margin:0;">${navHTML}</ul>
       </nav>
       <div class="sidebar-footer">
+        <label class="theme-toggle-row" for="theme-chk" title="Toggle dark mode">
+          <span><i class="bi bi-moon-stars" id="theme-icon"></i><span id="theme-label">Dark Mode</span></span>
+          <div class="theme-switch">
+            <input type="checkbox" id="theme-chk">
+            <span class="theme-switch-slider"></span>
+          </div>
+        </label>
         <a class="nav-link" id="logout-btn" style="cursor:pointer;">
           <i class="bi bi-box-arrow-right"></i><span>Logout</span>
         </a>
       </div>`;
+
+    // Apply saved theme
+    const savedTheme = (() => { try { return localStorage.getItem('lendtrack-theme'); } catch { return null; } })();
+    if (savedTheme === 'dark') _applyTheme('dark');
+
+    document.getElementById('theme-chk').addEventListener('change', function () {
+      _applyTheme(this.checked ? 'dark' : 'light');
+    });
 
     document.getElementById('logout-btn').addEventListener('click', async (e) => {
       e.preventDefault();
@@ -62,6 +80,18 @@
       try { await api.post('/api/auth/logout'); } catch {}
       auth.logout();
     });
+  }
+
+  function _applyTheme(theme) {
+    const isDark = theme === 'dark';
+    document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    try { localStorage.setItem('lendtrack-theme', theme); } catch {}
+    const chk = document.getElementById('theme-chk');
+    const icon = document.getElementById('theme-icon');
+    const lbl  = document.getElementById('theme-label');
+    if (chk)  chk.checked = isDark;
+    if (icon) { icon.className = isDark ? 'bi bi-sun' : 'bi bi-moon-stars'; }
+    if (lbl)  lbl.textContent = isDark ? 'Light Mode' : 'Dark Mode';
   }
 
   function renderTopbar(pageTitle) {
