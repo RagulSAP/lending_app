@@ -46,7 +46,14 @@ try { const t = localStorage.getItem('tc-theme'); if (t) document.body.setAttrib
 
     el.innerHTML = `
       <a class="sidebar-brand" href="#">
-        <div class="brand-icon"><i class="bi bi-currency-rupee"></i></div>
+        <div class="brand-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
+            <path d="M12 1 L16 9 L12 14 L8 9 Z"/>
+            <rect x="7" y="14" width="10" height="1.5" rx="0.75"/>
+            <rect x="11.25" y="15.5" width="1.5" height="5.5" rx="0.75"/>
+            <path d="M10.5 21 L12 24 L13.5 21 Z"/>
+          </svg>
+        </div>
         <div class="brand-name">Thiruvelan<span> Capitals</span></div>
       </a>
       <nav class="sidebar-nav">
