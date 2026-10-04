@@ -85,7 +85,7 @@
       </div>
       <div class="row g-3 mb-4" id="kpi-row"></div>
       <div class="row g-4">
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Loan Status Breakdown</h6></div>
             <div style="position:relative;height:220px;padding:12px 16px;">
@@ -93,7 +93,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6">
           <div class="card h-100">
             <div class="card-header-flex"><h6 class="card-title">Customer Loan Status</h6></div>
             <div style="position:relative;height:220px;padding:12px 16px;">
@@ -101,8 +101,10 @@
             </div>
           </div>
         </div>
-        <div class="col-12 col-lg-4">
-          <div class="card h-100">
+      </div>
+      <div class="row g-4 mt-2">
+        <div class="col-12">
+          <div class="card">
             <div class="card-header-flex">
               <h6 class="card-title">Recent Transactions</h6>
             </div>
