@@ -158,8 +158,9 @@
         </div>
       </div>`;
 
-    document.getElementById('page-content').style.cssText = 'display:flex;flex-direction:column;height:calc(100vh - var(--topbar-height) - 48px);';
-    document.getElementById('page-content').innerHTML = `
+    const pc = document.getElementById('page-content');
+    pc.classList.add('dash-layout');
+    pc.innerHTML = `
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">${finCard('kv-disbursed', t('dash.total_disbursed'),   '#2563EB')}</div>
@@ -178,8 +179,8 @@
       </div>
 
       <!-- Charts -->
-      <div class="row g-3" style="flex:1;min-height:0;">
-        <div class="col-md-4" style="display:flex;flex-direction:column;">
+      <div class="row g-3 dash-charts-row" style="flex:1;min-height:0;">
+        <div class="col-md-4 dash-chart-col" style="display:flex;flex-direction:column;">
           <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
             <div class="card-header-flex"><h6 class="card-title">${t('dash.customer_status')}</h6></div>
             <div style="position:relative;flex:1;min-height:0;padding:8px 16px;">
@@ -187,7 +188,7 @@
             </div>
           </div>
         </div>
-        <div class="col-md-8" style="display:flex;flex-direction:column;">
+        <div class="col-md-8 dash-chart-col" style="display:flex;flex-direction:column;">
           <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
             <div class="card-header-flex" style="flex-wrap:wrap;gap:8px;">
               <h6 class="card-title" style="margin:0;">${t('dash.collection_trend')}</h6>

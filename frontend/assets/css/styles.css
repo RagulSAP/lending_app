@@ -802,6 +802,44 @@ input, textarea, select, button {
   .table td[style*="max-width"] { max-width: 120px !important; }
 }
 
+/* ── DASHBOARD LAYOUT ───────────────────────────────────────────────────── */
+/* Desktop: lock to viewport so nothing scrolls — charts fill remaining space */
+.dash-layout {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-height) - 48px);
+}
+
+/* Mobile: remove fixed height, let page scroll naturally */
+@media (max-width: 767.98px) {
+  .dash-layout {
+    height: auto;
+    min-height: 0;
+  }
+
+  /* Charts row: no flex-shrink tricks on mobile — just flow and give each chart a real height */
+  .dash-charts-row {
+    flex: none !important;
+    min-height: 0 !important;
+  }
+
+  .dash-chart-col {
+    display: block !important;
+    min-height: 0 !important;
+  }
+
+  .dash-chart-col .card {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  /* Each chart canvas gets a fixed height on mobile */
+  .dash-chart-col canvas {
+    min-height: 220px !important;
+    max-height: 260px !important;
+  }
+}
+
 /* ── SMALL PHONES (≤374px) ──────────────────────────────────────────────── */
 @media (max-width: 374px) {
   .stat-value { font-size: 16px; }
