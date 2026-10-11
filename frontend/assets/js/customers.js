@@ -445,10 +445,45 @@
             ? `<div style="font-size:13px;">${formatDate(c.next_due_date)}</div>
                <div style="font-size:12px;font-weight:600;color:#DC2626;">${formatCurrency(c.next_due_amount || 0)}</div>`
             : `<span style="font-size:12px;color:var(--text-secondary);">—</span>`;
-          return `<tr class="clickable" onclick="viewCustomer('${c.customer_id}')">
+          const multi = (c.loan_count || 0) > 1;
+          const childRows = multi ? c.loans.map(ln => {
+            const instCell = ln.loan_type === 'INTEREST_ONLY'
+              ? `<span class="fw-600">${ln.paid_installments || 0}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">interest paid</span>`
+              : `<span class="fw-600">${ln.paid_installments || 0}/${ln.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>`;
+            const dueCell = ln.next_due_date
+              ? `<div style="font-size:13px;">${formatDate(ln.next_due_date)}</div>
+                 <div style="font-size:12px;font-weight:600;color:#DC2626;">${formatCurrency(ln.next_due_amount || 0)}</div>`
+              : `<span style="font-size:12px;color:var(--text-secondary);">—</span>`;
+            const collectCell = canEdit ? `
+              <td onclick="event.stopPropagation()">
+                <button type="button" class="btn btn-sm btn-success" title="Collect payment" onclick="viewCustomer('${c.customer_id}','${ln.loan_id}')">
+                  <i class="bi bi-cash-coin"></i>
+                </button>
+              </td>` : '';
+            return `<tr class="loan-child-row clickable d-none" data-parent="${c.customer_id}" style="background:#F8FAFC;" onclick="viewCustomer('${c.customer_id}','${ln.loan_id}')">
+              <td></td>
+              <td>
+                <div class="d-flex align-items-center gap-2" style="padding-left:40px;font-size:13px;">
+                  <span style="width:22px;height:22px;border-radius:50%;background:#E0E7FF;color:#4338CA;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;">${ln.loan_number}</span>
+                  <span style="color:var(--text-secondary);">Loan ${ln.loan_number}</span>
+                </div>
+              </td>
+              <td></td>
+              <td></td>
+              <td>${loanTypeBadge(ln.loan_type)}</td>
+              <td>${ln.disbursement_date ? formatDate(ln.disbursement_date) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+              <td>${formatCurrency(ln.disbursement_amount)}</td>
+              <td><span class="fw-600" style="color:#DC2626;">${formatCurrency(ln.outstanding_amount)}</span></td>
+              <td>${instCell}</td>
+              <td>${dueCell}</td>
+              ${collectCell}
+            </tr>`;
+          }).join('') : '';
+          const mainRow = `<tr class="clickable" ${multi ? 'title="Click to show all loans"' : ''} onclick="${multi ? `toggleLoanRows('${c.customer_id}')` : `viewCustomer('${c.customer_id}')`}">
             <td>${offset + i + 1}</td>
             <td>
               <div class="d-flex align-items-center gap-2">
+                ${multi ? `<i class="bi bi-chevron-right" id="chev-${c.customer_id}" style="font-size:12px;color:var(--text-secondary);"></i>` : ''}
                 ${avatarHtml}
                 <div><div class="fw-600">${c.name}</div></div>
               </div>
@@ -460,14 +495,15 @@
               </div>
             </td>
             <td>${c.city || '-'}</td>
-            <td>${loanTypeBadge(c.loan_type)}</td>
+            <td>${multi ? `<span style="background:#EDE9FE;color:#6D28D9;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">${c.loan_count} Loans</span>` : loanTypeBadge(c.loan_type)}</td>
             <td>${c.loan_disbursed_date ? formatDate(c.loan_disbursed_date) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.disbursement_amount != null ? formatCurrency(c.disbursement_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.outstanding_amount != null ? `<span class="fw-600" style="color:#DC2626;">${formatCurrency(c.outstanding_amount)}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
-            <td>${c.loan_type === 'INTEREST_ONLY' ? `<span class="fw-600">${c.paid_installments || 0}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">interest paid</span>` : c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+            <td>${multi ? '<span style="color:var(--text-secondary);font-size:12px;">—</span>' : c.loan_type === 'INTEREST_ONLY' ? `<span class="fw-600">${c.paid_installments || 0}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">interest paid</span>` : c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${nextDueCell}</td>
             ${actionsCell}
           </tr>`;
+          return mainRow + childRows;
         }).join('');
       }
       renderPagination();
@@ -544,7 +580,7 @@
           c.aadhaar || '',
           c.pan || '',
           c.id_proof_type || '',
-          c.loan_type ? (c.loan_type === 'INTEREST_ONLY' ? 'Vatti' : 'Loan') : '',
+          (c.loan_count || 0) > 1 ? `${c.loan_count} loans` : c.loan_type ? (c.loan_type === 'INTEREST_ONLY' ? 'Vatti' : 'Loan') : '',
           c.assigned_user_name || c.assigned_to || '',
           c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '',
           c.loan_disbursed_date || '',
@@ -575,8 +611,17 @@
     }
   }
 
-  window.viewCustomer = function (customerId) {
-    window.location.href = 'collect-payment.html?customer_id=' + customerId;
+  window.viewCustomer = function (customerId, loanId) {
+    window.location.href = 'collect-payment.html?customer_id=' + customerId + (loanId ? '&loan_id=' + loanId : '');
+  };
+
+  window.toggleLoanRows = function (customerId) {
+    const rows = document.querySelectorAll(`tr.loan-child-row[data-parent="${customerId}"]`);
+    if (!rows.length) return;
+    const open = rows[0].classList.contains('d-none');
+    rows.forEach(r => r.classList.toggle('d-none', !open));
+    const chev = document.getElementById('chev-' + customerId);
+    if (chev) chev.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
   };
 
   window.openEditModal = async function (customerId) {

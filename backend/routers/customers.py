@@ -204,47 +204,37 @@ def list_customers():
             users = db.query(User).filter(User.user_id.in_(creator_ids)).all()
             creator_map = {u.user_id: u.name for u in users}
 
-        # Batch-fetch loan info per customer
+        # Batch-fetch every open loan per customer
         customer_ids = [c.customer_id for c in customers]
-
-        # Most recent active loan summary per customer
-        disburse_map = {}
+        loans_map = {}
         if customer_ids:
-            # Subquery: latest disbursement_date per customer
-            latest_sub = (
+            loan_rows = (
                 db.query(
-                    Loan.customer_id.label("cid"),
-                    func.max(Loan.disbursement_date).label("max_date"),
+                    Loan.customer_id,
+                    Loan.loan_id,
+                    Loan.loan_type,
+                    Loan.status,
+                    Loan.disbursement_date,
+                    Loan.disbursement_amount,
+                    Loan.balance_amount,
+                    Loan.num_installments,
+                    Loan.installment_amount,
+                    Loan.installment_type,
                 )
                 .filter(
                     Loan.customer_id.in_(customer_ids),
                     Loan.org_id == org_id,
                     Loan.status.in_(["ACTIVE", "OVERDUE"]),
                 )
-                .group_by(Loan.customer_id)
-                .subquery("latest_sub")
-            )
-            dis_rows = (
-                db.query(
-                    Loan.customer_id,
-                    Loan.loan_id,
-                    Loan.loan_type,
-                    Loan.disbursement_date,
-                    Loan.disbursement_amount,
-                    Loan.balance_amount,
-                    Loan.num_installments,
-                )
-                .join(latest_sub, and_(
-                    Loan.customer_id == latest_sub.c.cid,
-                    Loan.disbursement_date == latest_sub.c.max_date,
-                ))
-                .filter(Loan.status.in_(["ACTIVE", "OVERDUE"]))
+                .order_by(Loan.disbursement_date.asc(), Loan.id.asc())
                 .all()
             )
-            loan_ids = [row.loan_id for row in dis_rows]
-            # Count PAID installments per loan in one query
+            loan_ids = [row.loan_id for row in loan_rows]
+
             paid_counts = {}
+            next_due = {}
             if loan_ids:
+                # PAID installments per loan
                 paid_rows = (
                     db.query(
                         LoanInstallment.loan_id,
@@ -259,92 +249,119 @@ def list_customers():
                 )
                 paid_counts = {r.loan_id: r.paid_count for r in paid_rows}
 
-            # Interest-only loans have no installment rows: count interest collections instead
-            io_ids = [row.loan_id for row in dis_rows if row.loan_type == "INTEREST_ONLY"]
-            if io_ids:
-                io_rows = (
+                # Interest-only loans have no installment rows: count interest collections instead
+                io_ids = [row.loan_id for row in loan_rows if row.loan_type == "INTEREST_ONLY"]
+                if io_ids:
+                    io_rows = (
+                        db.query(
+                            Transaction.loan_id,
+                            func.count(Transaction.transaction_id).label("paid_count"),
+                        )
+                        .filter(
+                            Transaction.loan_id.in_(io_ids),
+                            Transaction.transaction_type == "LOAN_COLLECTION",
+                            or_(Transaction.remarks.is_(None), ~Transaction.remarks.like("Principal repayment%")),
+                        )
+                        .group_by(Transaction.loan_id)
+                        .all()
+                    )
+                    for r in io_rows:
+                        paid_counts[r.loan_id] = r.paid_count
+
+                # Next unpaid installment (date + amount) per loan
+                min_due_sub = (
                     db.query(
-                        Transaction.loan_id,
-                        func.count(Transaction.transaction_id).label("paid_count"),
+                        LoanInstallment.loan_id.label("lid"),
+                        func.min(LoanInstallment.due_date).label("next_date"),
                     )
                     .filter(
-                        Transaction.loan_id.in_(io_ids),
-                        Transaction.transaction_type == "LOAN_COLLECTION",
-                        or_(Transaction.remarks.is_(None), ~Transaction.remarks.like("Principal repayment%")),
+                        LoanInstallment.loan_id.in_(loan_ids),
+                        LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
                     )
-                    .group_by(Transaction.loan_id)
+                    .group_by(LoanInstallment.loan_id)
+                    .subquery("nd_sub")
+                )
+                due_rows = (
+                    db.query(
+                        LoanInstallment.loan_id,
+                        LoanInstallment.due_date,
+                        func.sum(LoanInstallment.balance_amount).label("amount"),
+                    )
+                    .join(min_due_sub, and_(
+                        LoanInstallment.loan_id == min_due_sub.c.lid,
+                        LoanInstallment.due_date == min_due_sub.c.next_date,
+                    ))
+                    .filter(LoanInstallment.status.in_(["PENDING", "PARTIAL"]))
+                    .group_by(LoanInstallment.loan_id, LoanInstallment.due_date)
                     .all()
                 )
-                for r in io_rows:
-                    paid_counts[r.loan_id] = r.paid_count
-
-            disburse_map = {
-                row.customer_id: {
-                    "date":               row.disbursement_date.isoformat() if row.disbursement_date else None,
-                    "loan_type":          row.loan_type or "PRINCIPAL_INTEREST",
-                    "disbursement_amount": round(float(row.disbursement_amount or 0), 2),
-                    "balance_amount":      round(float(row.balance_amount or 0), 2),
-                    "num_installments":    row.num_installments or 0,
-                    "paid_installments":   paid_counts.get(row.loan_id, 0),
+                next_due = {
+                    r.loan_id: {
+                        "date": r.due_date.isoformat() if r.due_date else None,
+                        "amount": round(float(r.amount or 0), 2),
+                    }
+                    for r in due_rows
                 }
-                for row in dis_rows
-            }
 
-        next_due_map = {}
-        if customer_ids:
-            min_due_sub = (
-                db.query(
-                    Loan.customer_id.label("cid"),
-                    func.min(LoanInstallment.due_date).label("next_date"),
-                )
-                .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
-                .filter(
-                    Loan.customer_id.in_(customer_ids),
-                    Loan.org_id == org_id,
-                    Loan.status.in_(["ACTIVE", "OVERDUE"]),
-                    LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
-                )
-                .group_by(Loan.customer_id)
-                .subquery("nd_sub")
-            )
-            due_rows = (
-                db.query(
-                    Loan.customer_id,
-                    LoanInstallment.due_date,
-                    func.sum(LoanInstallment.balance_amount).label("amount"),
-                )
-                .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
-                .join(min_due_sub, and_(
-                    Loan.customer_id == min_due_sub.c.cid,
-                    LoanInstallment.due_date == min_due_sub.c.next_date,
-                ))
-                .filter(
-                    Loan.status.in_(["ACTIVE", "OVERDUE"]),
-                    LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
-                )
-                .group_by(Loan.customer_id, LoanInstallment.due_date)
-                .all()
-            )
-            for row in due_rows:
-                next_due_map[row.customer_id] = {
-                    "next_due_date": row.due_date.isoformat() if row.due_date else None,
-                    "next_due_amount": round(float(row.amount or 0), 2),
-                }
+            for idx_row in loan_rows:
+                nd = next_due.get(idx_row.loan_id) or {}
+                loans_map.setdefault(idx_row.customer_id, []).append({
+                    "loan_id":             idx_row.loan_id,
+                    "loan_type":           idx_row.loan_type or "PRINCIPAL_INTEREST",
+                    "status":              idx_row.status,
+                    "installment_type":    idx_row.installment_type,
+                    "disbursement_date":   idx_row.disbursement_date.isoformat() if idx_row.disbursement_date else None,
+                    "disbursement_amount": round(float(idx_row.disbursement_amount or 0), 2),
+                    "outstanding_amount":  round(float(idx_row.balance_amount or 0), 2),
+                    "installment_amount":  round(float(idx_row.installment_amount or 0), 2),
+                    "num_installments":    idx_row.num_installments or 0,
+                    "paid_installments":   paid_counts.get(idx_row.loan_id, 0),
+                    "next_due_date":       nd.get("date"),
+                    "next_due_amount":     nd.get("amount"),
+                })
 
         rows = []
         for c in customers:
             d = model_to_dict(c)
             d["onboarded_by"] = creator_map.get(c.created_by) if c.created_by else None
-            loan_info = disburse_map.get(c.customer_id) or {}
-            d["loan_disbursed_date"]  = loan_info.get("date")
-            d["loan_type"]            = loan_info.get("loan_type")
-            d["disbursement_amount"]  = loan_info.get("disbursement_amount")
-            d["outstanding_amount"]   = loan_info.get("balance_amount")
-            d["num_installments"]     = loan_info.get("num_installments")
-            d["paid_installments"]    = loan_info.get("paid_installments")
-            nd = next_due_map.get(c.customer_id, {})
-            d["next_due_date"] = nd.get("next_due_date")
-            d["next_due_amount"] = nd.get("next_due_amount")
+            cust_loans = loans_map.get(c.customer_id, [])
+            for n, ln in enumerate(cust_loans, start=1):
+                ln["loan_number"] = n
+            d["loans"] = cust_loans
+            d["loan_count"] = len(cust_loans)
+
+            if len(cust_loans) == 1:
+                ln = cust_loans[0]
+                d["loan_disbursed_date"] = ln["disbursement_date"]
+                d["loan_type"]           = ln["loan_type"]
+                d["disbursement_amount"] = ln["disbursement_amount"]
+                d["outstanding_amount"]  = ln["outstanding_amount"]
+                d["num_installments"]    = ln["num_installments"]
+                d["paid_installments"]   = ln["paid_installments"]
+                d["next_due_date"]       = ln["next_due_date"]
+                d["next_due_amount"]     = ln["next_due_amount"]
+            elif cust_loans:
+                dated = [ln for ln in cust_loans if ln["next_due_date"]]
+                earliest = min((ln["next_due_date"] for ln in dated), default=None)
+                d["loan_disbursed_date"] = None
+                d["loan_type"]           = None
+                d["disbursement_amount"] = round(sum(ln["disbursement_amount"] for ln in cust_loans), 2)
+                d["outstanding_amount"]  = round(sum(ln["outstanding_amount"] for ln in cust_loans), 2)
+                d["num_installments"]    = None
+                d["paid_installments"]   = None
+                d["next_due_date"]       = earliest
+                d["next_due_amount"]     = round(
+                    sum(ln["next_due_amount"] or 0 for ln in dated if ln["next_due_date"] == earliest), 2
+                ) if earliest else None
+            else:
+                d["loan_disbursed_date"] = None
+                d["loan_type"]           = None
+                d["disbursement_amount"] = None
+                d["outstanding_amount"]  = None
+                d["num_installments"]    = None
+                d["paid_installments"]   = None
+                d["next_due_date"]       = None
+                d["next_due_amount"]     = None
             rows.append(d)
 
         return success_response(

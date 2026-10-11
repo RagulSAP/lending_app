@@ -25,6 +25,8 @@
     const params = new URLSearchParams(window.location.search);
     const customerId = params.get('customer_id');
     if (customerId) await loadCustomerById(customerId);
+    const loanId = params.get('loan_id');
+    if (customerId && loanId && customerLoans.some(l => l.loan_id === loanId)) await window.selectLoan(loanId);
   }
 
   // ---------------------------------------------------------------------------
