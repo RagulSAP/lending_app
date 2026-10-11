@@ -131,7 +131,7 @@ def expenses_report():
 
     db = SessionLocal()
     try:
-        records, total = get_expenses_report(
+        records, total, total_amount = get_expenses_report(
             db,
             org_id=current["org_id"],
             date_from=date_from,
@@ -140,7 +140,7 @@ def expenses_report():
             page=page,
             per_page=per_page,
         )
-        return success_response(data=records, total=total, page=page, per_page=per_page)
+        return success_response(data=records, total=total, total_amount=total_amount, page=page, per_page=per_page)
     finally:
         db.close()
 
@@ -244,7 +244,7 @@ def export_report():
                 per_page=per_page,
             )
         elif report_name == "expenses":
-            records, _ = get_expenses_report(
+            records, _, _ta = get_expenses_report(
                 db,
                 org_id=current["org_id"],
                 date_from=date_from,

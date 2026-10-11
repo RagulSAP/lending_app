@@ -13,6 +13,9 @@
   }
 
   async function loadCollectors() {
+    // GET /api/users is Admin/Manager only; Staff would just get a 403 here
+    const u = auth.getUser();
+    if (!u || ![ROLES.ADMIN, ROLES.MANAGER].includes(u.role_id)) { collectors = []; return; }
     try {
       const res = await api.get('/api/users', { role_id: 4, status: 1, per_page: 100 });
       collectors = res.data || [];

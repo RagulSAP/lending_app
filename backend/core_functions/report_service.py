@@ -277,7 +277,7 @@ def get_expenses_report(
     page: int = 1,
     per_page: int = 50,
 ):
-    """Returns (records_list, total_count) for expenses within the org and date range."""
+    """Returns (records_list, total_count, total_amount) for expenses within the org and date range."""
     q = (
         db.query(
             Expense,
@@ -298,6 +298,9 @@ def get_expenses_report(
         q = q.filter(Expense.category_id == category_id)
 
     total = q.count()
+    total_amount = round(float(
+        q.with_entities(func.sum(Expense.expense_amount)).scalar() or 0
+    ), 2)
     rows = (
         q.order_by(Expense.expense_date.desc(), Expense.created_at.desc())
         .offset((page - 1) * per_page)
@@ -315,7 +318,7 @@ def get_expenses_report(
             "user_name": user_name,
             "expense_remark": expense.expense_remark,
         })
-    return records, total
+    return records, total, total_amount
 
 
 # ---------------------------------------------------------------------------
