@@ -290,6 +290,10 @@ def get_loan(loan_id):
         data["customer_name"] = customer.name if customer else None
         data["customer_phone"] = customer.phone if customer else None
         data["installments"] = [model_to_dict(i) for i in installments]
+        data["payment_count"] = db.query(Transaction).filter(
+            Transaction.loan_id == loan_id,
+            Transaction.transaction_type == "LOAN_COLLECTION",
+        ).count()
 
         if (loan.loan_type or "") == "INTEREST_ONLY":
             txns = (
@@ -335,5 +339,255 @@ def get_customer_loans(customer_id):
             data=[model_to_dict(l) for l in loans],
             total=len(loans),
         )
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# PATCH /{loan_id} — edit loan
+# ---------------------------------------------------------------------------
+
+@loans_bp.route("/<string:loan_id>", methods=["PATCH"])
+@require_roles(*_FIELD_ROLES)
+def update_loan(loan_id):
+    """
+    PATCH /api/loans/{loan_id}
+    Body (all optional): loan_type, disbursement_amount, installment_type, num_installments,
+    collection_amount, disbursement_date, interest_type, interest_rate, processing_fee, remarks.
+
+    Rules
+    - Closed loans cannot be edited.
+    - Principal-with-interest loans that already have collections: only remarks can change
+      (use Close / Part-Pay to restructure).
+    - Interest-only loans: the loan type is locked once any collection exists and the loan
+      amount is locked once principal has been repaid.
+    - Otherwise the schedule is regenerated and the wallet rotation balance and the
+      disbursement transaction are adjusted for any change in loan amount / date.
+    """
+    current = get_current_user_info()
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    db = SessionLocal()
+    try:
+        loan = db.query(Loan).filter(
+            Loan.loan_id == loan_id,
+            Loan.org_id == current["org_id"],
+        ).first()
+        if not loan:
+            return error_response("Loan not found", 404)
+        if loan.status == "CLOSED":
+            return error_response("A closed loan cannot be edited")
+
+        old_type = loan.loan_type or "PRINCIPAL_INTEREST"
+        old_io = old_type == "INTEREST_ONLY"
+        payment_count = db.query(Transaction).filter(
+            Transaction.loan_id == loan_id,
+            Transaction.transaction_type == "LOAN_COLLECTION",
+        ).count()
+
+        new_type = str(data.get("loan_type") or old_type).upper()
+        if new_type not in _VALID_LOAN_TYPES:
+            return error_response("loan_type must be 'PRINCIPAL_INTEREST' or 'INTEREST_ONLY'")
+        is_io = new_type == "INTEREST_ONLY"
+
+        new_itype = str(data.get("installment_type") or loan.installment_type).upper()
+        if new_itype not in _VALID_INSTALLMENT_TYPES:
+            return error_response("installment_type must be 'DAILY', 'WEEKLY', or 'MONTHLY'")
+
+        raw_date = data.get("disbursement_date")
+        if raw_date:
+            new_date = parse_date(str(raw_date))
+            if not new_date:
+                return error_response("disbursement_date must be YYYY-MM-DD")
+        else:
+            new_date = loan.disbursement_date
+
+        old_interest_type = loan.interest_type
+        if "interest_type" in data:
+            new_interest_type = (str(data.get("interest_type") or "").upper()) or None
+        else:
+            new_interest_type = old_interest_type
+        if new_interest_type and new_interest_type not in _VALID_INTEREST_TYPES:
+            return error_response("interest_type must be 'FLAT' or 'REDUCING'")
+        legacy = (not is_io) and bool(new_interest_type)
+
+        try:
+            old_principal = round(float(loan.disbursement_amount or 0))
+            new_principal = round(float(data.get("disbursement_amount", old_principal)))
+            new_coll = round(float(data.get("collection_amount", loan.installment_amount or 0)))
+            new_n = int(data.get("num_installments", loan.num_installments or 0) or 0)
+            new_rate = float(data.get("interest_rate", loan.interest_rate or 0) or 0)
+            new_fee = float(data.get("processing_fee", loan.processing_fee or 0) or 0)
+        except (TypeError, ValueError):
+            return error_response("Numeric fields must be valid numbers")
+
+        remarks_in = data.get("remarks")
+        new_remarks = (str(remarks_in).strip() if remarks_in is not None else loan.remarks) or ""
+        new_remarks = new_remarks[:100]
+
+        old_principal_outstanding = round(float(loan.balance_amount or 0))
+        principal_repaid = old_io and old_principal_outstanding != old_principal
+
+        # What would actually change structurally?
+        type_changed = new_type != old_type
+        principal_changed = new_principal != old_principal
+        date_changed = new_date != loan.disbursement_date
+        itype_changed = new_itype != loan.installment_type
+        if old_io:
+            terms_changed = round(float(loan.installment_amount or 0)) != new_coll
+        else:
+            terms_changed = (
+                round(float(loan.installment_amount or 0)) != new_coll
+                or int(loan.num_installments or 0) != new_n
+                or (loan.interest_type or None) != new_interest_type
+                or round(float(loan.interest_rate or 0), 4) != round(new_rate, 4)
+                or round(float(loan.processing_fee or 0), 2) != round(new_fee, 2)
+            )
+        structural = type_changed or principal_changed or date_changed or itype_changed or terms_changed
+
+        if structural:
+            if not old_io and payment_count > 0:
+                return error_response(
+                    "This loan already has collections, so only remarks can be edited. "
+                    "Use Close / Part-Pay to restructure the remaining schedule."
+                )
+            if old_io and type_changed and payment_count > 0:
+                return error_response("The loan type cannot be changed after collections have been recorded")
+            if old_io and principal_changed and principal_repaid:
+                return error_response("The loan amount cannot be changed after principal has been repaid")
+
+            if new_principal <= 0:
+                return error_response("disbursement_amount must be positive")
+            if is_io:
+                if new_coll <= 0:
+                    return error_response("collection_amount must be positive")
+            elif legacy:
+                if new_n < 1:
+                    return error_response("num_installments must be at least 1")
+                if new_rate < 0:
+                    return error_response("interest_rate must be non-negative")
+            else:
+                if new_n < 1:
+                    return error_response("num_installments must be at least 1")
+                if new_coll <= 0:
+                    return error_response("collection_amount must be positive")
+                if new_coll * new_n < new_principal:
+                    return error_response("Total collections (collection_amount × num_installments) must be >= loan amount")
+
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        delta = new_principal - old_principal
+        if structural and delta != 0:
+            if not wallet:
+                return error_response("No wallet found for this organisation", 500)
+            available = round(float(wallet.rotation_balance or 0), 2)
+            if delta > 0 and available < delta:
+                return error_response(
+                    f"Insufficient rotation balance for the increase. Available: ₹ {available:,.2f}, Required: ₹ {delta:,.2f}",
+                    400,
+                )
+
+        installment_objs = []
+        if structural:
+            try:
+                if is_io:
+                    calc = calculate_interest_only_loan(
+                        principal=new_principal, collection_amount=new_coll,
+                        installment_type=new_itype, disbursement_date=new_date,
+                    )
+                elif legacy:
+                    calc = calculate_loan(
+                        principal=new_principal, interest_type=new_interest_type, annual_rate=new_rate,
+                        installment_type=new_itype, num_installments=new_n, disbursement_date=new_date,
+                    )
+                else:
+                    calc = calculate_loan_simple(
+                        principal=new_principal, collection_amount=new_coll,
+                        installment_type=new_itype, num_installments=new_n, disbursement_date=new_date,
+                    )
+            except ValueError as ve:
+                return error_response(str(ve))
+
+            schedule = calc["schedule"]
+            old_status = loan.status
+
+            if not old_io:
+                db.query(LoanInstallment).filter(LoanInstallment.loan_id == loan_id).delete(synchronize_session=False)
+
+            loan.loan_type = new_type
+            loan.disbursement_amount = new_principal
+            loan.disbursement_date = new_date
+            loan.installment_type = new_itype
+            loan.num_installments = calc.get("num_installments", new_n) if is_io else new_n
+            loan.installment_amount = calc["installment_amount"]
+            loan.total_payable = calc["total_payable"]
+            loan.due_date = parse_date(schedule[-1]["due_date"])
+            if is_io or not legacy:
+                loan.interest_type = None
+                loan.interest_rate = None
+                loan.processing_fee = 0
+            else:
+                loan.interest_type = new_interest_type
+                loan.interest_rate = round(new_rate, 4)
+                loan.processing_fee = round(new_fee, 2)
+            if not old_io or type_changed or principal_changed:
+                loan.balance_amount = new_principal
+
+            if not is_io:
+                for item in schedule:
+                    inst = LoanInstallment(
+                        installment_id=str(uuid.uuid4()),
+                        loan_id=loan_id,
+                        installment_number=item["installment_number"],
+                        due_date=parse_date(item["due_date"]),
+                        principal_amount=round(item["principal_amount"], 2),
+                        interest_amount=round(item["interest_amount"], 2),
+                        penalty_amount=0,
+                        total_amount=round(item["total_amount"], 2),
+                        paid_amount=0,
+                        balance_amount=round(item["total_amount"], 2),
+                        status="PENDING",
+                        paid_date=None,
+                    )
+                    db.add(inst)
+                    installment_objs.append(inst)
+
+            if delta != 0 and wallet:
+                wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - delta, 2)
+            if delta != 0 or date_changed:
+                disb_txn = db.query(Transaction).filter(
+                    Transaction.loan_id == loan_id,
+                    Transaction.transaction_type == "LOAN_DISBURSEMENT",
+                ).first()
+                if disb_txn:
+                    disb_txn.amount = new_principal
+                    disb_txn.transaction_date = new_date
+
+            if loan.status == "OVERDUE" and loan.due_date and loan.due_date >= _now_ist().date():
+                loan.status = "ACTIVE"
+            if loan.status != old_status:
+                db.add(LoanStatusHistory(
+                    id=str(uuid.uuid4()),
+                    loan_id=loan_id,
+                    old_status=old_status,
+                    new_status=loan.status,
+                    changed_by=current["user_id"],
+                    changed_at=_now_ist(),
+                    remarks="Loan edited; due date extended",
+                ))
+
+        loan.remarks = new_remarks
+        db.commit()
+
+        out = model_to_dict(loan)
+        out["installments"] = [model_to_dict(i) for i in installment_objs]
+        if wallet:
+            out["wallet_rotation_balance"] = round(float(wallet.rotation_balance), 2)
+        return success_response(data=out, message="Loan updated successfully")
+
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
     finally:
         db.close()

@@ -740,6 +740,7 @@
       const addLoanBtn = document.getElementById('add-loan-btn');
       const roleId = (auth.getUser() || {}).role_id;
       const canExport = roleId === 1 || roleId === 2; // ADMIN or MANAGER
+      const canEditLoan = [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF].includes(roleId);
 
       if (!customerLoans.length) {
         if (addLoanBtn) addLoanBtn.classList.remove('d-none');
@@ -777,6 +778,10 @@
               <button type="button" class="btn btn-success flex-fill" onclick="selectLoan('${l.loan_id}')">
                 <i class="bi bi-cash-coin me-2"></i>${t('pay.collect')}
               </button>
+              ${canEditLoan ? `
+              <button type="button" class="btn btn-outline-primary" title="Edit loan" onclick="openEditLoanModal('${l.loan_id}')">
+                <i class="bi bi-pencil"></i>
+              </button>` : ''}
               ${canExport ? `
               <button type="button" class="btn btn-outline-success" title="Export Excel" onclick="exportLoanCard('${l.loan_id}','excel')">
                 <i class="bi bi-file-earmark-excel"></i>
@@ -1229,6 +1234,280 @@
     ['al-amount', 'al-num-inst', 'al-collection'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateSummary);
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Edit loan modal
+  // ---------------------------------------------------------------------------
+  let editLoanModal = null;
+  let editLoanData = null;
+  let editLoanLocks = null;
+
+  function injectEditLoanModal() {
+    if (document.getElementById('edit-loan-modal')) return;
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="modal fade" id="edit-loan-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-600" style="font-size:16px;">
+                <i class="bi bi-pencil-square me-2 text-primary"></i>Edit Loan
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div id="el-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
+              <div id="el-note" class="alert alert-info d-none" style="font-size:13px;"></div>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">${t('onboard.loan_type')}</label>
+                  <select class="form-select" id="el-type">
+                    <option value="PRINCIPAL_INTEREST">${t('onboard.lt_pi')}</option>
+                    <option value="INTEREST_ONLY">${t('onboard.lt_io')}</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">${t('pay.loan_amount')} <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="el-amount" min="1" step="1">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">${t('pay.inst_type')} <span class="text-danger">*</span></label>
+                  <select class="form-select" id="el-itype">
+                    <option value="WEEKLY">${t('pay.weekly')}</option>
+                    <option value="DAILY">${t('pay.daily')}</option>
+                    <option value="MONTHLY">${t('pay.monthly')}</option>
+                  </select>
+                </div>
+                <div class="col-md-6" id="el-n-wrap">
+                  <label class="form-label">${t('pay.num_inst')} <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="el-n" min="1" step="1">
+                </div>
+                <div class="col-md-6" id="el-coll-wrap">
+                  <label class="form-label" id="el-coll-label">${t('pay.coll_amount')} <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="el-coll" min="1" step="1">
+                </div>
+                <div class="col-12 d-none" id="el-legacy-wrap">
+                  <div class="row g-3">
+                    <div class="col-md-4">
+                      <label class="form-label">Interest Type</label>
+                      <select class="form-select" id="el-int-type">
+                        <option value="FLAT">Flat</option>
+                        <option value="REDUCING">Reducing</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Interest Rate (% p.a.)</label>
+                      <input type="number" class="form-control" id="el-rate" min="0" step="0.01">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label">Processing Fee</label>
+                      <input type="number" class="form-control" id="el-fee" min="0" step="1">
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">${t('pay.disb_date')}</label>
+                  <input type="date" class="form-control" id="el-date">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">${t('pay.remarks')}</label>
+                  <input type="text" class="form-control" id="el-remarks" maxlength="100" placeholder="Optional">
+                </div>
+                <div class="col-12 d-none" id="el-summary">
+                  <div class="p-2 rounded text-center loan-stat-neutral" style="font-size:13px;" id="el-summary-text"></div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
+              <button type="button" class="btn btn-primary" id="el-save-btn">
+                <span id="el-save-txt"><i class="bi bi-check-lg me-1"></i>${t('common.save')}</span>
+                <span id="el-save-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>${t('common.saving')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(el.firstElementChild);
+    editLoanModal = new bootstrap.Modal(document.getElementById('edit-loan-modal'));
+    document.getElementById('el-save-btn').addEventListener('click', saveEditLoan);
+    document.getElementById('el-type').addEventListener('change', applyEditLoanType);
+    ['el-amount', 'el-n', 'el-coll'].forEach(id => document.getElementById(id).addEventListener('input', updateEditLoanSummary));
+  }
+
+  function elIsIO() {
+    return document.getElementById('el-type').value === 'INTEREST_ONLY';
+  }
+
+  function elIsLegacy() {
+    return !elIsIO() && !!(editLoanData && editLoanData.interest_type);
+  }
+
+  function applyEditLoanType() {
+    const isIO = elIsIO();
+    const legacy = elIsLegacy();
+    document.getElementById('el-n-wrap').classList.toggle('d-none', isIO);
+    document.getElementById('el-coll-wrap').classList.toggle('d-none', legacy);
+    document.getElementById('el-legacy-wrap').classList.toggle('d-none', !legacy);
+    document.getElementById('el-coll-label').innerHTML = isIO
+      ? `${t('onboard.interest_per_inst')} <span class="text-danger">*</span>`
+      : `${t('pay.coll_amount')} <span class="text-danger">*</span>`;
+    updateEditLoanSummary();
+  }
+
+  function updateEditLoanSummary() {
+    const box = document.getElementById('el-summary');
+    const textEl = document.getElementById('el-summary-text');
+    const amount = parseFloat(document.getElementById('el-amount').value) || 0;
+    const coll = parseFloat(document.getElementById('el-coll').value) || 0;
+    const n = parseInt(document.getElementById('el-n').value) || 0;
+    if (!elIsIO() && !elIsLegacy() && amount > 0 && coll > 0 && n > 0) {
+      const total = coll * n;
+      textEl.innerHTML = `Total to recover: <strong>${formatCurrency(total)}</strong> &nbsp;·&nbsp; Interest: <strong>${formatCurrency(total - amount)}</strong>`;
+      box.classList.remove('d-none');
+    } else {
+      box.classList.add('d-none');
+    }
+  }
+
+  window.openEditLoanModal = async function (loanId) {
+    try {
+      showLoading();
+      const res = await api.get('/api/loans/' + loanId);
+      editLoanData = res.data || {};
+    } catch (err) {
+      showToast('Failed to load loan: ' + err.message, 'danger');
+      return;
+    } finally {
+      hideLoading();
+    }
+    injectEditLoanModal();
+    const l = editLoanData;
+    const wasIO = l.loan_type === 'INTEREST_ONLY';
+    const payCount = l.payment_count || 0;
+    const principalRepaid = wasIO && Math.round(parseFloat(l.balance_amount) || 0) !== Math.round(parseFloat(l.disbursement_amount) || 0);
+    const piLocked = !wasIO && payCount > 0;
+    editLoanLocks = {
+      type: piLocked || (wasIO && payCount > 0),
+      amount: piLocked || principalRepaid,
+      terms: piLocked,
+    };
+
+    document.getElementById('el-type').value = l.loan_type || 'PRINCIPAL_INTEREST';
+    document.getElementById('el-amount').value = Math.round(parseFloat(l.disbursement_amount) || 0);
+    document.getElementById('el-itype').value = l.installment_type || 'WEEKLY';
+    document.getElementById('el-n').value = wasIO ? '' : (l.num_installments || '');
+    document.getElementById('el-coll').value = Math.round(parseFloat(l.installment_amount) || 0);
+    document.getElementById('el-int-type').value = l.interest_type || 'FLAT';
+    document.getElementById('el-rate').value = l.interest_rate != null ? parseFloat(l.interest_rate) : '';
+    document.getElementById('el-fee').value = l.processing_fee != null ? parseFloat(l.processing_fee) : '';
+    document.getElementById('el-date').value = l.disbursement_date ? String(l.disbursement_date).slice(0, 10) : '';
+    document.getElementById('el-remarks').value = l.remarks || '';
+
+    document.getElementById('el-type').disabled = editLoanLocks.type;
+    document.getElementById('el-amount').disabled = editLoanLocks.amount;
+    ['el-itype', 'el-n', 'el-coll', 'el-int-type', 'el-rate', 'el-fee', 'el-date'].forEach(id => {
+      document.getElementById(id).disabled = editLoanLocks.terms;
+    });
+
+    const noteEl = document.getElementById('el-note');
+    let note = '';
+    if (piLocked) {
+      note = 'This loan already has collections, so only the remarks can be edited. Use <strong>Close / Part-Pay</strong> in the collect-payment window to restructure the remaining installments.';
+    } else if (wasIO) {
+      if (payCount > 0) note += 'The loan type is locked because collections have been recorded. ';
+      if (principalRepaid) note += 'The loan amount is locked because principal has been repaid. ';
+      note += 'Changing the interest per collection or frequency applies to future collections.';
+    } else {
+      note = 'Changing the amount, installments, collection amount, frequency or date regenerates the whole installment schedule. The wallet rotation balance is adjusted for any change in loan amount.';
+    }
+    noteEl.innerHTML = '<i class="bi bi-info-circle me-1"></i>' + note;
+    noteEl.classList.remove('d-none');
+
+    document.getElementById('el-error').classList.add('d-none');
+    document.getElementById('el-save-btn').disabled = false;
+    document.getElementById('el-save-txt').classList.remove('d-none');
+    document.getElementById('el-save-load').classList.add('d-none');
+    applyEditLoanType();
+    editLoanModal.show();
+  };
+
+  async function saveEditLoan() {
+    const l = editLoanData;
+    const errEl = document.getElementById('el-error');
+    errEl.classList.add('d-none');
+    const fail = msg => { errEl.textContent = msg; errEl.classList.remove('d-none'); };
+
+    const isIO = elIsIO();
+    const legacy = elIsLegacy();
+    const amount = parseFloat(document.getElementById('el-amount').value);
+    const n = parseInt(document.getElementById('el-n').value);
+    const coll = parseFloat(document.getElementById('el-coll').value);
+    const rate = parseFloat(document.getElementById('el-rate').value);
+
+    const payload = { remarks: document.getElementById('el-remarks').value.trim() };
+    let structural = false;
+    if (!editLoanLocks.terms || !editLoanLocks.amount || !editLoanLocks.type) {
+      if (!editLoanLocks.type) payload.loan_type = document.getElementById('el-type').value;
+      if (!editLoanLocks.amount) {
+        if (!(amount > 0)) return fail('Loan amount must be greater than zero.');
+        payload.disbursement_amount = amount;
+      }
+      if (!editLoanLocks.terms) {
+        const date = document.getElementById('el-date').value;
+        if (!date) return fail('Disbursement date is required.');
+        payload.installment_type = document.getElementById('el-itype').value;
+        payload.disbursement_date = date;
+        if (isIO) {
+          if (!(coll > 0)) return fail('Interest per collection must be greater than zero.');
+          payload.collection_amount = coll;
+        } else if (legacy) {
+          if (!(n >= 1)) return fail('Enter the number of installments.');
+          if (isNaN(rate) || rate < 0) return fail('Enter a valid interest rate.');
+          payload.num_installments = n;
+          payload.interest_type = document.getElementById('el-int-type').value;
+          payload.interest_rate = rate;
+          payload.processing_fee = parseFloat(document.getElementById('el-fee').value) || 0;
+        } else {
+          if (!(n >= 1)) return fail('Enter the number of installments.');
+          if (!(coll > 0)) return fail('Enter the collection amount.');
+          if (coll * n < amount) return fail('Total collections (collection amount × installments) must be at least the loan amount.');
+          payload.num_installments = n;
+          payload.collection_amount = coll;
+          payload.interest_type = '';
+        }
+      }
+      structural =
+        (payload.loan_type && payload.loan_type !== l.loan_type) ||
+        (payload.disbursement_amount !== undefined && payload.disbursement_amount !== Math.round(parseFloat(l.disbursement_amount))) ||
+        (payload.installment_type && payload.installment_type !== l.installment_type) ||
+        (payload.disbursement_date && payload.disbursement_date !== String(l.disbursement_date).slice(0, 10)) ||
+        (payload.num_installments !== undefined && payload.num_installments !== l.num_installments && !isIO) ||
+        (payload.collection_amount !== undefined && payload.collection_amount !== Math.round(parseFloat(l.installment_amount)));
+    }
+
+    const isPIEdit = l.loan_type !== 'INTEREST_ONLY' || payload.loan_type === 'PRINCIPAL_INTEREST';
+    if (structural && isPIEdit) {
+      const ok = await confirmDialog('The installment schedule will be regenerated from the new values. Continue?');
+      if (!ok) return;
+    }
+
+    const btn = document.getElementById('el-save-btn');
+    btn.disabled = true;
+    document.getElementById('el-save-txt').classList.add('d-none');
+    document.getElementById('el-save-load').classList.remove('d-none');
+    try {
+      await api.patch('/api/loans/' + l.loan_id, payload);
+      editLoanModal.hide();
+      showToast('Loan updated successfully', 'success');
+      if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
+    } catch (err) {
+      fail(err.message);
+      btn.disabled = false;
+      document.getElementById('el-save-txt').classList.remove('d-none');
+      document.getElementById('el-save-load').classList.add('d-none');
+    }
   }
 
   window.openAddLoanModal = async function () {
