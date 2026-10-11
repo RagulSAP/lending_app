@@ -135,7 +135,7 @@
           <table class="table table-xwide">
             <thead>
               <tr>
-                <th>#</th><th>${t('cust.col_customer')}</th><th>${t('cust.col_phone')}</th><th>${t('cust.col_city')}</th><th>${t('common.status')}</th><th>${t('cust.col_disbursed')}</th><th>${t('cust.col_outstanding')}</th><th>${t('cust.col_installment')}</th><th>${t('cust.col_next_due')}</th>
+                <th>#</th><th>${t('cust.col_customer')}</th><th>${t('cust.col_phone')}</th><th>${t('cust.col_city')}</th><th>Type</th><th>Disbursed Date</th><th>${t('cust.col_disbursed')}</th><th>${t('cust.col_outstanding')}</th><th>${t('cust.col_installment')}</th><th>${t('cust.col_next_due')}</th>
                 ${canEdit ? `<th>${t('common.actions')}</th>` : ''}
               </tr>
             </thead>
@@ -395,6 +395,13 @@
     openViewer(url, `${name} — ${typeLabel}`, `${name}_${typeLabel.replace(/\s+/g, '_')}.${ext}`);
   };
 
+  function loanTypeBadge(type) {
+    if (!type) return '<span style="color:var(--text-secondary);font-size:12px;">—</span>';
+    const isVatti = type === 'INTEREST_ONLY';
+    const style = isVatti ? 'background:#FEF3C7;color:#92400E;' : 'background:#DBEAFE;color:#1D4ED8;';
+    return `<span style="${style}font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">${isVatti ? 'Vatti' : 'Loan'}</span>`;
+  }
+
   async function loadCustomers() {
     const search = document.getElementById('f-search').value.trim();
     const city = document.getElementById('f-city').value.trim();
@@ -412,7 +419,7 @@
 
       const tbody = document.getElementById('cust-tbody');
       const offset = (currentPage - 1) * perPage;
-      const colSpan = canEdit ? 10 : 9;
+      const colSpan = canEdit ? 11 : 10;
       if (!customers.length) {
         tbody.innerHTML = `<tr><td colspan="${colSpan}" class="table-empty"><i class="bi bi-people"></i>${t('cust.no_customers')}</td></tr>`;
       } else {
@@ -453,7 +460,8 @@
               </div>
             </td>
             <td>${c.city || '-'}</td>
-            <td>${statusBadge(c.status || 'ACTIVE')}</td>
+            <td>${loanTypeBadge(c.loan_type)}</td>
+            <td>${c.loan_disbursed_date ? formatDate(c.loan_disbursed_date) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.disbursement_amount != null ? formatCurrency(c.disbursement_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.outstanding_amount != null ? `<span class="fw-600" style="color:#DC2626;">${formatCurrency(c.outstanding_amount)}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
@@ -464,7 +472,7 @@
       }
       renderPagination();
     } catch (err) {
-      document.getElementById('cust-tbody').innerHTML = `<tr><td colspan="10" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
+      document.getElementById('cust-tbody').innerHTML = `<tr><td colspan="11" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
       showToast('Failed to load customers: ' + err.message, 'danger');
     } finally {
       hideLoading();
@@ -515,9 +523,9 @@
 
       const headers = [
         '#', 'Name', 'Phone', 'City', 'State', 'Pincode',
-        'Aadhaar', 'PAN', 'ID Proof Type', 'Status',
+        'Aadhaar', 'PAN', 'ID Proof Type', 'Loan Type',
         'Assigned To', 'Created At',
-        'Disbursed (₹)', 'Outstanding (₹)', 'Instalment (Paid/Total)',
+        'Disbursed Date', 'Disbursed (₹)', 'Outstanding (₹)', 'Instalment (Paid/Total)',
         'Next Due Date', 'Next Due Amount (₹)',
       ];
       const rows = all.map((c, i) => {
@@ -534,9 +542,10 @@
           c.aadhaar || '',
           c.pan || '',
           c.id_proof_type || '',
-          c.status || '',
+          c.loan_type ? (c.loan_type === 'INTEREST_ONLY' ? 'Vatti' : 'Loan') : '',
           c.assigned_user_name || c.assigned_to || '',
           c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '',
+          c.loan_disbursed_date || '',
           c.disbursement_amount != null ? Math.round((parseFloat(c.disbursement_amount)||0)*100)/100 : '',
           c.outstanding_amount  != null ? Math.round((parseFloat(c.outstanding_amount) ||0)*100)/100 : '',
           instalment,
@@ -549,7 +558,7 @@
       ws['!cols'] = [
         { wch: 4 }, { wch: 26 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 8 },
         { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 10 }, { wch: 22 }, { wch: 16 },
-        { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
+        { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
       ];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Customers');

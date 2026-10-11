@@ -228,6 +228,7 @@ def list_customers():
                 db.query(
                     Loan.customer_id,
                     Loan.loan_id,
+                    Loan.loan_type,
                     Loan.disbursement_date,
                     Loan.disbursement_amount,
                     Loan.balance_amount,
@@ -261,6 +262,7 @@ def list_customers():
             disburse_map = {
                 row.customer_id: {
                     "date":               row.disbursement_date.isoformat() if row.disbursement_date else None,
+                    "loan_type":          row.loan_type or "PRINCIPAL_INTEREST",
                     "disbursement_amount": round(float(row.disbursement_amount or 0), 2),
                     "balance_amount":      round(float(row.balance_amount or 0), 2),
                     "num_installments":    row.num_installments or 0,
@@ -316,6 +318,7 @@ def list_customers():
             d["onboarded_by"] = creator_map.get(c.created_by) if c.created_by else None
             loan_info = disburse_map.get(c.customer_id) or {}
             d["loan_disbursed_date"]  = loan_info.get("date")
+            d["loan_type"]            = loan_info.get("loan_type")
             d["disbursement_amount"]  = loan_info.get("disbursement_amount")
             d["outstanding_amount"]   = loan_info.get("balance_amount")
             d["num_installments"]     = loan_info.get("num_installments")
