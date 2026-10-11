@@ -13,3 +13,8 @@
 13. Customer- remove status and add disbursed date and show whether it is loan or vatti - done
 14. ⁠overdue is not showing correctly in collect payment modal - done
 15. ⁠check if disbursed amount is reducing as and when principal is adding up - done
+
+
+ALTER TABLE `transaction`
+  ADD COLUMN `expense_id` VARCHAR(36) NULL AFTER `partner_id`,
+  ADD INDEX `ix_transaction_expense_id` (`expense_id`);
