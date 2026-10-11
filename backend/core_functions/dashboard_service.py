@@ -61,10 +61,10 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
-    # All-time total disbursed (all statuses, including CLOSED)
+    # Total outstanding principal across all active/overdue loans
     total_disbursed = float(
-        db.query(func.sum(Loan.disbursement_amount))
-        .filter(Loan.org_id == org_id)
+        db.query(func.sum(Loan.balance_amount))
+        .filter(Loan.org_id == org_id, Loan.status.in_(["ACTIVE", "OVERDUE"]))
         .scalar() or 0
     )
 

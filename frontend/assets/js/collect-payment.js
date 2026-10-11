@@ -522,13 +522,9 @@
       if (!isIO && selectedInstallment) {
         payload.installment_id = selectedInstallment.installment_id;
       }
-      const result = await api.post('/api/payments/collect', payload);
-      const resData = result.data || {};
+      await api.post('/api/payments/collect', payload);
       paymentModal.hide();
-      const outstandingMsg = !isIO && resData.loan_balance_amount !== undefined
-        ? ` · Outstanding: ${formatCurrency(resData.loan_balance_amount)}`
-        : '';
-      showToast('Payment recorded!' + outstandingMsg, 'success');
+      showToast('Payment recorded successfully!', 'success');
       if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
     } catch (err) {
       errEl.textContent = err.message;

@@ -189,7 +189,6 @@ def collect_payment():
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status
-        txn_data["loan_balance_amount"] = float(loan.balance_amount or 0)
         txn_data["wallet_invest_balance"]    = float(wallet.invest_balance)
         txn_data["wallet_rotation_balance"]  = float(wallet.rotation_balance)
         txn_data["wallet_interest_balance"]  = float(wallet.interest_balance)
