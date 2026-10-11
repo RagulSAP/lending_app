@@ -26,6 +26,10 @@ _VIEW_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_ACCOUNTANT)
 
 _VALID_PAYMENT_MODES = {"CASH", "UPI", "BANK_TRANSFER", "CHEQUE"}
 
+# Interest-only loans have no installment rows, so a principal repayment is
+# recognised by this prefix on the transaction remarks.
+PRINCIPAL_REMARK_TAG = "Principal repayment"
+
 
 @payments_bp.route("/collect", methods=["POST"])
 @require_roles(*_COLLECT_ROLES)
@@ -33,6 +37,10 @@ def collect_payment():
     """
     POST /api/payments/collect
     Body: {loan_id, installment_id, amount, payment_mode, remarks, transaction_date}
+    Interest-only loans also accept:
+      collection_type: "INTEREST" (default) | "PRINCIPAL"
+      new_interest_amount: updated interest per collection (partial principal repayment)
+      confirm_close: true — required when the principal repayment clears the loan
 
     Flow:
     1. Load and validate installment (belongs to loan, belongs to org).
@@ -67,6 +75,19 @@ def collect_payment():
     if amount <= 0:
         return error_response("amount must be greater than zero")
 
+    collection_type = (data.get("collection_type") or "INTEREST").strip().upper()
+    if collection_type not in ("INTEREST", "PRINCIPAL"):
+        return error_response("collection_type must be 'INTEREST' or 'PRINCIPAL'")
+    is_principal = collection_type == "PRINCIPAL"
+    new_interest_amount = None
+    if data.get("new_interest_amount") not in (None, ""):
+        try:
+            new_interest_amount = float(data["new_interest_amount"])
+        except (TypeError, ValueError):
+            return error_response("new_interest_amount must be a number")
+        if new_interest_amount <= 0:
+            return error_response("new_interest_amount must be greater than zero")
+
     txn_date_str = data.get("transaction_date")
     txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
     if not txn_date:
@@ -88,6 +109,24 @@ def collect_payment():
 
         if not installment_id and not is_interest_only:
             return error_response("installment_id is required")
+        if is_principal and not is_interest_only:
+            return error_response("Principal collection is only available for interest-only loans")
+
+        loan_closed_now = False
+        if is_principal:
+            outstanding = round(float(loan.balance_amount or 0))
+            if amount != round(amount):
+                return error_response("Principal amount must be a whole number")
+            amount = round(amount)
+            if amount > outstanding:
+                return error_response(
+                    f"Principal amount ({amount:,.0f}) exceeds outstanding principal ({outstanding:,.0f})"
+                )
+            loan_closed_now = amount == outstanding
+            if loan_closed_now and not data.get("confirm_close"):
+                return error_response("Confirmation is required to close the loan")
+            if not loan_closed_now and new_interest_amount is not None:
+                new_interest_amount = round(new_interest_amount)
 
         customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
 
@@ -134,7 +173,13 @@ def collect_payment():
         # 4. Update loan
         old_loan_status = loan.status
         loan.total_paid = round(float(loan.total_paid or 0) + amount, 2)
-        if not is_interest_only and installment:
+        if is_principal:
+            loan.balance_amount = outstanding - amount
+            if loan_closed_now:
+                loan.status = "CLOSED"
+            elif new_interest_amount is not None:
+                loan.installment_amount = new_interest_amount
+        elif not is_interest_only and installment:
             # Reduce outstanding principal by the principal portion of this payment only
             total_inst = float(installment.total_amount or 1)
             principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst)
@@ -147,7 +192,9 @@ def collect_payment():
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
-        if is_interest_only:
+        if is_principal:
+            interest_portion = 0.0  # principal repayment carries no interest
+        elif is_interest_only:
             interest_portion = round(amount, 2)  # 100% interest for interest-only loans
         else:
             total_inst = float(installment.total_amount or 1)
@@ -156,6 +203,11 @@ def collect_payment():
         wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_portion, 2)
 
         # 6. Insert transaction
+        txn_remarks = remarks
+        if is_principal:
+            txn_remarks = f"{PRINCIPAL_REMARK_TAG} - {remarks}" if remarks else PRINCIPAL_REMARK_TAG
+            if loan_closed_now:
+                txn_remarks = (txn_remarks + " (loan closed)")[:225]
         txn = Transaction(
             transaction_id=str(uuid.uuid4()),
             loan_id=loan_id,
@@ -168,7 +220,7 @@ def collect_payment():
             amount=round(amount, 2),
             payment_mode=payment_mode,
             wallet_id=wallet.wallet_id,
-            remarks=remarks,
+            remarks=txn_remarks,
         )
         db.add(txn)
 
@@ -180,7 +232,7 @@ def collect_payment():
                 old_status=old_loan_status,
                 new_status=loan.status,
                 changed_by=current["user_id"],
-                remarks="Loan fully repaid",
+                remarks="Principal repaid in full" if is_principal else "Loan fully repaid",
             )
             db.add(history)
 
@@ -189,11 +241,13 @@ def collect_payment():
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status
+        txn_data["loan_balance_amount"] = round(float(loan.balance_amount or 0))
+        txn_data["loan_installment_amount"] = round(float(loan.installment_amount or 0), 2)
         txn_data["wallet_invest_balance"]    = round(float(wallet.invest_balance), 2)
         txn_data["wallet_rotation_balance"]  = round(float(wallet.rotation_balance), 2)
         txn_data["wallet_interest_balance"]  = round(float(wallet.interest_balance), 2)
 
-        return success_response(data=txn_data, message="Payment collected successfully"), 201
+        return success_response(data=txn_data, message="Loan closed successfully" if loan_closed_now else "Payment collected successfully"), 201
 
     except Exception as exc:
         db.rollback()

@@ -1,6 +1,6 @@
 1. Vatti (Only Interest) Option - done
-2. option to change the proofs
-3. delete the active customer and add the disbursed amount to rotation with confirmation modal with password
+2. option to change the proofs - done
+3. delete the active customer and add the disbursed amount to rotation with confirmation modal with password - done
 4. Foreclosure of the loan/vatti with interest adjustment
 5. ⁠need edit option for loan/vatti (Principal with Interest/Only Interest)
 6. ⁠if more than one loan for the same customer, show them as additional row in customer list with number tag as 1, 2 and so on
@@ -10,6 +10,6 @@
 10. ⁠need to have a pie chart in wallet to show the partner splitups
 11. ⁠In report, rename top-up to wallet top-up and add partner name column
 12. ⁠principal and interest round off - done
-13. Customer- remove status and add disbursed date and show whether it is loan or vatti
+13. Customer- remove status and add disbursed date and show whether it is loan or vatti - done
 14. ⁠overdue is not showing correctly in collect payment modal
 15. ⁠check if disbursed amount is reducing as and when principal is adding up - done

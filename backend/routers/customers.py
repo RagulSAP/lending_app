@@ -259,6 +259,25 @@ def list_customers():
                 )
                 paid_counts = {r.loan_id: r.paid_count for r in paid_rows}
 
+            # Interest-only loans have no installment rows: count interest collections instead
+            io_ids = [row.loan_id for row in dis_rows if row.loan_type == "INTEREST_ONLY"]
+            if io_ids:
+                io_rows = (
+                    db.query(
+                        Transaction.loan_id,
+                        func.count(Transaction.transaction_id).label("paid_count"),
+                    )
+                    .filter(
+                        Transaction.loan_id.in_(io_ids),
+                        Transaction.transaction_type == "LOAN_COLLECTION",
+                        or_(Transaction.remarks.is_(None), ~Transaction.remarks.like("Principal repayment%")),
+                    )
+                    .group_by(Transaction.loan_id)
+                    .all()
+                )
+                for r in io_rows:
+                    paid_counts[r.loan_id] = r.paid_count
+
             disburse_map = {
                 row.customer_id: {
                     "date":               row.disbursement_date.isoformat() if row.disbursement_date else None,

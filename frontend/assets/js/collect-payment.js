@@ -8,6 +8,9 @@
   let installments = [];
   let ioTransactions = [];
   let paymentModal = null;
+  let closeLoanModal = null;
+  let pendingClosePayload = null;
+  let newInterestTouched = false;
 
   async function init() {
     await initPage(t('pay.collect'), [1, 2, 3, 4]);
@@ -118,9 +121,16 @@
                 <hr class="my-3">
                 <div id="pm-selected-inst" class="alert alert-info mb-3" style="font-size:13px;"></div>
                 <div id="pm-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
+                <div id="pm-io-type-wrap" class="mb-3 d-none">
+                  <label class="form-label">Collection Type <span class="text-danger">*</span></label>
+                  <select class="form-select" id="pm-collect-type">
+                    <option value="INTEREST">Interest</option>
+                    <option value="PRINCIPAL">Principal</option>
+                  </select>
+                </div>
                 <div class="row g-3">
                   <div class="col-md-6">
-                    <label class="form-label">${t('pay.amount')} <span class="text-danger">*</span></label>
+                    <label class="form-label" id="pm-amount-label">${t('pay.amount')} <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <span class="input-group-text">&#8377;</span>
                       <input type="number" class="form-control" id="pm-amount" min="0.01" step="0.01">
@@ -144,6 +154,20 @@
                     <input type="text" class="form-control" id="pm-remarks" placeholder="Optional">
                   </div>
                 </div>
+                <div id="pm-principal-box" class="d-none mt-3">
+                  <div id="pm-principal-info" class="alert alert-secondary mb-2" style="font-size:13px;"></div>
+                  <div id="pm-interest-update" class="d-none">
+                    <label class="form-label">Updated interest per collection <span style="font-size:12px;color:var(--text-secondary);">(for the remaining principal)</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text">&#8377;</span>
+                      <input type="number" class="form-control" id="pm-new-interest" min="1" step="1">
+                    </div>
+                    <div id="pm-new-interest-hint" class="mt-1" style="font-size:12px;color:var(--text-secondary);"></div>
+                  </div>
+                  <div id="pm-close-note" class="alert alert-warning d-none mb-0" style="font-size:13px;">
+                    <i class="bi bi-info-circle me-1"></i>This clears the full outstanding principal. The loan will be closed.
+                  </div>
+                </div>
               </div>
             </div>
             <div class="modal-footer">
@@ -161,6 +185,164 @@
     document.body.appendChild(el.firstElementChild);
     paymentModal = new bootstrap.Modal(document.getElementById('payment-modal'));
     document.getElementById('pm-submit-btn').addEventListener('click', submitPayment);
+    document.getElementById('pm-collect-type').addEventListener('change', () => {
+      newInterestTouched = false;
+      const l = selectedLoan;
+      document.getElementById('pm-amount').value = document.getElementById('pm-collect-type').value === 'PRINCIPAL'
+        ? '' : parseFloat(l.installment_amount || 0).toFixed(2);
+      refreshIOForm();
+    });
+    document.getElementById('pm-amount').addEventListener('input', refreshIOForm);
+    document.getElementById('pm-new-interest').addEventListener('input', () => { newInterestTouched = true; });
+    injectCloseLoanModal();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Interest-only helpers (vatti): outstanding principal, collection type, close flow
+  // ---------------------------------------------------------------------------
+  function isPrincipalTxn(txn) {
+    return (txn.remarks || '').startsWith('Principal repayment');
+  }
+
+  function ioOutstanding() {
+    const l = selectedLoan;
+    const v = l.balance_amount !== null && l.balance_amount !== undefined ? l.balance_amount : l.disbursement_amount;
+    return Math.round(parseFloat(v) || 0);
+  }
+
+  function ioInterestCollected() {
+    return ioTransactions.filter(x => !isPrincipalTxn(x)).reduce((sum, x) => sum + (parseFloat(x.amount) || 0), 0);
+  }
+
+  function refreshIOForm() {
+    if (!selectedLoan || selectedLoan.loan_type !== 'INTEREST_ONLY') return;
+    const isPrincipal = document.getElementById('pm-collect-type').value === 'PRINCIPAL';
+    const amtEl = document.getElementById('pm-amount');
+    const outstanding = ioOutstanding();
+    const amount = parseFloat(amtEl.value) || 0;
+    const closing = isPrincipal && amount > 0 && amount === outstanding;
+    const partial = isPrincipal && amount > 0 && amount < outstanding;
+
+    document.getElementById('pm-amount-label').innerHTML =
+      `${isPrincipal ? 'Principal Amount' : t('pay.amount')} <span class="text-danger">*</span>`;
+    amtEl.step = isPrincipal ? '1' : '0.01';
+    amtEl.min = isPrincipal ? '1' : '0.01';
+    amtEl.max = isPrincipal ? String(outstanding) : '';
+
+    document.getElementById('pm-selected-inst').innerHTML = isPrincipal
+      ? `<i class="bi bi-cash-coin text-success me-2"></i>Collect principal &nbsp;·&nbsp; Outstanding principal: <strong>${formatCurrency(outstanding)}</strong>`
+      : `<i class="bi bi-cash-coin text-success me-2"></i>Collect interest payment &nbsp;·&nbsp; Amount per collection: <strong>${formatCurrency(selectedLoan.installment_amount)}</strong>`;
+
+    document.getElementById('pm-principal-box').classList.toggle('d-none', !isPrincipal);
+    if (isPrincipal) {
+      document.getElementById('pm-principal-info').innerHTML = amount > 0 && amount <= outstanding
+        ? `Remaining principal after this payment: <strong>${formatCurrency(outstanding - amount)}</strong>`
+        : `Enter the principal amount being repaid (up to <strong>${formatCurrency(outstanding)}</strong>).`;
+      document.getElementById('pm-interest-update').classList.toggle('d-none', !partial);
+      document.getElementById('pm-close-note').classList.toggle('d-none', !closing);
+      if (partial) {
+        const oldInterest = parseFloat(selectedLoan.installment_amount) || 0;
+        const suggested = Math.max(1, Math.round(oldInterest * (outstanding - amount) / outstanding));
+        const newEl = document.getElementById('pm-new-interest');
+        if (!newInterestTouched) newEl.value = suggested;
+        document.getElementById('pm-new-interest-hint').textContent =
+          `Current: ${formatCurrency(oldInterest)} per collection. Suggested for the remaining principal: ${formatCurrency(suggested)}. You can change it.`;
+      }
+    }
+
+    const btn = document.getElementById('pm-submit-btn');
+    btn.className = `btn ${closing ? 'btn-danger' : 'btn-success'}`;
+    document.getElementById('pm-submit-txt').innerHTML = closing
+      ? '<i class="bi bi-lock me-2"></i>Record &amp; Close Loan'
+      : '<i class="bi bi-check-circle me-2"></i>Record Payment';
+  }
+
+  function injectCloseLoanModal() {
+    if (document.getElementById('close-loan-modal')) return;
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="modal fade" id="close-loan-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title fw-600" style="font-size:16px;">
+                <i class="bi bi-lock-fill me-2 text-danger"></i>Confirm Loan Closure
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div id="cl-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
+              <p style="font-size:13px;margin-bottom:10px;">Please review the details. Once closed, no more payments can be recorded on this loan.</p>
+              <table class="table table-sm mb-0" style="font-size:13px;"><tbody id="cl-details"></tbody></table>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button>
+              <button type="button" class="btn btn-danger" id="cl-confirm-btn">
+                <span id="cl-confirm-txt"><i class="bi bi-lock me-1"></i>Confirm &amp; Close Loan</span>
+                <span id="cl-confirm-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Closing...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(el.firstElementChild);
+    const modalEl = document.getElementById('close-loan-modal');
+    modalEl.style.zIndex = 1070;
+    modalEl.addEventListener('shown.bs.modal', () => {
+      const backs = document.querySelectorAll('.modal-backdrop');
+      if (backs.length) backs[backs.length - 1].style.zIndex = 1065;
+    });
+    closeLoanModal = new bootstrap.Modal(modalEl);
+    document.getElementById('cl-confirm-btn').addEventListener('click', confirmCloseLoan);
+  }
+
+  function openCloseConfirm(payload) {
+    const l = selectedLoan;
+    pendingClosePayload = payload;
+    const modeLabels = { CASH: t('pay.cash'), UPI: t('pay.upi'), BANK_TRANSFER: t('pay.bank'), CHEQUE: t('pay.cheque') };
+    const row = (label, value) => `<tr><td style="color:var(--text-secondary);width:48%;">${label}</td><td class="fw-600">${value}</td></tr>`;
+    const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    document.getElementById('cl-details').innerHTML = [
+      row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
+      row('Loan Type', `Vatti (Interest Only) · ${esc(l.installment_type || '')}`),
+      row('Loan Amount', formatCurrency(l.disbursement_amount)),
+      row('Disbursed On', l.disbursement_date ? formatDate(l.disbursement_date) : '—'),
+      row('Interest Collected So Far', formatCurrency(ioInterestCollected())),
+      row('Principal Being Repaid', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
+      row('Balance After Closure', formatCurrency(0)),
+      row('Payment Mode', esc(modeLabels[payload.payment_mode] || payload.payment_mode)),
+      row('Closure Date', formatDate(payload.transaction_date)),
+      payload.remarks ? row('Remarks', esc(payload.remarks)) : '',
+    ].join('');
+    document.getElementById('cl-error').classList.add('d-none');
+    document.getElementById('cl-confirm-btn').disabled = false;
+    document.getElementById('cl-confirm-txt').classList.remove('d-none');
+    document.getElementById('cl-confirm-load').classList.add('d-none');
+    closeLoanModal.show();
+  }
+
+  async function confirmCloseLoan() {
+    if (!pendingClosePayload) return;
+    const btn = document.getElementById('cl-confirm-btn');
+    const errEl = document.getElementById('cl-error');
+    errEl.classList.add('d-none');
+    btn.disabled = true;
+    document.getElementById('cl-confirm-txt').classList.add('d-none');
+    document.getElementById('cl-confirm-load').classList.remove('d-none');
+    try {
+      await api.post('/api/payments/collect', Object.assign({}, pendingClosePayload, { confirm_close: true }));
+      pendingClosePayload = null;
+      closeLoanModal.hide();
+      paymentModal.hide();
+      showToast('Loan closed successfully!', 'success');
+      if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      document.getElementById('cl-confirm-txt').classList.remove('d-none');
+      document.getElementById('cl-confirm-load').classList.add('d-none');
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -276,7 +458,7 @@
             <div class="row g-1 mb-3" style="font-size:12.5px;">
               <div class="col-6"><span style="color:var(--text-secondary);">Loan Amount:</span> ${formatCurrency(l.disbursement_amount)}</div>
               <div class="col-6"><span style="color:var(--text-secondary);">Outstanding:</span>
-                <span class="fw-600 text-danger">${formatCurrency(l.loan_type === 'INTEREST_ONLY' ? l.disbursement_amount : (l.balance_amount || 0))}</span>
+                <span class="fw-600 text-danger">${formatCurrency(l.balance_amount !== null && l.balance_amount !== undefined ? l.balance_amount : (l.loan_type === 'INTEREST_ONLY' ? l.disbursement_amount : 0))}</span>
               </div>
               <div class="col-6"><span style="color:var(--text-secondary);">${l.loan_type === 'INTEREST_ONLY' ? 'Interest/Coll:' : 'Installment:'}</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
@@ -349,13 +531,13 @@
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-green">
-          <div class="fw-600" style="font-size:15px;color:#16a34a;">${formatCurrency(l.total_paid || 0)}</div>
+          <div class="fw-600" style="font-size:15px;color:#16a34a;">${formatCurrency(isIO ? ioInterestCollected() : (l.total_paid || 0))}</div>
           <div style="font-size:11px;color:var(--text-secondary);">${isIO ? 'Interest Collected' : 'Total Collected'}</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center balance-stat-box">
-          <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(isIO ? l.disbursement_amount : (l.balance_amount || 0))}</div>
+          <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(isIO ? ioOutstanding() : (l.balance_amount || 0))}</div>
           <div style="font-size:11px;color:var(--text-secondary);">Outstanding Principal</div>
         </div>
       </div>
@@ -379,22 +561,23 @@
         tbody.innerHTML = ioTransactions.map(txn => `
           <tr>
             <td>${formatDate(txn.transaction_date)}</td>
-            <td><strong>${formatCurrency(txn.amount)}</strong></td>
+            <td><strong>${formatCurrency(txn.amount)}</strong>${isPrincipalTxn(txn) ? ' <span class="badge" style="font-size:10px;background:#DBEAFE;color:#1D4ED8;">Principal</span>' : ''}</td>
             <td><span class="badge bg-secondary" style="font-size:10px;">${txn.payment_mode || ''}</span></td>
             <td style="font-size:12px;color:var(--text-secondary);">${txn.remarks || '—'}</td>
           </tr>`).join('');
       }
 
       // Auto-show the payment form
-      document.getElementById('pm-selected-inst').innerHTML =
-        `<i class="bi bi-cash-coin text-success me-2"></i>
-         Collect interest payment &nbsp;·&nbsp; Amount per collection: <strong>${formatCurrency(l.installment_amount)}</strong>`;
+      document.getElementById('pm-io-type-wrap').classList.remove('d-none');
+      document.getElementById('pm-collect-type').value = 'INTEREST';
+      newInterestTouched = false;
       document.getElementById('pm-payment-form').classList.remove('d-none');
       document.getElementById('pm-submit-btn').classList.remove('d-none');
       document.getElementById('pm-error').classList.add('d-none');
       document.getElementById('pm-amount').value = parseFloat(l.installment_amount || 0).toFixed(2);
       document.getElementById('pm-remarks').value = '';
       document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+      refreshIOForm();
     } else {
       // Regular loan: installment selection table
       document.getElementById('pm-inst-heading').innerHTML =
@@ -431,6 +614,14 @@
       }
 
       // Reset payment form
+      document.getElementById('pm-io-type-wrap').classList.add('d-none');
+      document.getElementById('pm-principal-box').classList.add('d-none');
+      document.getElementById('pm-amount-label').innerHTML = `${t('pay.amount')} <span class="text-danger">*</span>`;
+      document.getElementById('pm-amount').step = '0.01';
+      document.getElementById('pm-amount').min = '0.01';
+      document.getElementById('pm-amount').max = '';
+      document.getElementById('pm-submit-btn').className = 'btn btn-success d-none';
+      document.getElementById('pm-submit-txt').innerHTML = '<i class="bi bi-check-circle me-2"></i>Record Payment';
       document.getElementById('pm-payment-form').classList.add('d-none');
       document.getElementById('pm-submit-btn').classList.add('d-none');
       document.getElementById('pm-error').classList.add('d-none');
@@ -506,22 +697,45 @@
       return;
     }
 
+    const payload = {
+      loan_id: selectedLoan.loan_id,
+      amount,
+      payment_mode: mode,
+      remarks,
+      transaction_date: date,
+    };
+    if (!isIO && selectedInstallment) {
+      payload.installment_id = selectedInstallment.installment_id;
+    }
+
+    const isPrincipal = isIO && document.getElementById('pm-collect-type').value === 'PRINCIPAL';
+    if (isPrincipal) {
+      const outstanding = ioOutstanding();
+      if (!Number.isInteger(amount)) {
+        errEl.textContent = 'Principal amount must be a whole number.';
+        errEl.classList.remove('d-none');
+        return;
+      }
+      if (amount > outstanding) {
+        errEl.textContent = `Principal amount cannot exceed the outstanding principal (${formatCurrency(outstanding)}).`;
+        errEl.classList.remove('d-none');
+        return;
+      }
+      payload.collection_type = 'PRINCIPAL';
+      if (amount === outstanding) {
+        openCloseConfirm(payload);
+        return;
+      }
+      const newInterest = parseFloat(document.getElementById('pm-new-interest').value);
+      if (newInterest > 0) payload.new_interest_amount = newInterest;
+    }
+
     const btn = document.getElementById('pm-submit-btn');
     btn.disabled = true;
     document.getElementById('pm-submit-txt').classList.add('d-none');
     document.getElementById('pm-submit-load').classList.remove('d-none');
 
     try {
-      const payload = {
-        loan_id: selectedLoan.loan_id,
-        amount,
-        payment_mode: mode,
-        remarks,
-        transaction_date: date,
-      };
-      if (!isIO && selectedInstallment) {
-        payload.installment_id = selectedInstallment.installment_id;
-      }
       await api.post('/api/payments/collect', payload);
       paymentModal.hide();
       showToast('Payment recorded successfully!', 'success');
