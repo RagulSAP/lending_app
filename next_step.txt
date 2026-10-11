@@ -1,8 +1,8 @@
-1. Vatti Option - done
+1. Vatti (Only Interest) Option - done
 2. option to change the proofs
 3. delete the active customer and add the disbursed amount to rotation with confirmation modal with password
 4. Foreclosure of the loan/vatti with interest adjustment
-5. ⁠need edit option for loan/vatti
+5. ⁠need edit option for loan/vatti (Principal with Interest/Only Interest)
 6. ⁠if more than one loan for the same customer, show them as additional row in customer list with number tag as 1, 2 and so on
 7. ⁠need a option in dashboard to show the number of today, this week and this month collection counts
 8. ⁠if we click number of today card, it should open customer page with today as date filter to display only those customers which we need to go for collection
@@ -12,4 +12,4 @@
 12. ⁠principal and interest round off - done
 13. Customer- remove status and add disbursed date and show whether it is loan or vatti
 14. ⁠overdue is not showing correctly in collect payment modal
-15. ⁠check if disbursed amount is reducing as and when principal is adding up
+15. ⁠check if disbursed amount is reducing as and when principal is adding up - done

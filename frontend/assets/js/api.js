@@ -107,6 +107,10 @@
       const res = await fetch(url, { method: 'POST', headers: getAuthHeadersNoContent(), body: formData });
       return handleResponse(res);
     },
+    async patchForm(url, formData) {
+      const res = await fetch(url, { method: 'PATCH', headers: getAuthHeadersNoContent(), body: formData });
+      return handleResponse(res);
+    },
     async download(url, params = {}, filename = 'download') {
       const res = await fetch(url + qs(params), { method: 'GET', headers: getAuthHeadersNoContent() });
       if (!res.ok) throw new Error('Download failed: ' + res.status);

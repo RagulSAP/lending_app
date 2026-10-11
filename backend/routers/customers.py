@@ -454,6 +454,74 @@ def update_customer(customer_id):
 
 
 # ---------------------------------------------------------------------------
+# PATCH /{customer_id}/kyc — replace profile photo and/or ID proof
+# ---------------------------------------------------------------------------
+
+@customers_bp.route("/<string:customer_id>/kyc", methods=["PATCH"])
+@require_roles(Config.ROLE_ADMIN, Config.ROLE_MANAGER)
+def update_customer_kyc(customer_id):
+    """
+    PATCH /api/customers/{customer_id}/kyc
+    Admin + Manager. Multipart/form-data with optional files: photo, id_proof.
+    id_proof_type is required when id_proof is supplied.
+    """
+    current = get_current_user_info()
+
+    photo_file = request.files.get("photo")
+    id_proof_file = request.files.get("id_proof")
+    has_photo = bool(photo_file and photo_file.filename)
+    has_id = bool(id_proof_file and id_proof_file.filename)
+    if not has_photo and not has_id:
+        return error_response("Provide a photo and/or id_proof file")
+
+    id_proof_type = (request.form.get("id_proof_type") or "").strip().upper()
+    if has_id and id_proof_type not in _VALID_ID_PROOF_TYPES:
+        return error_response("A valid id_proof_type is required when uploading an ID proof")
+
+    db = SessionLocal()
+    new_files = []
+    old_files = []
+    try:
+        customer = db.query(Customer).filter(
+            Customer.customer_id == customer_id,
+            Customer.org_id == current["org_id"],
+        ).first()
+        if not customer:
+            return error_response("Customer not found", 404)
+
+        try:
+            if has_photo:
+                new_path = save_kyc_file(photo_file, customer_id, "photo")
+                new_files.append(new_path)
+                if customer.photo and customer.photo != new_path:
+                    old_files.append(customer.photo)
+                customer.photo = new_path
+            if has_id:
+                new_path = save_kyc_file(id_proof_file, customer_id, id_proof_type.lower())
+                new_files.append(new_path)
+                if customer.id_proof and customer.id_proof != new_path:
+                    old_files.append(customer.id_proof)
+                customer.id_proof = new_path
+                customer.id_proof_type = id_proof_type
+        except ValueError as ve:
+            db.rollback()
+            return error_response(str(ve))
+
+        db.commit()
+        for path in old_files:
+            delete_kyc_file(path)
+        return success_response(data=model_to_dict(customer), message="Documents updated successfully")
+    except Exception as exc:
+        db.rollback()
+        for path in new_files:
+            if path not in old_files:
+                delete_kyc_file(path)
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
 # PATCH /{customer_id}/status
 # ---------------------------------------------------------------------------
 

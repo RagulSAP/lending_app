@@ -9,6 +9,8 @@
   let collectors = [];
   let editModal = null;
   let photoModal = null;
+  let ePhotoFile = null;
+  let eIdFile = null;
 
   async function init() {
     await initPage(t('cust.title'), [1, 2, 3, 4, 5]);
@@ -209,6 +211,34 @@
                     <option value="">None (unassigned)</option>
                   </select>
                 </div>
+                <div class="col-12">
+                  <hr class="my-1">
+                  <div style="font-size:13px;font-weight:600;">Documents <span style="font-size:11px;font-weight:400;color:#64748B;">(upload only if you want to replace)</span></div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Profile Photo</label>
+                  <div id="e-photo-current" class="mb-2"></div>
+                  <div id="e-photo-preview" class="d-none mb-2"></div>
+                  <input type="file" id="e-photo-input" class="d-none" accept="image/jpeg,image/png">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="e-photo-btn"><i class="bi bi-camera me-1"></i>Change Photo</button>
+                  <div style="font-size:11px;color:#94A3B8;" class="mt-1">JPG or PNG, max 5 MB</div>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">ID Proof</label>
+                  <div id="e-id-current" class="mb-2"></div>
+                  <select class="form-select form-select-sm mb-2 d-none" id="e-id-type">
+                    <option value="">-- Select ID type --</option>
+                    <option value="AADHAAR">Aadhaar Card</option>
+                    <option value="PAN">PAN Card</option>
+                    <option value="VOTER_ID">Voter ID</option>
+                    <option value="PASSPORT">Passport</option>
+                    <option value="DL">Driving Licence</option>
+                  </select>
+                  <div id="e-id-preview" class="d-none mb-2"></div>
+                  <input type="file" id="e-id-input" class="d-none" accept="image/jpeg,image/png,application/pdf">
+                  <button type="button" class="btn btn-sm btn-outline-primary" id="e-id-btn"><i class="bi bi-file-earmark-arrow-up me-1"></i>Change ID Proof</button>
+                  <div style="font-size:11px;color:#94A3B8;" class="mt-1">JPG, PNG or PDF, max 5 MB</div>
+                </div>
               </div>
             </div>
             <div class="modal-footer">
@@ -235,7 +265,67 @@
     document.getElementById('e-pan').addEventListener('input', function () { this.value = this.value.toUpperCase().slice(0, 10); });
     document.getElementById('save-edit-btn').addEventListener('click', saveCustomerEdit);
 
+    document.getElementById('e-photo-btn').addEventListener('click', () => document.getElementById('e-photo-input').click());
+    document.getElementById('e-id-btn').addEventListener('click', () => document.getElementById('e-id-input').click());
+    document.getElementById('e-photo-input').addEventListener('change', function () { handleEditFile(this, 'photo'); });
+    document.getElementById('e-id-input').addEventListener('change', function () { handleEditFile(this, 'id'); });
+
     editModal = new bootstrap.Modal(document.getElementById('edit-customer-modal'));
+  }
+
+  function handleEditFile(input, kind) {
+    const file = input.files[0];
+    if (!file) return;
+    const allowed = kind === 'photo' ? ['image/jpeg', 'image/png'] : ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowed.includes(file.type)) {
+      showEditError(kind === 'photo' ? 'Photo must be a JPG or PNG image.' : 'ID proof must be a JPG, PNG or PDF file.');
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showEditError('File size must be 5 MB or less.');
+      input.value = '';
+      return;
+    }
+    document.getElementById('edit-error').classList.add('d-none');
+
+    const previewEl = document.getElementById(kind === 'photo' ? 'e-photo-preview' : 'e-id-preview');
+    const kb = Math.round(file.size / 1024);
+    const label = document.createElement('div');
+    label.style.cssText = 'font-size:12px;';
+    label.textContent = `New: ${file.name} (${kb} KB)`;
+    previewEl.innerHTML = '';
+    if (file.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(file);
+      img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid #E2E8F0;margin-right:8px;';
+      previewEl.style.display = 'flex';
+      previewEl.style.alignItems = 'center';
+      previewEl.appendChild(img);
+    } else {
+      previewEl.style.display = '';
+    }
+    previewEl.appendChild(label);
+    previewEl.classList.remove('d-none');
+
+    if (kind === 'photo') {
+      ePhotoFile = file;
+    } else {
+      eIdFile = file;
+      document.getElementById('e-id-type').classList.remove('d-none');
+    }
+  }
+
+  function resetEditFiles() {
+    ePhotoFile = null;
+    eIdFile = null;
+    ['e-photo-input', 'e-id-input'].forEach(id => { document.getElementById(id).value = ''; });
+    ['e-photo-preview', 'e-id-preview'].forEach(id => {
+      const el = document.getElementById(id);
+      el.innerHTML = '';
+      el.classList.add('d-none');
+    });
+    document.getElementById('e-id-type').classList.add('d-none');
   }
 
   function injectPhotoModal() {
@@ -487,6 +577,18 @@
       document.getElementById('e-pan').value = c.pan || '';
       sel.value = c.user_id || '';
 
+      resetEditFiles();
+      document.getElementById('e-id-type').value = c.id_proof_type || '';
+      const photoCur = document.getElementById('e-photo-current');
+      photoCur.innerHTML = c.photo
+        ? `<img src="/api/kyc/${c.photo}?t=${Date.now()}" alt="Current photo" style="width:56px;height:56px;object-fit:cover;border-radius:50%;border:2px solid #E2E8F0;">`
+        : '<span style="font-size:12px;color:#94A3B8;">No photo uploaded</span>';
+      const idLabels = { AADHAAR: 'Aadhaar Card', PAN: 'PAN Card', VOTER_ID: 'Voter ID', PASSPORT: 'Passport', DL: 'Driving Licence' };
+      const idCur = document.getElementById('e-id-current');
+      idCur.innerHTML = c.id_proof
+        ? `<a href="/api/kyc/${c.id_proof}" target="_blank" rel="noopener" style="font-size:13px;"><i class="bi bi-file-earmark-text me-1"></i>${idLabels[c.id_proof_type] || c.id_proof_type || 'ID proof'}</a>`
+        : '<span style="font-size:12px;color:#94A3B8;">No ID proof uploaded</span>';
+
       editModal.show();
     } catch (err) {
       showToast('Failed to load customer: ' + err.message, 'danger');
@@ -512,6 +614,7 @@
     if (aadhaar && !/^\d{12}$/.test(aadhaar)) { showEditError('Aadhaar must be exactly 12 digits.'); return; }
     if (pincode && !/^\d{6}$/.test(pincode)) { showEditError('Pincode must be exactly 6 digits.'); return; }
     if (pan && pan.length !== 10) { showEditError('PAN must be exactly 10 characters.'); return; }
+    if (eIdFile && !document.getElementById('e-id-type').value) { showEditError('Select the ID type for the new ID proof.'); return; }
 
     const btn = document.getElementById('save-edit-btn');
     btn.disabled = true;
@@ -531,6 +634,15 @@
         pan_number: pan,
         assigned_user_id: document.getElementById('e-collector').value || null,
       });
+      if (ePhotoFile || eIdFile) {
+        const fd = new FormData();
+        if (ePhotoFile) fd.append('photo', ePhotoFile);
+        if (eIdFile) {
+          fd.append('id_proof', eIdFile);
+          fd.append('id_proof_type', document.getElementById('e-id-type').value);
+        }
+        await api.patchForm(`/api/customers/${editingCustomerId}/kyc`, fd);
+      }
       editModal.hide();
       showToast('Customer updated successfully', 'success');
       await loadCustomers();
