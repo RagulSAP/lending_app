@@ -557,6 +557,13 @@
             <div class="modal-body">
               <div id="al-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
               <div class="row g-3">
+                <div class="col-12">
+                  <label class="form-label">${t('onboard.loan_type')} <span class="text-danger">*</span></label>
+                  <select class="form-select" id="al-loan-type">
+                    <option value="PRINCIPAL_INTEREST">${t('onboard.lt_pi')}</option>
+                    <option value="INTEREST_ONLY">${t('onboard.lt_io')}</option>
+                  </select>
+                </div>
                 <div class="col-md-6">
                   <label class="form-label">${t('pay.loan_amount')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-amount" placeholder="e.g. 10000" min="1" step="1">
@@ -570,22 +577,28 @@
                     <option value="MONTHLY">${t('pay.monthly')}</option>
                   </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-6" id="al-num-inst-wrap">
                   <label class="form-label">${t('pay.num_inst')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-num-inst" placeholder="e.g. 12" min="1" step="1">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">${t('pay.coll_amount')} <span class="text-danger">*</span></label>
+                  <label class="form-label" id="al-coll-label">${t('pay.coll_amount')} <span class="text-danger">*</span></label>
                   <input type="number" class="form-control" id="al-collection" placeholder="e.g. 1000" min="1" step="1">
+                </div>
+                <div class="col-12" id="al-io-note" style="display:none;">
+                  <div class="alert alert-warning mb-0 py-2" style="font-size:12px;">
+                    <i class="bi bi-info-circle me-1"></i>${t('onboard.io_note')}
+                  </div>
                 </div>
                 <div class="col-12" id="al-summary" style="display:none;">
                   <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
-                    <div style="flex:1;min-width:120px;padding:10px 8px;border-right:1px solid #BFDBFE;">
-                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('pay.total_recover')}</div>
+                    <div style="flex:1;min-width:120px;padding:10px 8px;">
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;" id="al-summary-label1">${t('pay.total_recover')}</div>
                       <div id="al-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">₹ 0</div>
                     </div>
+                    <div style="width:1px;background:#BFDBFE;align-self:stretch;flex-shrink:0;"></div>
                     <div style="flex:1;min-width:120px;padding:10px 8px;">
-                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('pay.interest_earned')}</div>
+                      <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;" id="al-summary-label2">${t('pay.interest_earned')}</div>
                       <div id="al-interest" style="font-size:15px;font-weight:700;color:#16A34A;">₹ 0</div>
                     </div>
                     <div style="flex:1 0 100%;padding:8px 10px;border-top:1px solid #BFDBFE;">
@@ -615,7 +628,24 @@
 
     document.getElementById('al-save-btn').addEventListener('click', submitAddLoan);
 
+    function alIsIO() {
+      return document.getElementById('al-loan-type').value === 'INTEREST_ONLY';
+    }
+
+    function applyAlLoanType() {
+      const isIO = alIsIO();
+      document.getElementById('al-num-inst-wrap').style.display = isIO ? 'none' : '';
+      document.getElementById('al-io-note').style.display = isIO ? 'block' : 'none';
+      document.getElementById('al-coll-label').innerHTML = isIO
+        ? `${t('onboard.interest_per_inst')} <span class="text-danger">*</span>`
+        : `${t('pay.coll_amount')} <span class="text-danger">*</span>`;
+      document.getElementById('al-summary-label1').textContent = isIO ? t('onboard.interest_per_inst') : t('pay.total_recover');
+      document.getElementById('al-summary-label2').textContent = isIO ? t('onboard.principal_to_recover') : t('pay.interest_earned');
+      updateSummary();
+    }
+
     function updateSummary() {
+      const isIO = alIsIO();
       const amtEl = document.getElementById('al-amount');
       const amount = parseFloat(amtEl.value) || 0;
       const n = parseInt(document.getElementById('al-num-inst').value) || 0;
@@ -641,16 +671,28 @@
         }
       }
 
-      if (amount > 0 && n > 0 && col > 0) {
-        const alTotal    = Math.round(col * n * 100) / 100;
-        const alInterest = Math.round((alTotal - amount) * 100) / 100;
-        document.getElementById('al-total').textContent    = formatCurrency(alTotal);
-        document.getElementById('al-interest').textContent = formatCurrency(alInterest);
-        summaryEl.style.display = 'block';
+      if (isIO) {
+        if (amount > 0 && col > 0) {
+          document.getElementById('al-total').textContent    = formatCurrency(col);
+          document.getElementById('al-interest').textContent = formatCurrency(amount);
+          summaryEl.style.display = 'block';
+        } else {
+          summaryEl.style.display = 'none';
+        }
       } else {
-        summaryEl.style.display = 'none';
+        if (amount > 0 && n > 0 && col > 0) {
+          const alTotal    = Math.round(col * n * 100) / 100;
+          const alInterest = Math.round((alTotal - amount) * 100) / 100;
+          document.getElementById('al-total').textContent    = formatCurrency(alTotal);
+          document.getElementById('al-interest').textContent = formatCurrency(alInterest);
+          summaryEl.style.display = 'block';
+        } else {
+          summaryEl.style.display = 'none';
+        }
       }
     }
+
+    document.getElementById('al-loan-type').addEventListener('change', applyAlLoanType);
     ['al-amount', 'al-num-inst', 'al-collection'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateSummary);
     });
@@ -659,6 +701,7 @@
   window.openAddLoanModal = async function () {
     injectAddLoanModal();
     const amtEl = document.getElementById('al-amount');
+    document.getElementById('al-loan-type').value = 'PRINCIPAL_INTEREST';
     amtEl.value = '';
     amtEl.style.borderColor = '';
     amtEl._walletBalance = 0;
@@ -667,6 +710,8 @@
     document.getElementById('al-remarks').value = '';
     document.getElementById('al-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('al-summary').style.display = 'none';
+    document.getElementById('al-num-inst-wrap').style.display = '';
+    document.getElementById('al-io-note').style.display = 'none';
     document.getElementById('al-error').classList.add('d-none');
     document.getElementById('al-save-btn').disabled = false;
     document.getElementById('al-save-txt').classList.remove('d-none');
@@ -700,6 +745,8 @@
     const errEl = document.getElementById('al-error');
     errEl.classList.add('d-none');
 
+    const loanType = document.getElementById('al-loan-type').value;
+    const isIO = loanType === 'INTEREST_ONLY';
     const amount = parseFloat(document.getElementById('al-amount').value) || 0;
     const numInst = parseInt(document.getElementById('al-num-inst').value) || 0;
     const colAmt = parseFloat(document.getElementById('al-collection').value) || 0;
@@ -708,9 +755,9 @@
     if (!selectedCustomer) { errEl.textContent = 'No customer selected.'; errEl.classList.remove('d-none'); return; }
     if (amount <= 0) { errEl.textContent = 'Enter a valid loan amount.'; errEl.classList.remove('d-none'); return; }
     if (amount > walletBal) { errEl.textContent = walletBal <= 0 ? 'Wallet is empty. Please top up the wallet before creating a loan.' : `Loan amount exceeds wallet balance (${formatCurrency(walletBal)}).`; errEl.classList.remove('d-none'); return; }
-    if (numInst < 1) { errEl.textContent = 'Enter number of installments.'; errEl.classList.remove('d-none'); return; }
+    if (!isIO && numInst < 1) { errEl.textContent = 'Enter number of installments.'; errEl.classList.remove('d-none'); return; }
     if (colAmt <= 0) { errEl.textContent = 'Enter a valid collection amount.'; errEl.classList.remove('d-none'); return; }
-    if (colAmt * numInst < amount) { errEl.textContent = 'Total collections must be ≥ loan amount.'; errEl.classList.remove('d-none'); return; }
+    if (!isIO && colAmt * numInst < amount) { errEl.textContent = 'Total collections must be ≥ loan amount.'; errEl.classList.remove('d-none'); return; }
 
     const btn = document.getElementById('al-save-btn');
     btn.disabled = true;
@@ -718,15 +765,17 @@
     document.getElementById('al-save-load').classList.remove('d-none');
 
     try {
-      await api.post('/api/loans/', {
+      const payload = {
         customer_id: selectedCustomer.customer_id,
+        loan_type: loanType,
         disbursement_amount: amount,
         installment_type: document.getElementById('al-inst-type').value,
-        num_installments: numInst,
         collection_amount: colAmt,
         disbursement_date: document.getElementById('al-date').value || null,
         remarks: document.getElementById('al-remarks').value.trim(),
-      });
+      };
+      if (!isIO) payload.num_installments = numInst;
+      await api.post('/api/loans/', payload);
       addLoanModal.hide();
       showToast('Loan created successfully!', 'success');
       await loadLoans(selectedCustomer.customer_id);

@@ -1,4 +1,4 @@
-1. Vatti Option
+1. Vatti Option - done
 2. option to change the proofs
 3. delete the active customer and add the disbursed amount to rotation with confirmation modal with password
 4. Foreclosure of the loan/vatti with interest adjustment
@@ -9,7 +9,7 @@
 9. ⁠remove topup insight card in wallet as it is same as investment
 10. ⁠need to have a pie chart in wallet to show the partner splitups
 11. ⁠In report, rename top-up to wallet top-up and add partner name column
-12. ⁠principal and interest round off
+12. ⁠principal and interest round off - done
 13. Customer- remove status and add disbursed date and show whether it is loan or vatti
 14. ⁠overdue is not showing correctly in collect payment modal
 15. ⁠check if disbursed amount is reducing as and when principal is adding up
