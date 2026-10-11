@@ -182,7 +182,7 @@ def create_loan():
             installment_amount=calc["installment_amount"],
             total_payable=calc["total_payable"],
             total_paid=0,
-            balance_amount=calc["total_payable"],
+            balance_amount=round(principal, 2),  # tracks outstanding principal only
             status="ACTIVE",
             remarks=data.get("remarks") or "",
             created_by=current["user_id"],

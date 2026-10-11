@@ -134,9 +134,11 @@ def collect_payment():
         # 4. Update loan
         old_loan_status = loan.status
         loan.total_paid = round(float(loan.total_paid or 0) + amount, 2)
-        if not is_interest_only:
-            # INTEREST_ONLY: principal is a balloon — interest payments don't reduce balance
-            loan.balance_amount = round(float(loan.balance_amount or 0) - amount, 2)
+        if not is_interest_only and installment:
+            # Reduce outstanding principal by the principal portion of this payment only
+            total_inst = float(installment.total_amount or 1)
+            principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst, 2)
+            loan.balance_amount = round(float(loan.balance_amount or 0) - principal_portion, 2)
             if loan.balance_amount <= 0.005:
                 loan.balance_amount = 0.0
                 loan.status = "CLOSED"
