@@ -37,7 +37,7 @@
 
   function balanceCard(id, label, icon, gradient) {
     return `
-      <div style="background:${gradient};border-radius:10px;padding:10px 14px;color:#fff;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
+      <div style="height:100%;background:${gradient};border-radius:10px;padding:10px 14px;color:#fff;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
         <div style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <i class="bi ${icon}" style="font-size:16px;"></i>
         </div>
@@ -50,7 +50,7 @@
 
   function miniStat(id, label, icon, chipClass, color) {
     return `
-      <div style="background:var(--card-bg);border-radius:10px;padding:8px 12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
+      <div style="height:100%;background:var(--card-bg);border-radius:10px;padding:8px 12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
         <div class="${chipClass}" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
           <i class="bi ${icon}" style="font-size:14px;color:${color};"></i>
         </div>
@@ -78,13 +78,13 @@
 
       <!-- Balances + partner split-up -->
       <div class="row g-3 mb-3">
-        <div class="col-lg-8">
-          <div class="row g-2 mb-2">
+        <div class="col-lg-8" style="display:flex;flex-direction:column;gap:8px;">
+          <div class="row g-2" style="flex:1 1 0;">
             <div class="col-12 col-md-4">${balanceCard('stat-invest-balance',   t('wallet.invest_balance'),   'bi-bank',       'linear-gradient(135deg,#2563EB,#7C3AED)')}</div>
             <div class="col-12 col-md-4">${balanceCard('stat-rotation-balance', t('wallet.rotation_balance'), 'bi-arrow-repeat', 'linear-gradient(135deg,#7C3AED,#A855F7)')}</div>
             <div class="col-12 col-md-4">${balanceCard('stat-interest-balance', t('wallet.interest_balance'), 'bi-graph-up-arrow', 'linear-gradient(135deg,#16A34A,#059669)')}</div>
           </div>
-          <div class="row g-2">
+          <div class="row g-2" style="flex:1 1 0;">
             <div class="col-12 col-md-4">${miniStat('stat-disburse', t('wallet.total_disbursed'), 'bi-box-arrow-up-right', 'dash-chip-red',    '#DC2626')}</div>
             <div class="col-12 col-md-4">${miniStat('stat-collect',  t('wallet.total_collected'), 'bi-cash-stack',          'dash-chip-blue',   '#2563EB')}</div>
             <div class="col-12 col-md-4">${miniStat('stat-withdraw', t('wallet.total_withdrawn'), 'bi-box-arrow-up',        'dash-chip-amber',  '#D97706')}</div>
