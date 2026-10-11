@@ -157,9 +157,9 @@ def topup_wallet():
         db.commit()
 
         d = model_to_dict(txn)
-        d["wallet_invest_balance"]    = float(wallet.invest_balance)
-        d["wallet_rotation_balance"]  = float(wallet.rotation_balance)
-        d["wallet_interest_balance"]  = float(wallet.interest_balance)
+        d["wallet_invest_balance"]    = round(float(wallet.invest_balance), 2)
+        d["wallet_rotation_balance"]  = round(float(wallet.rotation_balance), 2)
+        d["wallet_interest_balance"]  = round(float(wallet.interest_balance), 2)
         return success_response(data=d, message="Wallet topped up successfully"), 201
     except Exception as exc:
         db.rollback()
@@ -249,9 +249,9 @@ def withdraw():
         db.commit()
 
         d = model_to_dict(txn)
-        d["wallet_invest_balance"]   = float(wallet.invest_balance)
-        d["wallet_rotation_balance"] = float(wallet.rotation_balance)
-        d["wallet_interest_balance"] = float(wallet.interest_balance)
+        d["wallet_invest_balance"]   = round(float(wallet.invest_balance), 2)
+        d["wallet_rotation_balance"] = round(float(wallet.rotation_balance), 2)
+        d["wallet_interest_balance"] = round(float(wallet.interest_balance), 2)
         return success_response(data=d, message="Withdrawal successful"), 201
     except Exception as exc:
         db.rollback()

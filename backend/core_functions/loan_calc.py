@@ -70,16 +70,16 @@ def calculate_loan(
     period_rate = (annual_rate / 100.0) / _periods_per_year(installment_type)
 
     if interest_type == "FLAT":
-        total_interest = round(principal * period_rate * n, 2)
+        total_interest = round(principal * period_rate * n)
         raw_emi = (principal + total_interest) / n
-        installment_amount = round(raw_emi, 2)
-        per_principal = round(principal / n, 2)
-        per_interest = round(total_interest / n, 2)
+        installment_amount = round(raw_emi)
+        per_principal = round(principal / n)
+        per_interest = round(total_interest / n)
 
         schedule = []
-        balance = principal
-        cumulative_principal = 0.0
-        cumulative_interest = 0.0
+        balance = round(principal)
+        cumulative_principal = 0
+        cumulative_interest = 0
 
         for i in range(1, n + 1):
             due = _get_due_date(disbursement_date, installment_type, i)
@@ -88,17 +88,17 @@ def calculate_loan(
                 it = per_interest
             else:
                 # Last period: absorb rounding dust
-                p = round(principal - cumulative_principal, 2)
-                it = round(total_interest - cumulative_interest, 2)
-            total = round(p + it, 2)
-            balance = round(balance - p, 2)
+                p = round(principal) - cumulative_principal
+                it = total_interest - cumulative_interest
+            total = p + it
+            balance = max(balance - p, 0)
             schedule.append({
                 "installment_number": i,
                 "due_date": due.isoformat(),
                 "principal_amount": p,
                 "interest_amount": it,
                 "total_amount": total,
-                "balance_amount": max(balance, 0.0),
+                "balance_amount": balance,
             })
             cumulative_principal += p
             cumulative_interest += it
@@ -106,32 +106,32 @@ def calculate_loan(
         return {
             "installment_amount": installment_amount,
             "total_interest": total_interest,
-            "total_payable": round(principal + total_interest, 2),
+            "total_payable": round(principal) + total_interest,
             "schedule": schedule,
         }
 
     elif interest_type == "REDUCING":
         if period_rate > 0:
             factor = (1 + period_rate) ** n
-            emi = round(principal * period_rate * factor / (factor - 1), 2)
+            emi = round(principal * period_rate * factor / (factor - 1))
         else:
-            emi = round(principal / n, 2)
+            emi = round(principal / n)
 
         schedule = []
-        balance = round(principal, 2)
-        total_interest_acc = 0.0
+        balance = round(principal)
+        total_interest_acc = 0
 
         for i in range(1, n + 1):
             due = _get_due_date(disbursement_date, installment_type, i)
-            interest = round(balance * period_rate, 2)
+            interest = round(balance * period_rate)
             if i == n:
                 # Last period: pay off remaining balance exactly
                 p = balance
-                period_total = round(p + interest, 2)
+                period_total = p + interest
             else:
-                p = round(emi - interest, 2)
+                p = emi - interest
                 period_total = emi
-            balance_after = max(round(balance - p, 2), 0.0)
+            balance_after = max(balance - p, 0)
             schedule.append({
                 "installment_number": i,
                 "due_date": due.isoformat(),
@@ -143,11 +143,10 @@ def calculate_loan(
             total_interest_acc += interest
             balance = balance_after
 
-        total_interest = round(total_interest_acc, 2)
         return {
             "installment_amount": emi,
-            "total_interest": total_interest,
-            "total_payable": round(principal + total_interest, 2),
+            "total_interest": total_interest_acc,
+            "total_payable": round(principal) + total_interest_acc,
             "schedule": schedule,
         }
 
@@ -168,34 +167,36 @@ def calculate_loan_simple(
     Interest is implicit: total_payable - principal.
     """
     n = num_installments
-    total_payable = round(collection_amount * n, 2)
-    total_interest = round(total_payable - principal, 2)
+    coll = round(collection_amount)
+    princ = round(principal)
+    total_payable = coll * n
+    total_interest = total_payable - princ
 
-    per_principal = round(principal / n, 2)
+    per_principal = round(princ / n)
     schedule = []
-    balance = round(principal, 2)
-    cumulative_principal = 0.0
+    balance = princ
+    cumulative_principal = 0
 
     for i in range(1, n + 1):
         due = _get_due_date(disbursement_date, installment_type, i)
         if i < n:
             p = per_principal
         else:
-            p = round(principal - cumulative_principal, 2)
-        it = round(collection_amount - p, 2)
-        balance = round(max(balance - p, 0.0), 2)
+            p = princ - cumulative_principal
+        it = coll - p
+        balance = max(balance - p, 0)
         schedule.append({
             "installment_number": i,
             "due_date": due.isoformat(),
             "principal_amount": p,
             "interest_amount": it,
-            "total_amount": round(collection_amount, 2),
+            "total_amount": coll,
             "balance_amount": balance,
         })
         cumulative_principal += p
 
     return {
-        "installment_amount": round(collection_amount, 2),
+        "installment_amount": coll,
         "total_interest": total_interest,
         "total_payable": total_payable,
         "schedule": schedule,
@@ -217,22 +218,24 @@ def calculate_interest_only_loan(
     _DEFAULT = {"MONTHLY": 12, "WEEKLY": 52, "DAILY": 30}
     n = _DEFAULT.get(installment_type, 12)
 
+    coll = round(collection_amount)
+    princ = round(principal)
     schedule = []
     for i in range(1, n + 1):
         due = _get_due_date(disbursement_date, installment_type, i)
         schedule.append({
             "installment_number": i,
             "due_date": due.isoformat(),
-            "principal_amount": 0.0,
-            "interest_amount": round(collection_amount, 2),
-            "total_amount": round(collection_amount, 2),
-            "balance_amount": round(principal, 2),  # loan principal stays constant
+            "principal_amount": 0,
+            "interest_amount": coll,
+            "total_amount": coll,
+            "balance_amount": princ,
         })
 
     return {
-        "installment_amount": round(collection_amount, 2),
-        "total_interest": 0.0,  # open-ended; not calculable upfront
-        "total_payable": round(principal, 2),  # only the principal needs to be recovered
+        "installment_amount": coll,
+        "total_interest": 0,
+        "total_payable": princ,
         "num_installments": n,
         "schedule": schedule,
     }

@@ -126,9 +126,9 @@ def get_transactions_report(
         q = q.filter(Transaction.customer_id == customer_id)
 
     total = q.count()
-    total_amount = float(
+    total_amount = round(float(
         q.with_entities(func.sum(Transaction.amount)).scalar() or 0
-    )
+    ), 2)
     rows = (
         q.order_by(Transaction.transaction_date.desc(), Transaction.created_at.desc())
         .offset((page - 1) * per_page)
@@ -143,7 +143,7 @@ def get_transactions_report(
             "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
             "customer_name": customer_name,
             "onboarded_by": onboarded_by,
-            "amount": float(txn.amount) if txn.amount is not None else 0.0,
+            "amount": round(float(txn.amount), 2) if txn.amount is not None else 0.0,
             "payment_mode": txn.payment_mode,
             "transaction_type": txn.transaction_type,
             "collected_by": user_name,
@@ -195,13 +195,13 @@ def get_loans_report(
             "loan_id": loan.loan_id,
             "customer_name": customer_name,
             "onboarded_by": onboarded_by,
-            "disbursement_amount": float(loan.disbursement_amount) if loan.disbursement_amount else 0.0,
+            "disbursement_amount": round(float(loan.disbursement_amount), 2) if loan.disbursement_amount else 0.0,
             "num_installments": loan.num_installments,
-            "installment_amount": float(loan.installment_amount) if loan.installment_amount else 0.0,
+            "installment_amount": round(float(loan.installment_amount), 2) if loan.installment_amount else 0.0,
             "installment_type": loan.installment_type,
-            "total_payable": float(loan.total_payable) if loan.total_payable else 0.0,
-            "total_paid": float(loan.total_paid) if loan.total_paid else 0.0,
-            "balance_amount": float(loan.balance_amount) if loan.balance_amount else 0.0,
+            "total_payable": round(float(loan.total_payable), 2) if loan.total_payable else 0.0,
+            "total_paid": round(float(loan.total_paid), 2) if loan.total_paid else 0.0,
+            "balance_amount": round(float(loan.balance_amount), 2) if loan.balance_amount else 0.0,
             "status": loan.status,
             "disbursement_date": loan.disbursement_date.isoformat() if loan.disbursement_date else None,
         })
@@ -249,7 +249,7 @@ def get_wallet_activity_report(
         records.append({
             "transaction_id":   txn.transaction_id,
             "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
-            "amount":           float(txn.amount) if txn.amount is not None else 0.0,
+            "amount":           round(float(txn.amount), 2) if txn.amount is not None else 0.0,
             "collected_by":     doer_name,
             "partner_name":     partner_name,
             "remarks":          txn.remarks,
@@ -298,7 +298,7 @@ def get_expenses_report(
             "expense_id": expense.expense_id,
             "expense_date": expense.expense_date.isoformat() if expense.expense_date else None,
             "category_name": category_name,
-            "expense_amount": float(expense.expense_amount) if expense.expense_amount else 0.0,
+            "expense_amount": round(float(expense.expense_amount), 2) if expense.expense_amount else 0.0,
             "user_name": user_name,
             "expense_remark": expense.expense_remark,
         })

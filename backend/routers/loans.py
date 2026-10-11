@@ -182,7 +182,7 @@ def create_loan():
             installment_amount=calc["installment_amount"],
             total_payable=calc["total_payable"],
             total_paid=0,
-            balance_amount=round(principal, 2),  # tracks outstanding principal only
+            balance_amount=round(principal),  # tracks outstanding principal only
             status="ACTIVE",
             remarks=data.get("remarks") or "",
             created_by=current["user_id"],
@@ -244,9 +244,9 @@ def create_loan():
         loan_data["installments"] = [model_to_dict(i) for i in installment_objs]
         loan_data["total_interest"] = calc["total_interest"]
         if wallet:
-            loan_data["wallet_invest_balance"]    = float(wallet.invest_balance)
-            loan_data["wallet_rotation_balance"]  = float(wallet.rotation_balance)
-            loan_data["wallet_interest_balance"]  = float(wallet.interest_balance)
+            loan_data["wallet_invest_balance"]    = round(float(wallet.invest_balance), 2)
+            loan_data["wallet_rotation_balance"]  = round(float(wallet.rotation_balance), 2)
+            loan_data["wallet_interest_balance"]  = round(float(wallet.interest_balance), 2)
 
         return success_response(data=loan_data, message="Loan created successfully"), 201
 

@@ -475,7 +475,7 @@
         i + 1,
         (e.expense_date || e.created_at || '').slice(0, 10),
         e.category_name || '',
-        parseFloat(e.expense_amount || 0),
+        Math.round((parseFloat(e.expense_amount)||0)*100)/100,
         e.entered_by || '',
         e.expense_remark || e.remark || '',
       ]);

@@ -416,11 +416,11 @@
           c.status || '',
           c.assigned_user_name || c.assigned_to || '',
           c.created_at ? new Date(c.created_at).toLocaleDateString('en-IN') : '',
-          c.disbursement_amount != null ? c.disbursement_amount : '',
-          c.outstanding_amount  != null ? c.outstanding_amount  : '',
+          c.disbursement_amount != null ? Math.round((parseFloat(c.disbursement_amount)||0)*100)/100 : '',
+          c.outstanding_amount  != null ? Math.round((parseFloat(c.outstanding_amount) ||0)*100)/100 : '',
           instalment,
           c.next_due_date   || '',
-          c.next_due_amount != null ? c.next_due_amount : '',
+          c.next_due_amount != null ? Math.round((parseFloat(c.next_due_amount)||0)*100)/100 : '',
         ];
       });
 

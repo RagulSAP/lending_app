@@ -137,10 +137,10 @@ def collect_payment():
         if not is_interest_only and installment:
             # Reduce outstanding principal by the principal portion of this payment only
             total_inst = float(installment.total_amount or 1)
-            principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst, 2)
-            loan.balance_amount = round(float(loan.balance_amount or 0) - principal_portion, 2)
-            if loan.balance_amount <= 0.005:
-                loan.balance_amount = 0.0
+            principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst)
+            loan.balance_amount = round(float(loan.balance_amount or 0) - principal_portion)
+            if loan.balance_amount <= 0:
+                loan.balance_amount = 0
                 loan.status = "CLOSED"
 
         # 5. Credit wallet
@@ -189,9 +189,9 @@ def collect_payment():
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status
-        txn_data["wallet_invest_balance"]    = float(wallet.invest_balance)
-        txn_data["wallet_rotation_balance"]  = float(wallet.rotation_balance)
-        txn_data["wallet_interest_balance"]  = float(wallet.interest_balance)
+        txn_data["wallet_invest_balance"]    = round(float(wallet.invest_balance), 2)
+        txn_data["wallet_rotation_balance"]  = round(float(wallet.rotation_balance), 2)
+        txn_data["wallet_interest_balance"]  = round(float(wallet.interest_balance), 2)
 
         return success_response(data=txn_data, message="Payment collected successfully"), 201
 

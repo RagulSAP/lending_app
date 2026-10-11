@@ -201,7 +201,7 @@ def create_expense():
 
         result = model_to_dict(expense)
         result["category_name"] = category.name
-        result["wallet_invest_balance_after"] = float(wallet.invest_balance)
+        result["wallet_invest_balance_after"] = round(float(wallet.invest_balance), 2)
         if overdraft:
             result["warning"] = "Invest balance is now negative (overdraft)"
 

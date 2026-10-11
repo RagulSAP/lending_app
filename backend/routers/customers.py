@@ -261,8 +261,8 @@ def list_customers():
             disburse_map = {
                 row.customer_id: {
                     "date":               row.disbursement_date.isoformat() if row.disbursement_date else None,
-                    "disbursement_amount": float(row.disbursement_amount or 0),
-                    "balance_amount":      float(row.balance_amount or 0),
+                    "disbursement_amount": round(float(row.disbursement_amount or 0), 2),
+                    "balance_amount":      round(float(row.balance_amount or 0), 2),
                     "num_installments":    row.num_installments or 0,
                     "paid_installments":   paid_counts.get(row.loan_id, 0),
                 }
@@ -307,7 +307,7 @@ def list_customers():
             for row in due_rows:
                 next_due_map[row.customer_id] = {
                     "next_due_date": row.due_date.isoformat() if row.due_date else None,
-                    "next_due_amount": float(row.amount or 0),
+                    "next_due_amount": round(float(row.amount or 0), 2),
                 }
 
         rows = []

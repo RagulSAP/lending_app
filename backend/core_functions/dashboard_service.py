@@ -175,7 +175,7 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         {
             "transaction_id": txn.transaction_id,
             "customer_name": customer_name,
-            "amount": float(txn.amount),
+            "amount": round(float(txn.amount), 2),
             "payment_mode": txn.payment_mode,
             "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
             "collected_by": collected_by,
@@ -269,7 +269,7 @@ def get_collector_dashboard(db, org_id: str, user_id: str,
         {
             "transaction_id": txn.transaction_id,
             "customer_name": customer_name,
-            "amount": float(txn.amount),
+            "amount": round(float(txn.amount), 2),
             "payment_mode": txn.payment_mode,
             "transaction_date": txn.transaction_date.isoformat() if txn.transaction_date else None,
         }

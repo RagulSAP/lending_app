@@ -300,7 +300,7 @@
                   grid: { color: _gridColor() },
                   ticks: {
                     font: { size: 10 }, color: _mutedColor(),
-                    callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v,
+                    callback: v => v >= 1000 ? (v / 1000).toFixed(0) + 'k' : Math.round(v),
                   },
                 },
               },
