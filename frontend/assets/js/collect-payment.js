@@ -274,11 +274,11 @@
               ${statusBadge(l.status)}
             </div>
             <div class="row g-1 mb-3" style="font-size:12.5px;">
-              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.disbursed')}:</span> ${formatCurrency(l.disbursement_amount)}</div>
-              <div class="col-6"><span style="color:var(--text-secondary);">${l.loan_type === 'INTEREST_ONLY' ? 'Principal' : t('pay.balance')}:</span>
+              <div class="col-6"><span style="color:var(--text-secondary);">Loan Amount:</span> ${formatCurrency(l.disbursement_amount)}</div>
+              <div class="col-6"><span style="color:var(--text-secondary);">Outstanding:</span>
                 <span class="fw-600 text-danger">${formatCurrency(l.loan_type === 'INTEREST_ONLY' ? l.disbursement_amount : (l.balance_amount || 0))}</span>
               </div>
-              <div class="col-6"><span style="color:var(--text-secondary);">Interest/Inst:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
+              <div class="col-6"><span style="color:var(--text-secondary);">${l.loan_type === 'INTEREST_ONLY' ? 'Interest/Coll:' : 'Installment:'}</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
             </div>
             <div class="d-flex gap-2">
@@ -344,19 +344,19 @@
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-neutral">
           <div class="fw-600" style="font-size:15px;">${formatCurrency(l.disbursement_amount)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">Principal</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Loan Amount</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-green">
           <div class="fw-600" style="font-size:15px;color:#16a34a;">${formatCurrency(l.total_paid || 0)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">${isIO ? 'Interest Collected' : 'Paid'}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${isIO ? 'Interest Collected' : 'Total Collected'}</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center balance-stat-box">
           <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(isIO ? l.disbursement_amount : (l.balance_amount || 0))}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">${isIO ? 'Principal Due' : t('pay.balance')}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Outstanding Principal</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
