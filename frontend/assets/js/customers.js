@@ -12,6 +12,14 @@
   let ePhotoFile = null;
   let eIdFile = null;
   let editingCustomer = null;
+  let quickFilter = null;
+  const QUICK_FILTER_LABELS = {
+    active_loans: 'Customers with active loans',
+    overdue: 'Customers with overdue loans',
+    due_today: 'Customers to collect today',
+    due_week: 'Customers to collect in the next 7 days',
+    due_month: 'Customers to collect in the next month',
+  };
   let deleteModal = null;
 
   async function init() {
@@ -21,6 +29,8 @@
     if (currentUser.role_id === ROLES.COLLECTOR) {
       renderCollectorView();
     } else {
+      const urlFilter = new URLSearchParams(window.location.search).get('filter');
+      quickFilter = QUICK_FILTER_LABELS[urlFilter] ? urlFilter : null;
       renderFullView();
       const canEdit = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
       if (canEdit) await loadCollectors();
@@ -131,6 +141,7 @@
             ${canOnboard ? `<a href="customer-onboard.html" class="btn btn-sm btn-primary"><i class="bi bi-person-plus me-1"></i>${t('cust.onboard')}</a>` : ''}
           </div>
         </div>
+        <div id="quick-filter-bar" class="d-none" style="padding:8px 16px;border-bottom:1px solid var(--border);"></div>
         <div class="table-container">
           <table class="table table-xwide">
             <thead>
@@ -146,6 +157,7 @@
       </div>`;
 
     if (canEdit) injectEditModal();
+    renderQuickFilterBar();
 
     document.getElementById('search-btn').addEventListener('click', () => { currentPage = 1; loadCustomers(); });
     document.getElementById('f-search').addEventListener('keydown', e => { if (e.key === 'Enter') { currentPage = 1; loadCustomers(); } });
@@ -402,6 +414,30 @@
     return `<span style="${style}font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">${isVatti ? 'Vatti' : 'Loan'}</span>`;
   }
 
+  function renderQuickFilterBar() {
+    const bar = document.getElementById('quick-filter-bar');
+    if (!bar) return;
+    if (!quickFilter) {
+      bar.classList.add('d-none');
+      bar.innerHTML = '';
+      return;
+    }
+    bar.innerHTML = `
+      <span class="badge" style="background:#DBEAFE;color:#1D4ED8;font-size:12px;font-weight:600;padding:6px 10px;">
+        <i class="bi bi-funnel-fill me-1"></i>${QUICK_FILTER_LABELS[quickFilter]}
+        <a href="#" id="clear-quick-filter" title="Clear filter" style="color:inherit;margin-left:8px;text-decoration:none;"><i class="bi bi-x-lg"></i></a>
+      </span>`;
+    bar.classList.remove('d-none');
+    document.getElementById('clear-quick-filter').addEventListener('click', e => {
+      e.preventDefault();
+      quickFilter = null;
+      window.history.replaceState(null, '', window.location.pathname);
+      renderQuickFilterBar();
+      currentPage = 1;
+      loadCustomers();
+    });
+  }
+
   async function loadCustomers() {
     const search = document.getElementById('f-search').value.trim();
     const city = document.getElementById('f-city').value.trim();
@@ -409,7 +445,7 @@
     const canEdit = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
     try {
       showLoading();
-      const res = await api.get('/api/customers', { search, city, status, page: currentPage, per_page: perPage });
+      const res = await api.get('/api/customers', { search, city, status, filter: quickFilter, page: currentPage, per_page: perPage });
       const customers = res.data || [];
       const pagination = res.pagination || {};
       totalPages = pagination.total_pages || 1;
@@ -548,7 +584,7 @@
       let all = [];
       let page = 1;
       while (true) {
-        const res = await api.get('/api/customers', { search, city, status, page, per_page: 100 });
+        const res = await api.get('/api/customers', { search, city, status, filter: quickFilter, page, per_page: 100 });
         const batch = res.data || [];
         all = all.concat(batch);
         if (batch.length < 100 || all.length >= (res.total || 0)) break;

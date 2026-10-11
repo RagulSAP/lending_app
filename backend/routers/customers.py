@@ -3,22 +3,27 @@ Customer management routes.
 Blueprint prefix: /api/customers
 """
 import uuid
+from datetime import timedelta
 
 from flask import Blueprint, request
 
 from database import SessionLocal
 from models import Customer, Loan, LoanInstallment, LoanStatusHistory, Transaction, User, Wallet
-from sqlalchemy import func, and_, case, or_
+from sqlalchemy import func, and_, case, or_, select
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
 from core_functions.file_storage import save_kyc_file, delete_kyc_file
+from core_functions.loan_calc import _add_months
+from core_functions.timeutil import today_ist
+from core_functions.dashboard_service import mark_overdue_loans
 from core_functions.responses import success_response, error_response, model_to_dict
 
 customers_bp = Blueprint("customers", __name__, url_prefix="/api/customers")
 
 _VALID_ID_PROOF_TYPES = {"PAN", "AADHAAR", "VOTER_ID", "PASSPORT", "DL"}
 _VALID_STATUSES = {"ACTIVE", "INACTIVE"}
+_QUICK_FILTERS = {"active_loans", "overdue", "due_today", "due_week", "due_month"}
 
 _FULL_ACCESS_ROLES = (
     Config.ROLE_ADMIN,
@@ -117,6 +122,35 @@ def create_customer():
 # GET / — list customers (role-aware)
 # ---------------------------------------------------------------------------
 
+def _quick_filter_customer_ids(db, org_id, quick_filter):
+    """Customer ids matching a dashboard-card filter (same windows as the dashboard counts)."""
+    open_statuses = ["ACTIVE", "OVERDUE"]
+    if quick_filter == "active_loans":
+        return select(Loan.customer_id).where(Loan.org_id == org_id, Loan.status.in_(open_statuses))
+    if quick_filter == "overdue":
+        mark_overdue_loans(db, org_id)
+        return select(Loan.customer_id).where(Loan.org_id == org_id, Loan.status == "OVERDUE")
+
+    today = today_ist()
+    if quick_filter == "due_today":
+        hi = today
+    elif quick_filter == "due_week":
+        hi = today + timedelta(days=7)
+    else:
+        hi = _add_months(today, 1)
+    return (
+        select(Loan.customer_id)
+        .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
+        .where(
+            Loan.org_id == org_id,
+            Loan.status.in_(open_statuses),
+            LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+            LoanInstallment.due_date >= today,
+            LoanInstallment.due_date <= hi,
+        )
+    )
+
+
 @customers_bp.route("/", methods=["GET"])
 @require_roles(*_FULL_ACCESS_ROLES, Config.ROLE_COLLECTOR)
 def list_customers():
@@ -134,6 +168,7 @@ def list_customers():
     city = (request.args.get("city") or "").strip()
     status_filter = (request.args.get("status") or "").strip().upper()
     search = (request.args.get("search") or "").strip()
+    quick_filter = (request.args.get("filter") or "").strip().lower()
     page = max(request.args.get("page", 1, type=int), 1)
     per_page = min(request.args.get("per_page", 20, type=int), 100)
 
@@ -185,6 +220,8 @@ def list_customers():
             q = q.filter(
                 Customer.name.ilike(pattern) | Customer.phone.ilike(pattern)
             )
+        if quick_filter in _QUICK_FILTERS:
+            q = q.filter(Customer.customer_id.in_(_quick_filter_customer_ids(db, org_id, quick_filter)))
 
         total = q.count()
         customers = (

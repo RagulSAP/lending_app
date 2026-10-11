@@ -144,9 +144,10 @@
         <div id="${id}" style="font-size:18px;font-weight:700;color:var(--text-primary);line-height:1.2;">—</div>
       </div>`;
 
-    const miniCard = (id, label, icon, chipClass, color, subId) => `
+    const miniCard = (id, label, icon, chipClass, color, subId, href) => `
+      ${href ? `<a href="${href}" class="dash-link" title="${label}">` : ''}
       <div style="background:var(--card-bg);border-radius:10px;padding:10px 12px;border:1px solid var(--border);
-                  box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
+                  box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;${href ? 'cursor:pointer;' : ''}">
         <div class="${chipClass}" style="width:34px;height:34px;border-radius:8px;display:flex;align-items:center;
                     justify-content:center;flex-shrink:0;">
           <i class="bi ${icon}" style="font-size:15px;color:${color};"></i>
@@ -156,11 +157,16 @@
           ${subId ? `<div id="${subId}" style="font-size:10px;color:${color};font-weight:600;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>` : ''}
           <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
         </div>
-      </div>`;
+      </div>
+      ${href ? '</a>' : ''}`;
 
     const pc = document.getElementById('page-content');
     pc.classList.add('dash-layout');
     pc.innerHTML = `
+      <style>
+        .dash-link { display:block; text-decoration:none; color:inherit; }
+        .dash-link:hover > div { border-color:#2563EB !important; box-shadow:0 4px 12px rgba(37,99,235,.15) !important; }
+      </style>
       <!-- Financial KPIs -->
       <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">${finCard('kv-disbursed', t('dash.total_disbursed'),   '#2563EB')}</div>
@@ -171,18 +177,18 @@
 
       <!-- Operational mini-cards -->
       <div class="row g-2 mb-4">
-        <div class="col-6 col-md">${miniCard('mv-customers', t('dash.customers'),    'bi-people',               'dash-chip-pink',   '#DB2777')}</div>
-        <div class="col-6 col-md">${miniCard('mv-loans',     t('dash.active_loans'), 'bi-file-earmark-text',    'dash-chip-blue',   '#2563EB')}</div>
-        <div class="col-6 col-md">${miniCard('mv-overdue',   t('dash.overdue'),      'bi-exclamation-triangle', 'dash-chip-red',    '#DC2626')}</div>
+        <div class="col-6 col-md">${miniCard('mv-customers', t('dash.customers'),    'bi-people',               'dash-chip-pink',   '#DB2777', null, 'customers.html')}</div>
+        <div class="col-6 col-md">${miniCard('mv-loans',     t('dash.active_loans'), 'bi-file-earmark-text',    'dash-chip-blue',   '#2563EB', null, 'customers.html?filter=active_loans')}</div>
+        <div class="col-6 col-md">${miniCard('mv-overdue',   t('dash.overdue'),      'bi-exclamation-triangle', 'dash-chip-red',    '#DC2626', null, 'customers.html?filter=overdue')}</div>
         <div class="col-6 col-md">${miniCard('mv-month',     t('dash.this_month'),   'bi-calendar-month',       'dash-chip-indigo', '#4F46E5')}</div>
-        <div class="col-6 col-md">${miniCard('mv-expenses',  t('dash.expenses'),     'bi-receipt',              'dash-chip-amber',  '#D97706')}</div>
+        <div class="col-6 col-md">${miniCard('mv-expenses',  t('dash.expenses'),     'bi-receipt',              'dash-chip-amber',  '#D97706', null, 'expenses.html?filter=today')}</div>
       </div>
 
       <!-- Collections due -->
       <div class="row g-2 mb-3">
-        <div class="col-12 col-md-4">${miniCard('due-today-cnt', 'Customers to collect today',      'bi-calendar-day',   'dash-chip-blue',   '#2563EB', 'due-today-amt')}</div>
-        <div class="col-12 col-md-4">${miniCard('due-week-cnt',  'Customers to collect this week',  'bi-calendar-week',  'dash-chip-indigo', '#4F46E5', 'due-week-amt')}</div>
-        <div class="col-12 col-md-4">${miniCard('due-month-cnt', 'Customers to collect this month', 'bi-calendar-month', 'dash-chip-amber',  '#D97706', 'due-month-amt')}</div>
+        <div class="col-12 col-md-4">${miniCard('due-today-cnt', 'Customers to collect today',      'bi-calendar-day',   'dash-chip-blue',   '#2563EB', 'due-today-amt', 'customers.html?filter=due_today')}</div>
+        <div class="col-12 col-md-4">${miniCard('due-week-cnt',  'Customers to collect this week',  'bi-calendar-week',  'dash-chip-indigo', '#4F46E5', 'due-week-amt', 'customers.html?filter=due_week')}</div>
+        <div class="col-12 col-md-4">${miniCard('due-month-cnt', 'Customers to collect this month', 'bi-calendar-month', 'dash-chip-amber',  '#D97706', 'due-month-amt', 'customers.html?filter=due_month')}</div>
       </div>
 
       <!-- Charts -->

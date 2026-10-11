@@ -38,9 +38,12 @@
 
   function renderPage() {
     const canManage = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
-    const today = new Date().toISOString().split('T')[0];
+    const pad = n => String(n).padStart(2, '0');
     const d = new Date();
-    const firstOfMonth = new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+    const today = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const firstOfMonth = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+    const todayOnly = new URLSearchParams(window.location.search).get('filter') === 'today';
+    const fromDefault = todayOnly ? today : firstOfMonth;
 
     document.getElementById('page-content').innerHTML = `
       <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
@@ -63,7 +66,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">${t('common.date_from')}</label>
-          <input type="date" class="form-control" id="f-from" value="${firstOfMonth}">
+          <input type="date" class="form-control" id="f-from" value="${fromDefault}">
         </div>
         <div class="form-group">
           <label class="form-label">${t('common.date_to')}</label>
