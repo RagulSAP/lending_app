@@ -103,7 +103,7 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
 
     # Collections due (customers to visit + amount) today / this week / this month.
     # Counts distinct customers with an unpaid installment falling due in the range.
-    week_end = week_start + timedelta(days=6)
+    week_end = today + timedelta(days=7)  # this week's unpaid + everything due in the next 7 days
     month_end = _month_end(today)
 
     def _due_cnt(lo, hi):
