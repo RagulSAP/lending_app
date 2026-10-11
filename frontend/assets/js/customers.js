@@ -464,7 +464,7 @@
             <td>${c.loan_disbursed_date ? formatDate(c.loan_disbursed_date) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.disbursement_amount != null ? formatCurrency(c.disbursement_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.outstanding_amount != null ? `<span class="fw-600" style="color:#DC2626;">${formatCurrency(c.outstanding_amount)}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
-            <td>${c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
+            <td>${c.loan_type === 'INTEREST_ONLY' ? `<span class="fw-600">${c.paid_installments || 0}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">interest paid</span>` : c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${nextDueCell}</td>
             ${actionsCell}
           </tr>`;
@@ -529,9 +529,11 @@
         'Next Due Date', 'Next Due Amount (₹)',
       ];
       const rows = all.map((c, i) => {
-        const instalment = c.num_installments != null
-          ? `${c.paid_installments || 0}/${c.num_installments}`
-          : '';
+        const instalment = c.loan_type === 'INTEREST_ONLY'
+          ? `${c.paid_installments || 0} interest paid`
+          : c.num_installments != null
+            ? `${c.paid_installments || 0}/${c.num_installments}`
+            : '';
         return [
           i + 1,
           c.name || '',
