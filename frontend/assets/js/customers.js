@@ -342,18 +342,49 @@
             <div class="modal-body p-2 text-center">
               <img id="photo-modal-img" src="" alt="Customer Photo"
                 style="max-width:100%;max-height:420px;border-radius:8px;object-fit:contain;">
+              <iframe id="photo-modal-pdf" class="d-none" title="Document" style="width:100%;height:420px;border:0;"></iframe>
+            </div>
+            <div class="modal-footer py-2 px-3">
+              <a id="photo-modal-download" class="btn btn-sm btn-outline-primary" href="#" download>
+                <i class="bi bi-download me-1"></i>Download
+              </a>
             </div>
           </div>
         </div>
       </div>`;
     document.body.appendChild(el.firstElementChild);
-    photoModal = new bootstrap.Modal(document.getElementById('photo-view-modal'));
+    const modalEl = document.getElementById('photo-view-modal');
+    modalEl.style.zIndex = 1070;
+    modalEl.addEventListener('shown.bs.modal', () => {
+      const backs = document.querySelectorAll('.modal-backdrop');
+      if (backs.length) backs[backs.length - 1].style.zIndex = 1065;
+    });
+    photoModal = new bootstrap.Modal(modalEl);
+  }
+
+  function openViewer(url, title, filename) {
+    const isPdf = /\.pdf($|\?)/i.test(url);
+    const img = document.getElementById('photo-modal-img');
+    const pdf = document.getElementById('photo-modal-pdf');
+    document.getElementById('photo-modal-name').textContent = title;
+    img.classList.toggle('d-none', isPdf);
+    pdf.classList.toggle('d-none', !isPdf);
+    img.src = isPdf ? '' : url;
+    pdf.src = isPdf ? url : '';
+    const dl = document.getElementById('photo-modal-download');
+    dl.href = url.split('?')[0];
+    dl.setAttribute('download', filename);
+    photoModal.show();
   }
 
   window.viewPhoto = function (url, name) {
-    document.getElementById('photo-modal-name').textContent = name + ' — Photo';
-    document.getElementById('photo-modal-img').src = url;
-    photoModal.show();
+    const ext = (url.split('?')[0].match(/\.(\w+)$/) || [])[1] || 'jpg';
+    openViewer(url, name + ' — Photo', `${name}_photo.${ext}`);
+  };
+
+  window.viewProof = function (url, name, typeLabel) {
+    const ext = (url.split('?')[0].match(/\.(\w+)$/) || [])[1] || 'jpg';
+    openViewer(url, `${name} — ${typeLabel}`, `${name}_${typeLabel.replace(/\s+/g, '_')}.${ext}`);
   };
 
   async function loadCustomers() {
@@ -579,15 +610,51 @@
 
       resetEditFiles();
       document.getElementById('e-id-type').value = c.id_proof_type || '';
+      const safeName = (c.name || 'Customer').replace(/[^\w\- ]/g, '').trim() || 'Customer';
       const photoCur = document.getElementById('e-photo-current');
-      photoCur.innerHTML = c.photo
-        ? `<img src="/api/kyc/${c.photo}?t=${Date.now()}" alt="Current photo" style="width:56px;height:56px;object-fit:cover;border-radius:50%;border:2px solid #E2E8F0;">`
-        : '<span style="font-size:12px;color:#94A3B8;">No photo uploaded</span>';
+      photoCur.innerHTML = '';
+      if (c.photo) {
+        const img = document.createElement('img');
+        img.src = `/api/kyc/${c.photo}?t=${Date.now()}`;
+        img.alt = 'Current photo';
+        img.title = 'View photo';
+        img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:50%;border:2px solid #E2E8F0;cursor:pointer;';
+        img.addEventListener('click', () => window.viewPhoto(`/api/kyc/${c.photo}?t=${Date.now()}`, safeName));
+        photoCur.appendChild(img);
+      } else {
+        photoCur.innerHTML = '<span style="font-size:12px;color:#94A3B8;">No photo uploaded</span>';
+      }
+
       const idLabels = { AADHAAR: 'Aadhaar Card', PAN: 'PAN Card', VOTER_ID: 'Voter ID', PASSPORT: 'Passport', DL: 'Driving Licence' };
+      const idLabel = idLabels[c.id_proof_type] || c.id_proof_type || 'ID Proof';
       const idCur = document.getElementById('e-id-current');
-      idCur.innerHTML = c.id_proof
-        ? `<a href="/api/kyc/${c.id_proof}" target="_blank" rel="noopener" style="font-size:13px;"><i class="bi bi-file-earmark-text me-1"></i>${idLabels[c.id_proof_type] || c.id_proof_type || 'ID proof'}</a>`
-        : '<span style="font-size:12px;color:#94A3B8;">No ID proof uploaded</span>';
+      idCur.innerHTML = '';
+      if (c.id_proof) {
+        const idUrl = `/api/kyc/${c.id_proof}?t=${Date.now()}`;
+        const isPdf = /\.pdf$/i.test(c.id_proof);
+        let tile;
+        if (isPdf) {
+          tile = document.createElement('div');
+          tile.innerHTML = '<i class="bi bi-file-earmark-pdf" style="font-size:28px;color:#DC2626;"></i>';
+          tile.style.cssText = 'width:56px;height:56px;border-radius:50%;border:2px solid #E2E8F0;display:flex;align-items:center;justify-content:center;background:#FEF2F2;cursor:pointer;';
+        } else {
+          tile = document.createElement('img');
+          tile.src = idUrl;
+          tile.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:50%;border:2px solid #E2E8F0;cursor:pointer;';
+        }
+        tile.title = 'View ' + idLabel;
+        tile.addEventListener('click', () => window.viewProof(idUrl, safeName, idLabel));
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+        const cap = document.createElement('span');
+        cap.style.cssText = 'font-size:12px;color:#64748B;';
+        cap.textContent = idLabel;
+        wrap.appendChild(tile);
+        wrap.appendChild(cap);
+        idCur.appendChild(wrap);
+      } else {
+        idCur.innerHTML = '<span style="font-size:12px;color:#94A3B8;">No ID proof uploaded</span>';
+      }
 
       editModal.show();
     } catch (err) {
