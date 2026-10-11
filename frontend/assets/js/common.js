@@ -339,7 +339,7 @@ try {
         </div>`;
       document.body.appendChild(modal);
     }
-    document.getElementById('alert-modal-title').textContent = title;
+    document.getElementById('alert-modal-title').innerHTML = title;
     document.getElementById('alert-modal-body').innerHTML = message;
     new bootstrap.Modal(modal).show();
   }
