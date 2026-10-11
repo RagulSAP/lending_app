@@ -178,6 +178,13 @@
         <div class="col-6 col-md">${miniCard('mv-expenses',  t('dash.expenses'),     'bi-receipt',              'dash-chip-amber',  '#D97706')}</div>
       </div>
 
+      <!-- Collections due -->
+      <div class="row g-2 mb-3">
+        <div class="col-12 col-md-4">${miniCard('due-today-cnt', 'Customers to collect today',      'bi-calendar-day',   'dash-chip-blue',   '#2563EB', 'due-today-amt')}</div>
+        <div class="col-12 col-md-4">${miniCard('due-week-cnt',  'Customers to collect this week',  'bi-calendar-week',  'dash-chip-indigo', '#4F46E5', 'due-week-amt')}</div>
+        <div class="col-12 col-md-4">${miniCard('due-month-cnt', 'Customers to collect this month', 'bi-calendar-month', 'dash-chip-amber',  '#D97706', 'due-month-amt')}</div>
+      </div>
+
       <!-- Charts -->
       <div class="row g-3 dash-charts-row" style="flex:1;min-height:0;">
         <div class="col-md-4 dash-chart-col" style="display:flex;flex-direction:column;">
@@ -221,6 +228,10 @@
       document.getElementById('mv-overdue').textContent   = s.overdue_count      || 0;
       document.getElementById('mv-month').textContent     = formatCurrency(s.collected_this_month || 0);
       document.getElementById('mv-expenses').textContent  = formatCurrency(s.expenses_this_month  || 0);
+      [['today', 'due_today'], ['week', 'due_week'], ['month', 'due_month']].forEach(([k, f]) => {
+        document.getElementById('due-' + k + '-cnt').textContent = s[f + '_count'] || 0;
+        document.getElementById('due-' + k + '-amt').textContent = formatCurrency(s[f + '_amount'] || 0) + ' to collect';
+      });
 
       // Customer loan status chart — populate module-level state then build
       _custLabels = [t('dash.active_loan'), t('dash.completed'), t('dash.no_loan')];

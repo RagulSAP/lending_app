@@ -3,7 +3,7 @@ Role-aware dashboard aggregation queries.
 All functions accept a SQLAlchemy session (db) and return plain dicts.
 """
 from datetime import date, timedelta
-from sqlalchemy import func, distinct, case, update
+from sqlalchemy import func, distinct, case, update, and_
 from models import Customer, Loan, LoanInstallment, Transaction, Wallet, User, Organization
 from config import Config
 
@@ -36,6 +36,11 @@ def _week_start(today: date) -> date:
 
 def _month_start(today: date) -> date:
     return today.replace(day=1)
+
+
+def _month_end(today: date) -> date:
+    first_next = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
+    return first_next - timedelta(days=1)
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +99,41 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
             Transaction.transaction_date <= today,
         )
         .scalar() or 0
+    )
+
+    # Collections due (customers to visit + amount) today / this week / this month.
+    # Counts distinct customers with an unpaid installment falling due in the range.
+    week_end = week_start + timedelta(days=6)
+    month_end = _month_end(today)
+
+    def _due_cnt(lo, hi):
+        return func.count(distinct(case(
+            (and_(LoanInstallment.due_date >= lo, LoanInstallment.due_date <= hi), Loan.customer_id),
+            else_=None,
+        )))
+
+    def _due_amt(lo, hi):
+        return func.sum(case(
+            (and_(LoanInstallment.due_date >= lo, LoanInstallment.due_date <= hi), LoanInstallment.balance_amount),
+            else_=0,
+        ))
+
+    due_row = (
+        db.query(
+            _due_cnt(today, today).label("t_cnt"), _due_amt(today, today).label("t_amt"),
+            _due_cnt(week_start, week_end).label("w_cnt"), _due_amt(week_start, week_end).label("w_amt"),
+            _due_cnt(month_start, month_end).label("m_cnt"), _due_amt(month_start, month_end).label("m_amt"),
+        )
+        .select_from(LoanInstallment)
+        .join(Loan, Loan.loan_id == LoanInstallment.loan_id)
+        .filter(
+            Loan.org_id == org_id,
+            Loan.status.in_(["ACTIVE", "OVERDUE"]),
+            LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+            LoanInstallment.due_date >= min(week_start, month_start),
+            LoanInstallment.due_date <= max(week_end, month_end),
+        )
+        .one()
     )
 
     # Overdue — single query for both count and amount (replaces 2 queries)
@@ -191,6 +231,12 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         "collected_this_month": round(collected_this_month, 2),
         "overdue_count": overdue_count,
         "overdue_amount": round(overdue_amount, 2),
+        "due_today_count":  due_row.t_cnt or 0,
+        "due_today_amount": round(float(due_row.t_amt or 0), 2),
+        "due_week_count":   due_row.w_cnt or 0,
+        "due_week_amount":  round(float(due_row.w_amt or 0), 2),
+        "due_month_count":  due_row.m_cnt or 0,
+        "due_month_amount": round(float(due_row.m_amt or 0), 2),
         "wallet_balance":           round(wallet_balance, 2),
         "wallet_invest_balance":    round(wallet_invest_balance, 2),
         "wallet_rotation_balance":  round(wallet_rotation_balance, 2),
