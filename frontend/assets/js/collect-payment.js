@@ -523,22 +523,9 @@
         payload.installment_id = selectedInstallment.installment_id;
       }
       await api.post('/api/payments/collect', payload);
+      paymentModal.hide();
       showToast('Payment recorded successfully!', 'success');
-      if (isIO) {
-        // Refresh modal in place: reload loan data so history and totals update
-        const res = await api.get('/api/loans/' + selectedLoan.loan_id);
-        const loanData = res.data || {};
-        ioTransactions = loanData.transactions || [];
-        selectedLoan = Object.assign({}, selectedLoan, loanData);
-        delete selectedLoan.installments;
-        delete selectedLoan.transactions;
-        openPaymentModal();
-        // Also refresh the loan cards in the background
-        if (selectedCustomer) loadLoans(selectedCustomer.customer_id);
-      } else {
-        paymentModal.hide();
-        if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
-      }
+      if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
     } catch (err) {
       errEl.textContent = err.message;
       errEl.classList.remove('d-none');

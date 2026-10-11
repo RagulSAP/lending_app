@@ -6,6 +6,13 @@ try {
   if (_s.compact)  document.body.classList.add('compact');
 } catch {}
 
+// Prevent mouse-wheel from changing number inputs
+document.addEventListener('wheel', function (e) {
+  if (document.activeElement && document.activeElement.type === 'number') {
+    document.activeElement.blur();
+  }
+}, { passive: true });
+
 // Thiruvelan Capitals Common Utilities — IIFE, exposes window globals
 (function () {
   'use strict';
