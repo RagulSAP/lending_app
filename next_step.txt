@@ -4,10 +4,10 @@
 4. Foreclosure of the loan/vatti with interest adjustment - done
 5. ⁠need edit option for loan/vatti (Principal with Interest/Only Interest) - done
 6. ⁠if more than one loan for the same customer, show them as additional row in customer list with number tag as 1, 2 and so on - done
-7. ⁠need a option in dashboard to show the number of today, this week and this month collection counts
-8. ⁠if we click number of today card, it should open customer page with today as date filter to display only those customers which we need to go for collection
-9. ⁠remove topup insight card in wallet as it is same as investment
-10. ⁠need to have a pie chart in wallet to show the partner splitups
+7. ⁠need a option in dashboard to show the number of today, this week and this month collection counts - done
+8. ⁠if we click number of today card, it should open customer page with today as date filter to display only those customers which we need to go for collection - done
+9. ⁠remove topup insight card in wallet as it is same as investment - done
+10. ⁠need to have a pie chart in wallet to show the partner splitups - done
 11. ⁠In report, rename top-up to wallet top-up and add partner name column
 12. ⁠principal and interest round off - done
 13. Customer- remove status and add disbursed date and show whether it is loan or vatti - done

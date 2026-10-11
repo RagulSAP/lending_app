@@ -53,47 +53,55 @@
 
       <!-- Balance + stats cards -->
       <div class="row g-3 mb-4" id="stats-row">
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
           <div class="card text-center" style="background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;border:none;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.invest_balance')}</div>
             <div id="stat-invest-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
           <div class="card text-center" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.rotation_balance')}</div>
             <div id="stat-rotation-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
           <div class="card text-center" style="background:linear-gradient(135deg,#16A34A,#059669);color:#fff;border:none;">
             <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.interest_balance')}</div>
             <div id="stat-interest-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
-          <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_topped')}</div>
-            <div id="stat-topup" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#16A34A;">—</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_disbursed')}</div>
             <div id="stat-disburse" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#DC2626;">—</div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_collected')}</div>
             <div id="stat-collect" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#2563EB;">—</div>
           </div>
         </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
           <div class="card text-center">
             <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_withdrawn')}</div>
             <div id="stat-withdraw" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#D97706;">—</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Partner split-up -->
+      <div class="card mb-4">
+        <div class="card-header-flex">
+          <h6 class="card-title"><i class="bi bi-pie-chart me-2 text-primary"></i>Partner Split-up</h6>
+          <span style="font-size:12px;color:#64748B;">Capital contributed by each partner</span>
+        </div>
+        <div id="partner-split-empty" class="d-none" style="padding:24px 16px;text-align:center;font-size:13px;color:#64748B;">
+          <i class="bi bi-pie-chart" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4;"></i>No partner contributions yet.
+        </div>
+        <div id="partner-split-wrap" style="position:relative;height:240px;padding:8px 16px;">
+          <canvas id="partner-split-chart"></canvas>
         </div>
       </div>
 
@@ -248,16 +256,78 @@
     renderTransactions(txns);
   }
 
+  let partnerSplitChart = null;
+  let partnerSplitData = [];
+  const SPLIT_COLORS = ['#2563EB', '#7C3AED', '#16A34A', '#D97706', '#DB2777', '#0891B2', '#DC2626', '#4F46E5', '#65A30D', '#9333EA'];
+
+  function buildPartnerSplitChart() {
+    const canvas = document.getElementById('partner-split-chart');
+    const wrap = document.getElementById('partner-split-wrap');
+    const empty = document.getElementById('partner-split-empty');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (partnerSplitChart) { partnerSplitChart.destroy(); partnerSplitChart = null; }
+    if (!partnerSplitData.length) {
+      wrap.classList.add('d-none');
+      empty.classList.remove('d-none');
+      return;
+    }
+    wrap.classList.remove('d-none');
+    empty.classList.add('d-none');
+    const dark = document.body.getAttribute('data-theme') === 'dark';
+    const textColor = dark ? '#E6EDF3' : '#0F172A';
+    const colors = partnerSplitData.map((_, i) => SPLIT_COLORS[i % SPLIT_COLORS.length]);
+    partnerSplitChart = new Chart(canvas.getContext('2d'), {
+      type: 'pie',
+      data: {
+        labels: partnerSplitData.map(p => p.name),
+        datasets: [{ data: partnerSplitData.map(p => p.amount), backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              font: { size: 12, family: 'Inter' },
+              padding: 12,
+              usePointStyle: true,
+              pointStyle: 'circle',
+              color: textColor,
+              generateLabels: () => partnerSplitData.map((p, i) => ({
+                text: `${p.name} — ${formatCurrency(p.amount)} (${p.percent}%)`,
+                fillStyle: colors[i],
+                strokeStyle: colors[i],
+                fontColor: textColor,
+                pointStyle: 'circle',
+                index: i,
+              })),
+            },
+          },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.label}: ${formatCurrency(ctx.parsed)} (${partnerSplitData[ctx.dataIndex].percent}%)`,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  new MutationObserver(() => buildPartnerSplitChart())
+    .observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+
   function renderStats(data) {
     const w = data.wallet || {};
     const s = data.stats || {};
     document.getElementById('stat-invest-balance').textContent    = formatCurrency(w.invest_balance    || 0);
     document.getElementById('stat-rotation-balance').textContent  = formatCurrency(w.rotation_balance  || 0);
     document.getElementById('stat-interest-balance').textContent  = formatCurrency(w.interest_balance  || 0);
-    document.getElementById('stat-topup').textContent    = formatCurrency(s.total_topup || 0);
     document.getElementById('stat-disburse').textContent = formatCurrency(s.total_disbursed || 0);
     document.getElementById('stat-collect').textContent  = formatCurrency(s.total_collected || 0);
     document.getElementById('stat-withdraw').textContent = formatCurrency(s.total_withdrawn || 0);
+    partnerSplitData = data.partner_split || [];
+    buildPartnerSplitChart();
   }
 
   function renderPartners() {

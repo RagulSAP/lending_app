@@ -35,6 +35,7 @@ def get_wallet():
                 "wallet": {"wallet_id": None, "invest_balance": 0, "rotation_balance": 0, "interest_balance": 0, "org_id": current["org_id"]},
                 "transactions": [],
                 "stats": {"total_topup": 0, "total_disbursed": 0, "total_collected": 0, "total_withdrawn": 0},
+                "partner_split": [],
             })
 
         # Accurate lifetime stats from DB aggregation (not limited to last 100)
@@ -52,6 +53,42 @@ def get_wallet():
         total_disburse = float(stats_row.disburse or 0)
         total_collect  = float(stats_row.collect  or 0)
         total_withdraw = float(stats_row.withdraw or 0)
+
+        # Partner split-up: lifetime capital contributed (top-ups) per partner
+        split_rows = (
+            db.query(
+                Transaction.partner_id,
+                func.sum(Transaction.amount).label("amount"),
+            )
+            .filter(
+                Transaction.org_id == current["org_id"],
+                Transaction.transaction_type == "WALLET_DEPOSIT",
+            )
+            .group_by(Transaction.partner_id)
+            .all()
+        )
+        split_ids = [r.partner_id for r in split_rows if r.partner_id]
+        split_names = {}
+        if split_ids:
+            split_names = {
+                p.partner_id: p.name
+                for p in db.query(Partner).filter(Partner.partner_id.in_(split_ids)).all()
+            }
+        split_total = sum(float(r.amount or 0) for r in split_rows)
+        partner_split = sorted(
+            [
+                {
+                    "partner_id": r.partner_id,
+                    "name": split_names.get(r.partner_id) or ("No partner" if not r.partner_id else "Unknown partner"),
+                    "amount": round(float(r.amount or 0), 2),
+                    "percent": round(float(r.amount or 0) * 100 / split_total, 1) if split_total else 0,
+                }
+                for r in split_rows
+                if float(r.amount or 0) > 0
+            ],
+            key=lambda x: x["amount"],
+            reverse=True,
+        )
 
         # Recent 100 transactions for display
         txns = (
@@ -91,6 +128,7 @@ def get_wallet():
                 "total_collected": round(total_collect, 2),
                 "total_withdrawn": round(total_withdraw, 2),
             },
+            "partner_split": partner_split,
         })
     finally:
         db.close()
