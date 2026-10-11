@@ -47,8 +47,8 @@
               <input type="tel" class="form-control" id="cust-phone" placeholder="10-digit phone" maxlength="10">
             </div>
           </div>
-          <div class="col-auto">
-            <button type="button" class="btn btn-primary" id="search-cust-btn">
+          <div class="col-12 col-md-auto">
+            <button type="button" class="btn btn-primary w-100" id="search-cust-btn">
               <i class="bi bi-search me-1"></i>${t('pay.search')}
             </button>
           </div>
@@ -75,6 +75,14 @@
     document.getElementById('cust-phone').addEventListener('input', function () {
       this.value = this.value.replace(/\D/g, '').slice(0, 10);
     });
+    document.getElementById('customer-result').addEventListener('error', function (e) {
+      const img = e.target;
+      if (!img || img.tagName !== 'IMG' || !img.hasAttribute('data-initials')) return;
+      const d = document.createElement('div');
+      d.className = 'customer-avatar';
+      d.textContent = img.dataset.initials || '';
+      img.replaceWith(d);
+    }, true);
     document.getElementById('search-cust-btn').addEventListener('click', searchCustomer);
     document.getElementById('cust-phone').addEventListener('keydown', e => {
       if (e.key === 'Enter') searchCustomer();
@@ -88,7 +96,7 @@
   // ---------------------------------------------------------------------------
   function injectPaymentModal() {
     if (document.getElementById('payment-modal')) return;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localISODate();
     const el = document.createElement('div');
     el.innerHTML = `
       <div class="modal fade" id="payment-modal" tabindex="-1" aria-hidden="true">
@@ -286,11 +294,12 @@
     document.getElementById('pm-new-interest').addEventListener('input', () => { newInterestTouched = true; });
     document.getElementById('pm-foreclose-btn').addEventListener('click', () => setCloseMode(!closeMode));
     document.getElementById('pm-close-submit-btn').addEventListener('click', submitClosure);
+    // Touched flags must be set BEFORE refreshCloseForm runs, otherwise the first keystroke is overwritten by the auto-suggested value
+    document.getElementById('cf-new-amt').addEventListener('input', () => { cfNewAmtTouched = true; });
+    document.getElementById('cf-new-n').addEventListener('input', () => { cfNewNTouched = true; });
     ['cf-principal-pay', 'cf-new-n', 'cf-new-amt', 'cf-first-due'].forEach(id => {
       document.getElementById(id).addEventListener('input', refreshCloseForm);
     });
-    document.getElementById('cf-new-amt').addEventListener('input', () => { cfNewAmtTouched = true; });
-    document.getElementById('cf-new-n').addEventListener('input', () => { cfNewNTouched = true; });
     injectCloseLoanModal();
   }
 
@@ -325,7 +334,7 @@
 
   function initCloseForm() {
     const l = selectedLoan;
-    const today = new Date().toISOString().split('T')[0];
+    const today = localISODate();
     const outstanding = Math.round(parseFloat(l.balance_amount) || 0);
     const open = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status));
     const avgTotal = open.length
@@ -557,10 +566,13 @@
     document.body.appendChild(el.firstElementChild);
     const modalEl = document.getElementById('close-loan-modal');
     modalEl.style.zIndex = 1070;
-    modalEl.addEventListener('shown.bs.modal', () => {
+    // Fix the backdrop as soon as it is appended (next frame after show) to avoid a flash; 'shown' is a fallback.
+    const fixBackdrop = () => {
       const backs = document.querySelectorAll('.modal-backdrop');
       if (backs.length) backs[backs.length - 1].style.zIndex = 1065;
-    });
+    };
+    modalEl.addEventListener('show.bs.modal', () => requestAnimationFrame(fixBackdrop));
+    modalEl.addEventListener('shown.bs.modal', fixBackdrop);
     closeLoanModal = new bootstrap.Modal(modalEl);
     document.getElementById('cl-confirm-btn').addEventListener('click', confirmCloseLoan);
   }
@@ -571,7 +583,6 @@
     pendingCloseKind = kind || 'IO_PRINCIPAL';
     const modeLabels = { CASH: t('pay.cash'), UPI: t('pay.upi'), BANK_TRANSFER: t('pay.bank'), CHEQUE: t('pay.cheque') };
     const row = (label, value) => `<tr><td style="color:var(--text-secondary);width:48%;">${label}</td><td class="fw-600">${value}</td></tr>`;
-    const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const openCount = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status)).length;
     const common = [
       row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
@@ -673,7 +684,7 @@
       }
     } catch (err) {
       document.getElementById('customer-result').innerHTML =
-        `<div class="alert alert-danger" style="font-size:13px;">${err.message}</div>`;
+        `<div class="alert alert-danger" style="font-size:13px;">${esc(err.message)}</div>`;
     } finally {
       hideLoading();
     }
@@ -698,7 +709,7 @@
       showCustomerCard(selectedCustomer);
       await loadLoans(selectedCustomer.customer_id);
     } catch (err) {
-      resultEl.innerHTML = `<div class="alert alert-danger" style="font-size:13px;">${err.message}</div>`;
+      resultEl.innerHTML = `<div class="alert alert-danger" style="font-size:13px;">${esc(err.message)}</div>`;
     } finally {
       hideLoading();
     }
@@ -708,19 +719,18 @@
     const initials = (c.name || 'C').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
     const photoUrl = c.photo ? `/api/kyc/${c.photo}` : null;
     const avatarEl = photoUrl
-      ? `<img src="${photoUrl}" alt="${c.name}"
-          style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border);"
-          onerror="this.outerHTML='<div class=\\'customer-avatar\\'>${initials}</div>'">`
-      : `<div class="customer-avatar">${initials}</div>`;
+      ? `<img src="${esc(photoUrl)}" alt="${esc(c.name)}" data-initials="${esc(initials)}"
+          style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid var(--border);">`
+      : `<div class="customer-avatar">${esc(initials)}</div>`;
     document.getElementById('customer-result').innerHTML = `
       <div class="search-result-card">
         <div class="d-flex align-items-center gap-3">
           ${avatarEl}
           <div>
-            <div class="fw-600" style="font-size:15px;">${c.name}</div>
-            <div style="font-size:13px;color:var(--text-secondary);">${c.phone}</div>
-            <div style="font-size:12px;color:var(--text-secondary);">${c.city || ''} ${c.state || ''}</div>
-            ${c.onboarded_by ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;"><i class="bi bi-person-check me-1"></i>Onboarded by ${c.onboarded_by}</div>` : ''}
+            <div class="fw-600" style="font-size:15px;">${esc(c.name)}</div>
+            <div style="font-size:13px;color:var(--text-secondary);">${esc(c.phone)}</div>
+            <div style="font-size:12px;color:var(--text-secondary);">${esc(c.city)} ${esc(c.state)}</div>
+            ${c.onboarded_by ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;"><i class="bi bi-person-check me-1"></i>Onboarded by ${esc(c.onboarded_by)}</div>` : ''}
           </div>
           <div class="ms-auto">${statusBadge(c.status || 'ACTIVE')}</div>
         </div>
@@ -744,27 +754,28 @@
       const roleId = (auth.getUser() || {}).role_id;
       const canExport = roleId === 1 || roleId === 2; // ADMIN or MANAGER
       const canEditLoan = [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF].includes(roleId);
+      const canAddLoan = [ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF].includes(roleId); // POST /api/loans rejects collectors
 
       if (!customerLoans.length) {
-        if (addLoanBtn) addLoanBtn.classList.remove('d-none');
+        if (addLoanBtn) addLoanBtn.classList.toggle('d-none', !canAddLoan);
         listEl.innerHTML = `
           <div class="col-12 text-center py-3">
             <div style="font-size:32px;margin-bottom:8px;">💳</div>
             <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">${t('pay.no_active_loans')}</div>
             <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">This customer has no active or pending loans.</div>
-            <button type="button" class="btn btn-primary" onclick="openAddLoanModal()">
+            ${canAddLoan ? `<button type="button" class="btn btn-primary" onclick="openAddLoanModal()">
               <i class="bi bi-plus-circle me-2"></i>${t('pay.add_loan')}
-            </button>
+            </button>` : ''}
           </div>`;
         return;
       }
-      if (addLoanBtn) addLoanBtn.classList.remove('d-none');
+      if (addLoanBtn) addLoanBtn.classList.toggle('d-none', !canAddLoan);
       listEl.innerHTML = customerLoans.map(l => `
         <div class="col-md-6">
           <div class="loan-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
-                <div class="fw-600" style="font-size:13px;">${l.installment_type} ${l.loan_type === 'INTEREST_ONLY' ? '· Interest Only' : l.num_installments ? '· ' + l.num_installments + ' installments' : ''}</div>
+                <div class="fw-600" style="font-size:13px;">${esc(l.installment_type)} ${l.loan_type === 'INTEREST_ONLY' ? '· Interest Only' : l.num_installments ? '· ' + esc(l.num_installments) + ' installments' : ''}</div>
                 ${l.loan_type === 'INTEREST_ONLY' ? '<span class="badge" style="font-size:10px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;">Interest Only</span>' : ''}
               </div>
               ${statusBadge(l.status)}
@@ -775,22 +786,22 @@
                 <span class="fw-600 text-danger">${formatCurrency(l.balance_amount !== null && l.balance_amount !== undefined ? l.balance_amount : (l.loan_type === 'INTEREST_ONLY' ? l.disbursement_amount : 0))}</span>
               </div>
               <div class="col-6"><span style="color:var(--text-secondary);">${l.loan_type === 'INTEREST_ONLY' ? 'Interest/Coll:' : 'Installment:'}</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
-              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
+              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${esc(l.installment_type)}</div>
               ${l.is_overdue ? `<div class="col-12"><span style="color:#DC2626;font-weight:600;font-size:12px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue ${formatCurrency(l.overdue_amount)} &middot; ${l.days_overdue} day(s)</span></div>` : ''}
             </div>
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-success flex-fill" onclick="selectLoan('${l.loan_id}')">
+            <div class="d-flex flex-wrap gap-2">
+              <button type="button" class="btn btn-success col-12 col-sm" style="white-space:nowrap;" onclick="selectLoan('${esc(l.loan_id)}')">
                 <i class="bi bi-cash-coin me-2"></i>${t('pay.collect')}
               </button>
               ${canEditLoan ? `
-              <button type="button" class="btn btn-outline-primary" title="Edit loan" onclick="openEditLoanModal('${l.loan_id}')">
+              <button type="button" class="btn btn-outline-primary" title="Edit loan" onclick="openEditLoanModal('${esc(l.loan_id)}')">
                 <i class="bi bi-pencil"></i>
               </button>` : ''}
               ${canExport ? `
-              <button type="button" class="btn btn-outline-success" title="Export Excel" onclick="exportLoanCard('${l.loan_id}','excel')">
+              <button type="button" class="btn btn-outline-success" title="Export Excel" onclick="exportLoanCard('${esc(l.loan_id)}','excel')">
                 <i class="bi bi-file-earmark-excel"></i>
               </button>
-              <button type="button" class="btn btn-outline-danger" title="Export PDF" onclick="exportLoanCard('${l.loan_id}','pdf')">
+              <button type="button" class="btn btn-outline-danger" title="Export PDF" onclick="exportLoanCard('${esc(l.loan_id)}','pdf')">
                 <i class="bi bi-file-earmark-pdf"></i>
               </button>` : ''}
             </div>
@@ -847,7 +858,7 @@
     document.getElementById('pm-title').textContent = t('pay.collect');
     document.getElementById('pm-subtitle').textContent = isIO
       ? `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · Interest Only · ${formatCurrency(l.installment_amount)} / collection`
-      : `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.num_installments} installments · ${formatCurrency(l.installment_amount)} each`;
+      : `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.num_installments != null ? l.num_installments : '-'} installments · ${formatCurrency(l.installment_amount)} each`;
 
     // Loan summary mini-cards
     document.getElementById('pm-loan-summary').innerHTML = `
@@ -903,8 +914,8 @@
           <tr>
             <td>${formatDate(txn.transaction_date)}</td>
             <td><strong>${formatCurrency(txn.amount)}</strong>${isPrincipalTxn(txn) ? ' <span class="badge" style="font-size:10px;background:#DBEAFE;color:#1D4ED8;">Principal</span>' : ''}</td>
-            <td><span class="badge bg-secondary" style="font-size:10px;">${txn.payment_mode || ''}</span></td>
-            <td style="font-size:12px;color:var(--text-secondary);">${txn.remarks || '—'}</td>
+            <td><span class="badge bg-secondary" style="font-size:10px;">${esc(txn.payment_mode)}</span></td>
+            <td style="font-size:12px;color:var(--text-secondary);">${esc(txn.remarks) || '—'}</td>
           </tr>`).join('');
       }
 
@@ -917,7 +928,7 @@
       document.getElementById('pm-error').classList.add('d-none');
       document.getElementById('pm-amount').value = parseFloat(l.installment_amount || 0).toFixed(2);
       document.getElementById('pm-remarks').value = '';
-      document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('pm-date').value = localISODate();
       refreshIOForm();
     } else {
       // Regular loan: installment selection table
@@ -971,7 +982,7 @@
       document.getElementById('pm-error').classList.add('d-none');
       document.getElementById('pm-amount').value = '';
       document.getElementById('pm-remarks').value = '';
-      document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('pm-date').value = localISODate();
 
       // Auto-select first pending installment if only one unpaid
       if (payable.length === 1) {
@@ -1540,7 +1551,7 @@
     document.getElementById('al-num-inst').value = '';
     document.getElementById('al-collection').value = '';
     document.getElementById('al-remarks').value = '';
-    document.getElementById('al-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('al-date').value = localISODate();
     document.getElementById('al-summary').style.display = 'none';
     document.getElementById('al-num-inst-wrap').style.display = '';
     document.getElementById('al-io-note').style.display = 'none';
@@ -1553,8 +1564,8 @@
     // Fetch and show wallet balance
     let balance = 0;
     try {
-      const wres = await api.get('/api/wallet');
-      balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.rotation_balance || 0) : 0;
+      const wres = await api.get('/api/wallet/balance');
+      balance = (wres.data && wres.data.rotation_balance) ? parseFloat(wres.data.rotation_balance || 0) : 0;
     } catch (_) {}
     amtEl._walletBalance = balance;
     const balEl = document.getElementById('al-wallet-balance');
@@ -1628,7 +1639,8 @@
   function buildLoanSummaryRows() {
     const l = selectedLoan;
     const c = selectedCustomer;
-    const totalPayable = l.total_payable || (r2(l.installment_amount) * parseInt(l.num_installments));
+    const isIO = l.loan_type === 'INTEREST_ONLY' || l.num_installments == null;
+    const totalPayable = l.total_payable || (isIO ? null : r2(l.installment_amount) * parseInt(l.num_installments));
     return [
       ['Customer Name', c ? c.name : ''],
       ['Phone', c ? c.phone : ''],
@@ -1637,9 +1649,9 @@
       ['Loan ID', l.loan_id],
       ['Disbursed Amount', r2(l.disbursement_amount)],
       ['Installment Type', l.installment_type],
-      ['No. of Installments', l.num_installments],
+      ['No. of Installments', isIO ? '-' : l.num_installments],
       ['Installment Amount', r2(l.installment_amount)],
-      ['Total Payable', r2(totalPayable)],
+      ['Total Payable', totalPayable == null || isNaN(totalPayable) ? '-' : r2(totalPayable)],
       ['Total Paid', r2(l.total_paid)],
       ['Balance Amount', r2(l.balance_amount)],
       ['Status', l.status],
@@ -1689,7 +1701,7 @@
     XLSX.utils.book_append_sheet(wb, ws, 'Loan Details');
 
     const name = selectedCustomer.name.replace(/\s+/g, '_');
-    XLSX.writeFile(wb, `Loan_${name}_${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(wb, `Loan_${name}_${localISODate()}.xlsx`);
   };
 
   window.exportLoanCard = async function (loanId, format) {
@@ -1731,7 +1743,8 @@
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     const l = selectedLoan;
     const c = selectedCustomer;
-    const totalPayable = l.total_payable || (parseFloat(l.installment_amount) * parseInt(l.num_installments));
+    const isIO = l.loan_type === 'INTEREST_ONLY' || l.num_installments == null;
+    const totalPayable = l.total_payable || (isIO ? null : parseFloat(l.installment_amount) * parseInt(l.num_installments));
     const pageW = doc.internal.pageSize.getWidth();
     let y = 14;
 
@@ -1777,9 +1790,9 @@
         ['Disbursement Date', l.disbursement_date || '—'],
         ['Disbursed Amount', pdfAmt(l.disbursement_amount)],
         ['Installment Type', l.installment_type],
-        ['No. of Installments', String(l.num_installments)],
+        ['No. of Installments', isIO ? '-' : String(l.num_installments)],
         ['Installment Amount', pdfAmt(l.installment_amount)],
-        ['Total Payable', pdfAmt(totalPayable)],
+        ['Total Payable', totalPayable == null || isNaN(totalPayable) ? '-' : pdfAmt(totalPayable)],
         ['Total Paid', pdfAmt(l.total_paid || 0)],
         ['Balance Outstanding', pdfAmt(l.balance_amount || 0)],
         ['Status', l.status],
@@ -1880,7 +1893,7 @@
     doc.text('This is a system-generated document.', 14, finalY + 4);
 
     const name = c.name.replace(/\s+/g, '_');
-    doc.save(`Loan_${name}_${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`Loan_${name}_${localISODate()}.pdf`);
   };
 
   // ---------------------------------------------------------------------------

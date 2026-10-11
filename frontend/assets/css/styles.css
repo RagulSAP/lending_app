@@ -85,6 +85,8 @@ input, textarea, select, button {
   top: 0; left: 0;
   width: var(--sidebar-width);
   height: 100vh;
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
   background-color: var(--sidebar-bg);
   overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -151,7 +153,7 @@ input, textarea, select, button {
   width: 3px; height: 20px; background: var(--primary); border-radius: 0 3px 3px 0;
 }
 
-.sidebar-footer { padding: 16px 10px; border-top: 1px solid rgba(255,255,255,0.06); }
+.sidebar-footer { padding: 16px 10px; padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,0.06); }
 
 .sidebar-footer .nav-link {
   display: flex; align-items: center; gap: 10px;
@@ -169,17 +171,18 @@ input, textarea, select, button {
 #topbar {
   position: fixed; top: 0;
   left: var(--sidebar-width); right: 0;
-  height: var(--topbar-height);
+  height: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   background-color: var(--card-bg);
   border-bottom: 1px solid var(--border);
   z-index: 1030;
   display: flex; align-items: center;
   padding: 0 24px; gap: 16px;
+  padding-top: env(safe-area-inset-top, 0px);
   box-shadow: var(--shadow-sm);
   transition: left 0.3s ease;
 }
 
-.topbar-title { font-size: 17px; font-weight: 600; color: var(--text-primary); flex: 1; }
+.topbar-title { font-size: 17px; font-weight: 600; color: var(--text-primary); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .topbar-user { display: flex; align-items: center; gap: 10px; }
 
@@ -202,9 +205,9 @@ input, textarea, select, button {
 /* MAIN CONTENT */
 .main-content {
   margin-left: var(--sidebar-width);
-  margin-top: var(--topbar-height);
+  margin-top: calc(var(--topbar-height) + env(safe-area-inset-top, 0px));
   padding: 24px;
-  min-height: calc(100vh - var(--topbar-height));
+  min-height: calc(100vh - var(--topbar-height) - env(safe-area-inset-top, 0px));
   transition: margin-left 0.3s ease;
 }
 
@@ -575,6 +578,7 @@ input, textarea, select, button {
 /* LOGIN PAGE */
 .login-bg {
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--page-bg);
   display: flex; align-items: stretch;
 }
@@ -626,7 +630,7 @@ input, textarea, select, button {
   display: none;
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  height: 64px;
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
   background: #FFFFFF;
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 12px rgba(0,0,0,0.08);
@@ -693,8 +697,8 @@ input, textarea, select, button {
   /* Sidebar: slide off-screen; hamburger opens it */
   #sidebar { -webkit-transform: translateX(-100%); transform: translateX(-100%); z-index: 1050; }
   #sidebar.show { -webkit-transform: translateX(0); transform: translateX(0); }
-  #topbar { left: 0; padding: 0 12px; }
-  .topbar-hamburger { display: block; }
+  #topbar { left: 0; padding: 0 12px; padding-top: env(safe-area-inset-top, 0px); }
+  .topbar-hamburger { display: flex; align-items: center; justify-content: center; min-width: 44px; height: 44px; flex-shrink: 0; }
   .topbar-title { font-size: 15px; }
 
   /* Main content: no sidebar margin, pad for topbar + bottom nav */
@@ -708,8 +712,8 @@ input, textarea, select, button {
   #bottom-nav { display: block; }
 
   /* Bigger stat values */
-  .stat-value { font-size: 19px; }
-  .stat-card { padding: 14px; gap: 12px; }
+  .stat-value { font-size: clamp(15px, 4.8vw, 19px); overflow-wrap: anywhere; }
+  .stat-card { padding: 14px; gap: 8px; flex-direction: column; align-items: flex-start; }
   .stat-icon { width: 44px; height: 44px; font-size: 18px; border-radius: 10px; }
 
   /* Filter bar: stack vertically */
@@ -725,13 +729,13 @@ input, textarea, select, button {
   /* font-size 16px prevents iOS auto-zoom on focus */
 
   /* Login: full-width, no right panel */
-  .login-left { flex: none; max-width: 100%; padding: 32px 24px; width: 100%; }
+  .login-left { flex: 1 0 auto; max-width: 100%; padding: 32px 24px; width: 100%; }
   .login-right { display: none; }
   .login-bg { flex-direction: column; }
 
   /* Tables: force horizontal scroll, no wrapping */
   .table-container { border-radius: 8px; }
-  .table { min-width: 480px; }
+  .table-container > .table { min-width: 480px; }
   .table thead th,
   .table tbody td { padding: 10px 12px; }
 
@@ -745,27 +749,67 @@ input, textarea, select, button {
   /* Modals: slide up from bottom (bottom sheet style) */
   .modal.fade .modal-dialog { -webkit-transform: translateY(60px); transform: translateY(60px); -webkit-transition: -webkit-transform 0.3s ease; transition: transform 0.3s ease; }
   .modal.show .modal-dialog { -webkit-transform: translateY(0); transform: translateY(0); }
-  .modal-dialog { margin: auto 0 0 0; max-width: 100%; }
-  .modal-content {
+  /* .modal is block layout, so the dialog itself becomes a full-height flex box
+     that pins the content to the bottom; only .modal-body scrolls. Selectors are
+     prefixed with .modal to out-rank Bootstrap's .modal-dialog-centered / -scrollable. */
+  .modal .modal-dialog,
+  .modal .modal-dialog-centered {
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    display: flex;
+    align-items: flex-end;
+  }
+  .modal .modal-dialog .modal-content {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 16px);
+    max-height: calc(100dvh - 16px);
+    overflow: hidden;
     border-radius: 20px 20px 0 0;
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
-    max-height: 90vh;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
     padding-bottom: env(safe-area-inset-bottom, 8px);
   }
+  /* If a modal wraps header/body/footer in a <form>, keep the flex chain intact */
+  .modal .modal-content > form {
+    display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: hidden;
+  }
+  .modal .modal-content .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+  .modal .modal-header, .modal .modal-footer { flex-shrink: 0; }
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1 1 auto; }
+  .modal-footer .me-auto { margin-right: 0 !important; flex-basis: 100%; }
 
   /* Offcanvas: full width on mobile */
   .offcanvas { --bs-offcanvas-width: 100%; }
 
   /* Stepper: smaller on mobile */
+  .stepper::before { top: 14px; left: 14px; right: 14px; }
   .step-circle { width: 28px; height: 28px; font-size: 11px; }
   .step-label { font-size: 10px; }
 
   /* Pagination: compact */
   .pagination { font-size: 12px; }
-  .page-link { padding: 6px 10px; }
+  .pagination { flex-wrap: wrap; justify-content: center; }
+  .pagination .page-item { margin: 0; }
+  .page-link {
+    min-width: 38px; min-height: 38px; padding: 0; margin: 0 1px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .btn-close { padding: 12px; box-sizing: content-box; }
+  .toast-close {
+    min-width: 36px; min-height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    margin: -8px -8px -8px 0;
+  }
 
   /* Toast: full width at bottom */
   .toast-container {
@@ -803,11 +847,16 @@ input, textarea, select, button {
 
   /* Report tabs: horizontal swipe on mobile — no wrapping */
   #report-tabs { flex-wrap: nowrap !important; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
-  #report-tabs .nav-link { padding: 6px 10px; font-size: 12px; white-space: nowrap; }
+  #report-tabs { scrollbar-width: none; -ms-overflow-style: none; }
+  #report-tabs::-webkit-scrollbar { display: none; }
+  #report-tabs .nav-link { padding: 6px 10px; font-size: 12px; white-space: nowrap; min-height: 44px; display: flex; align-items: center; }
 
   /* Wide data tables need more horizontal scroll room */
   .table-wide { min-width: 700px; }
   .table-xwide { min-width: 800px; }
+  /* keep wide variants winning over `.table-container > .table` (higher specificity) */
+  .table-container > .table-wide { min-width: 700px; }
+  .table-container > .table-xwide { min-width: 800px; }
 
   /* Icon-only action buttons: meet 44px minimum touch width */
   .action-btns .btn-sm { min-width: 44px; justify-content: center; }
@@ -849,6 +898,21 @@ input, textarea, select, button {
     min-height: 220px !important;
     max-height: 260px !important;
   }
+
+  /* Bounded chart wrapper (Chart.js responsive container) so it cannot resize-loop */
+  .dash-chart-col .card > div[style*="position:relative"] {
+    height: 260px !important;
+    min-height: 260px !important;
+    flex: none !important;
+  }
+}
+
+/* Short viewports (landscape phones / small windows): release the 100vh lock */
+@media (max-height: 700px) {
+  .dash-layout { height: auto; }
+}
+@media (max-height: 700px) and (min-width: 768px) {
+  .dash-charts-row { min-height: 280px !important; }
 }
 
 /* ── SMALL PHONES (≤374px) ──────────────────────────────────────────────── */
@@ -946,8 +1010,7 @@ body.compact .page-header { margin-bottom: 16px; }
 [data-theme="dark"] .loan-summary-box [style*="border-top"]   { border-top-color: #1e40af !important; }
 
 /* Wallet withdraw source option labels */
-[data-theme="dark"] #wd-opt-invest,
-[data-theme="dark"] #wd-opt-interest { border-color: #30363D !important; }
+/* (dark border-color overrides on #wd-opt-invest / #wd-opt-interest removed so the JS selection highlight works) */
 
 /* Dashboard mini-card icon chip base colors (light mode) */
 .dash-chip-pink   { background: #FDF2F8; }
@@ -995,7 +1058,7 @@ body[data-theme="dark"] {
   background-color: #0D1117; color: var(--text-primary);
   border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.2);
 }
-[data-theme="dark"] .form-control::placeholder { color: #4B5563; }
+[data-theme="dark"] .form-control::placeholder { color: #6E7681; }
 [data-theme="dark"] .form-label { color: var(--text-secondary); }
 [data-theme="dark"] .input-group-text { background: #21262D; border-color: #30363D; color: var(--text-secondary); }
 [data-theme="dark"] select option { background-color: #161B22; color: var(--text-primary); }
@@ -1172,3 +1235,96 @@ body[data-theme="dark"] {
 .wallet-compact .card { padding: 12px 14px; }
 .wallet-compact .card-header-flex { margin-bottom: 10px; gap: 8px; }
 .wallet-compact .table td, .wallet-compact .table th { padding: 7px 10px; font-size: 12.5px; }
+
+/* ============================================================
+   RESPONSIVE / DARK-MODE FIXES (appended block)
+   ============================================================ */
+
+/* Select arrow needs room (custom padding shorthand removed it) */
+.form-select { padding-right: 2.25rem; }
+
+/* Bottom-nav labels: never overflow the item */
+.bottom-nav-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Collapsed state hook for customer-list expandable child rows */
+.loan-child-row { background: #F8FAFC; }
+
+/* Partners / wallet modals */
+#partners-list-modal .table { min-width: 0; }
+#partners-list-modal td { word-break: break-word; }
+
+/* Settings: compact mode */
+body.compact .setting-row { padding: 10px 14px; }
+
+/* Settings: stack controls under the label on small phones */
+@media (max-width: 575.98px) {
+  .setting-row { flex-wrap: wrap; }
+  .setting-info { flex: 1 1 100%; }
+  .setting-row .btn-group { width: 100%; }
+  .setting-row .btn-group .btn { flex: 1 1 0; }
+  .setting-row > .d-flex { width: 100%; flex-wrap: wrap; }
+}
+
+/* Phones: sticky columns for wide tables */
+@media (max-width: 767.98px) {
+  /* Customer name stays visible while scrolling the wide customer list */
+  .table-xwide td:nth-child(2),
+  .table-xwide th:nth-child(2) {
+    position: sticky; left: 0; z-index: 2;
+    background: var(--card-bg);
+    box-shadow: 2px 0 4px -2px rgba(0,0,0,.15);
+  }
+  .table-xwide th:nth-child(2) { z-index: 3; background: #F8FAFC; }
+
+  /* Reusable: add class "table-sticky-actions" to a table to pin its last (actions) column */
+  .table-sticky-actions th:last-child,
+  .table-sticky-actions td:last-child {
+    position: sticky; right: 0; z-index: 2;
+    background: var(--card-bg);
+    box-shadow: -6px 0 8px -6px rgba(0,0,0,.2);
+  }
+  .table-sticky-actions th:last-child { z-index: 3; background: #F8FAFC; }
+}
+
+/* ---- Dark mode additions ---- */
+[data-theme="dark"] .loan-child-row { background: #0D1117; }
+
+/* Sticky cells need an opaque dark background */
+[data-theme="dark"] .table-xwide td:nth-child(2),
+[data-theme="dark"] .table-sticky-actions td:last-child { background-color: var(--card-bg); }
+
+/* Bootstrap text colors on dark cards */
+[data-theme="dark"] .text-success { color: #4ade80 !important; }
+[data-theme="dark"] .text-danger  { color: #f87171 !important; }
+[data-theme="dark"] .text-primary { color: #60a5fa !important; }
+[data-theme="dark"] .text-warning { color: #fbbf24 !important; }
+[data-theme="dark"] .text-info    { color: #38bdf8 !important; }
+
+/* Inline small texts hard-coded for light backgrounds
+   (:not([style*="background"]) avoids recolouring elements that are filled with these colours) */
+[data-theme="dark"] [style*="color:#DC2626" i]:not([style*="background"]),
+[data-theme="dark"] [style*="color: #DC2626" i]:not([style*="background"]) { color: #F87171 !important; }
+[data-theme="dark"] [style*="color:#64748B" i]:not([style*="background"]),
+[data-theme="dark"] [style*="color: #64748B" i]:not([style*="background"]) { color: var(--text-secondary) !important; }
+
+/* Loan summary boxes */
+[data-theme="dark"] #l-total,
+[data-theme="dark"] #al-total { color: #93C5FD !important; }
+[data-theme="dark"] .loan-summary-box [style*="64748B" i] { color: #94A3B8 !important; }
+
+/* Dashboard chips: lighter icons + sub-text on dark chips */
+[data-theme="dark"] .dash-chip-blue   i { color: #60a5fa !important; }
+[data-theme="dark"] .dash-chip-pink   i { color: #f472b6 !important; }
+[data-theme="dark"] .dash-chip-red    i { color: #f87171 !important; }
+[data-theme="dark"] .dash-chip-indigo i { color: #a5b4fc !important; }
+[data-theme="dark"] .dash-chip-amber  i { color: #fbbf24 !important; }
+[data-theme="dark"] #due-today-amt { color: #60a5fa !important; }
+[data-theme="dark"] #due-week-amt  { color: #a5b4fc !important; }
+[data-theme="dark"] #due-month-amt { color: #fbbf24 !important; }
+
+/* Outline-secondary buttons readable on dark */
+[data-theme="dark"] .btn-outline-secondary { --bs-btn-color: #9DA7B3; --bs-btn-border-color: #444C56; }
+
+/* Wallet top-up confirm modal */
+[data-theme="dark"] #topup-confirm-modal .modal-header { background: rgba(245,158,11,.15) !important; }
+[data-theme="dark"] #topup-confirm-modal .modal-title  { color: var(--text-primary) !important; }

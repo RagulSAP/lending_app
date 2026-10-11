@@ -62,12 +62,13 @@
                 <div class="setting-label">${t('settings.compact')}</div>
                 <div class="setting-desc">${t('settings.compact_desc')}</div>
               </div>
-              <div class="form-check form-switch mb-0">
+              <label class="form-check form-switch mb-0" for="compact-chk"
+                     style="min-height:44px;min-width:56px;padding:0 8px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
                 <input class="form-check-input" type="checkbox" role="switch" id="compact-chk"
-                       style="width:40px;height:22px;cursor:pointer;"
+                       style="width:40px;height:22px;margin:0;float:none;cursor:pointer;"
                        ${s.compact ? 'checked' : ''}
                        onchange="setSetting('compact', this.checked)">
-              </div>
+              </label>
             </div>
           </div>
         </div>

@@ -25,9 +25,9 @@
   }
 
   function renderPage() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = localISODate();
     const catOpts = `<option value="">${t('exp.all_cats')}</option>` +
-      expenseCategories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
+      expenseCategories.map(c => `<option value="${esc(c.category_id)}">${esc(c.name)}</option>`).join('');
 
     document.getElementById('page-content').innerHTML = `
       <!-- Tab Navigation -->
@@ -231,7 +231,7 @@
             <span id="loan-count" class="badge bg-light text-dark" style="font-size:12px;"></span>
           </div>
           <div class="table-container">
-            <table class="table table-wide">
+            <table class="table table-xwide">
               <thead>
                 <tr><th>#</th><th>${t('rep.col_customer')}</th><th>Onboarded By</th><th>Disbursed</th><th>${t('rep.col_outstanding')}</th><th>${t('rep.col_installments')}</th><th>${t('rep.col_coll_amt')}</th><th>Status</th><th>${t('rep.col_date')}</th></tr>
               </thead>
@@ -388,6 +388,9 @@
       const link = document.querySelector('[data-tab="' + tabKey + '"]');
       if (el) el.classList.toggle('d-none', tabKey !== tab);
       if (link) link.classList.toggle('active', tabKey === tab);
+      if (link && tabKey === tab && typeof link.scrollIntoView === 'function') {
+        try { link.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+      }
     });
     fetchReportData(tab);
   };
@@ -439,9 +442,8 @@
       const apiTab = tab === 'collection' ? 'transactions' : tab;
       const res = await api.get('/api/reports/' + apiTab, params);
       const rows = res.data || [];
-      const pagination = res.pagination || {};
-      totalPages = pagination.total_pages || 1;
-      const total = pagination.total || rows.length;
+      const total = res.total ?? rows.length;
+      totalPages = Math.max(1, Math.ceil((total || 0) / (res.per_page || perPage)));
 
       const badge = document.getElementById(countId);
       if (badge) badge.textContent = total + ' record' + (total !== 1 ? 's' : '');
@@ -452,37 +454,37 @@
       if (!rows.length) {
         tbody.innerHTML = `<tr><td colspan="${colCount}" class="table-empty"><i class="bi bi-inbox"></i>${t('rep.no_records')}</td></tr>`;
       } else if (tab === 'transactions') {
-        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totalAmt = res.total_amount ?? rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('txn-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date || r.created_at)}</td>
-          <td>${r.customer_name || '-'}</td>
-          <td style="font-size:12px;color:#64748B;">${r.collected_by || '-'}</td>
-          <td style="font-size:12px;">${r.loan_id ? r.loan_id.slice(0, 8) + '…' : '-'}</td>
+          <td>${esc(r.customer_name) || '-'}</td>
+          <td style="font-size:12px;color:var(--text-secondary);">${esc(r.collected_by) || '-'}</td>
+          <td style="font-size:12px;">${r.loan_id ? esc(String(r.loan_id).slice(0, 8)) + '…' : '-'}</td>
           <td class="fw-600">${formatCurrency(r.amount)}</td>
-          <td><span class="badge bg-light text-dark">${r.payment_mode || '-'}</span></td>
-          <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${r.transaction_type || '-'}</span></td>
+          <td><span class="badge bg-light text-dark">${esc(r.payment_mode) || '-'}</span></td>
+          <td><span class="badge bg-secondary bg-opacity-10 text-secondary">${esc(r.transaction_type) || '-'}</span></td>
         </tr>`).join('');
       } else if (tab === 'collection') {
-        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totalAmt = res.total_amount ?? rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('col-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date || r.created_at)}</td>
-          <td>${r.customer_name || '-'}</td>
-          <td style="font-size:12px;color:#64748B;">${r.loan_id ? r.loan_id.slice(0, 8) + '…' : '-'}</td>
+          <td>${esc(r.customer_name) || '-'}</td>
+          <td style="font-size:12px;color:var(--text-secondary);">${r.loan_id ? esc(String(r.loan_id).slice(0, 8)) + '…' : '-'}</td>
           <td class="fw-600 text-success">${formatCurrency(r.amount)}</td>
-          <td><span class="badge bg-light text-dark">${r.payment_mode || '-'}</span></td>
-          <td style="font-size:12px;color:#64748B;">${r.collected_by || '-'}</td>
+          <td><span class="badge bg-light text-dark">${esc(r.payment_mode) || '-'}</span></td>
+          <td style="font-size:12px;color:var(--text-secondary);">${esc(r.collected_by) || '-'}</td>
         </tr>`).join('');
       } else if (tab === 'loans') {
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
-          <td>${r.customer_name || '-'}</td>
-          <td style="font-size:12px;color:#64748B;">${r.onboarded_by || '-'}</td>
+          <td>${esc(r.customer_name) || '-'}</td>
+          <td style="font-size:12px;color:var(--text-secondary);">${esc(r.onboarded_by) || '-'}</td>
           <td>${formatCurrency(r.disbursement_amount)}</td>
           <td class="fw-600 text-danger">${formatCurrency(r.outstanding_amount || r.balance_amount || 0)}</td>
           <td class="fw-600">${r.num_installments || '-'}</td>
@@ -491,41 +493,41 @@
           <td>${formatDate(r.disbursement_date || r.created_at)}</td>
         </tr>`).join('');
       } else if (tab === 'expenses') {
-        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.expense_amount || 0), 0);
+        const totalAmt = res.total_amount ?? rows.reduce((s, r) => s + parseFloat(r.expense_amount || 0), 0);
         const totEl = document.getElementById('exp-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.expense_date || r.created_at)}</td>
-          <td>${r.category_name || '-'}</td>
+          <td>${esc(r.category_name) || '-'}</td>
           <td class="fw-600 text-danger">${formatCurrency(r.expense_amount)}</td>
-          <td>${r.entered_by || r.user_name || '-'}</td>
-          <td style="max-width:200px;word-break:break-word;white-space:normal;">${r.expense_remark || r.remark || '-'}</td>
+          <td>${esc(r.entered_by || r.user_name) || '-'}</td>
+          <td style="max-width:200px;word-break:break-word;white-space:normal;">${esc(r.expense_remark || r.remark) || '-'}</td>
         </tr>`).join('');
       } else if (tab === 'topup') {
-        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totalAmt = res.total_amount ?? rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('tu-rep-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date)}</td>
           <td class="text-success fw-600">${formatCurrency(r.amount)}</td>
-          <td>${r.collected_by || '-'}</td>
-          <td>${r.partner_name ? `<span class="fw-600">${r.partner_name}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
-          <td style="max-width:220px;word-break:break-word;white-space:normal;">${r.remarks || '-'}</td>
+          <td>${esc(r.collected_by) || '-'}</td>
+          <td>${r.partner_name ? `<span class="fw-600">${esc(r.partner_name)}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
+          <td style="max-width:220px;word-break:break-word;white-space:normal;">${esc(r.remarks) || '-'}</td>
         </tr>`).join('');
       } else {
         // withdrawal
-        const totalAmt = pagination.total_amount || rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
+        const totalAmt = res.total_amount ?? rows.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
         const totEl = document.getElementById('wd-rep-total');
         if (totEl) totEl.textContent = t('common.total') + ': ' + formatCurrency(totalAmt);
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${formatDate(r.transaction_date)}</td>
           <td class="text-warning fw-600">${formatCurrency(r.amount)}</td>
-          <td>${r.collected_by || '-'}</td>
-          <td>${r.partner_name ? `<span class="fw-600">${r.partner_name}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
-          <td style="max-width:200px;word-break:break-word;white-space:normal;">${r.remarks || '-'}</td>
+          <td>${esc(r.collected_by) || '-'}</td>
+          <td>${r.partner_name ? `<span class="fw-600">${esc(r.partner_name)}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
+          <td style="max-width:200px;word-break:break-word;white-space:normal;">${esc(r.remarks) || '-'}</td>
         </tr>`).join('');
       }
 
@@ -588,7 +590,7 @@
       }
       showToast('Preparing ' + type.toUpperCase() + ' export...', 'info');
       const ext = type === 'excel' ? 'xlsx' : 'pdf';
-      const filename = (report === 'topup' ? 'wallet_topup' : report) + '_report_' + new Date().toISOString().split('T')[0] + '.' + ext;
+      const filename = (report === 'topup' ? 'wallet_topup' : report) + '_report_' + localISODate() + '.' + ext;
       await api.download('/api/reports/export', params, filename);
     } catch (err) {
       showToast('Export failed: ' + err.message, 'danger');

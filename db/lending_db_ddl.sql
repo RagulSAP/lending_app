@@ -163,10 +163,17 @@ CREATE TABLE IF NOT EXISTS `transaction` (
   `payment_mode`     VARCHAR(100),
   `wallet_id`        VARCHAR(36),
   `partner_id`       VARCHAR(36),
+  `expense_id`       VARCHAR(36),
   `remarks`          VARCHAR(225),
   `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX `ix_transaction_expense_id` (`expense_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- For an EXISTING database (table already created), run this once instead:
+-- ALTER TABLE `transaction`
+--   ADD COLUMN `expense_id` VARCHAR(36) NULL AFTER `partner_id`,
+--   ADD INDEX `ix_transaction_expense_id` (`expense_id`);
 
 
 -- ----------------------------------------------------------------

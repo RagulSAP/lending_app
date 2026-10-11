@@ -11,7 +11,7 @@ from models import Organization, Wallet, User, Customer, Loan, LoanInstallment, 
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, model_to_dict
+from core_functions.responses import success_response, error_response, model_to_dict, server_error
 
 orgs_bp = Blueprint("organizations", __name__, url_prefix="/api/organizations")
 
@@ -93,7 +93,7 @@ def create_org():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -129,7 +129,6 @@ def list_orgs():
                 "user_id": admin.user_id,
                 "name": admin.name,
                 "phone": admin.phone,
-                "password": admin.password,
             } if admin else None
             result.append(d)
 
@@ -227,7 +226,7 @@ def update_org(org_id):
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -284,6 +283,6 @@ def delete_org(org_id):
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()

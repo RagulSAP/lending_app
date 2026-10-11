@@ -1,9 +1,13 @@
 """
 Shared response helpers and serialization utilities used across all routers.
 """
+import logging
+import math
 from flask import jsonify
 from decimal import Decimal
 from datetime import date, datetime
+
+logger = logging.getLogger("lendtrack")
 
 
 def success_response(data=None, message="", total=None, page=None, per_page=None, **extra):
@@ -24,6 +28,29 @@ def success_response(data=None, message="", total=None, page=None, per_page=None
 
 def error_response(message, status_code=400):
     return jsonify({"success": False, "message": message}), status_code
+
+
+def server_error(message="Something went wrong. Please try again."):
+    """
+    500 response that never leaks internal exception text. Must be called from
+    inside an `except` block: the active exception is logged with its traceback.
+    """
+    logger.exception("Unhandled error while processing request")
+    return error_response(message, 500)
+
+
+def finite_float(raw, name="value"):
+    """
+    float(raw) that also rejects NaN / Infinity (valid JSON literals for Python's
+    parser). Raises ValueError with a user-facing message.
+    """
+    try:
+        val = float(raw)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError(f"{name} must be a number")
+    if not math.isfinite(val):
+        raise ValueError(f"{name} must be a finite number")
+    return val
 
 
 def serialize_value(val):

@@ -42,7 +42,7 @@
             <div class="modal-body">
               <div id="edit-org-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
               <input type="hidden" id="edit-org-id">
-              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_org')}</h6>
+              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">${t('org.section_org')}</h6>
               <div class="row g-3">
                 <div class="col-12">
                   <label class="form-label">${t('org.org_name')} <span class="text-danger">*</span></label>
@@ -64,7 +64,7 @@
                   <textarea class="form-control" id="edit-org-address" rows="2"></textarea>
                 </div>
               </div>
-              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_admin')}</h6>
+              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">${t('org.section_admin')}</h6>
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">${t('org.admin_name')} <span class="text-danger">*</span></label>
@@ -75,9 +75,9 @@
                   <input type="tel" class="form-control" id="edit-admin-phone" maxlength="10">
                 </div>
                 <div class="col-12">
-                  <label class="form-label">${t('org.new_password')} <span style="font-size:12px;color:#64748B;">(${t('org.pass_hint')})</span></label>
+                  <label class="form-label">${t('org.new_password')} <span style="font-size:12px;color:var(--text-secondary);">(${t('org.pass_hint')})</span></label>
                   <div class="input-group">
-                    <input type="password" class="form-control" id="edit-admin-password" placeholder="Min 6 characters">
+                    <input type="password" class="form-control" id="edit-admin-password" placeholder="Leave blank to keep current password" autocomplete="new-password">
                     <button type="button" class="btn btn-outline-secondary" onclick="togglePass('edit-admin-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
                   </div>
                 </div>
@@ -134,7 +134,7 @@
             </div>
             <div class="modal-body">
               <div id="org-form-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
-              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_org')}</h6>
+              <h6 class="mb-3" style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">${t('org.section_org')}</h6>
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">${t('org.org_name')} <span class="text-danger">*</span></label>
@@ -149,7 +149,7 @@
                   <textarea class="form-control" id="org-address" rows="2" placeholder="Full address"></textarea>
                 </div>
               </div>
-              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('org.section_admin')}</h6>
+              <h6 class="mb-3 mt-4" style="font-size:13px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;">${t('org.section_admin')}</h6>
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">${t('org.admin_name')} <span class="text-danger">*</span></label>
@@ -193,6 +193,12 @@
     document.getElementById('add-org-btn').addEventListener('click', () => {
       new bootstrap.Modal(document.getElementById('addOrgModal')).show();
     });
+    document.getElementById('org-tbody').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      if (btn.dataset.action === 'edit') window.editOrg(btn.dataset.id);
+      else if (btn.dataset.action === 'delete') window.deleteOrg(btn.dataset.id);
+    });
     document.getElementById('save-org-btn').addEventListener('click', saveOrg);
     document.getElementById('save-edit-org-btn').addEventListener('click', saveEditOrg);
     document.getElementById('confirm-del-btn').addEventListener('click', confirmDelete);
@@ -222,18 +228,18 @@
       tbody.innerHTML = orgList.map((o, i) => `
         <tr>
           <td>${i + 1}</td>
-          <td><div class="fw-600">${o.name}</div><div style="font-size:12px;color:#64748B;">${o.address || ''}</div></td>
-          <td>${o.phone || '-'}</td>
+          <td><div class="fw-600">${esc(o.name)}</div><div style="font-size:12px;color:var(--text-secondary);max-width:220px;white-space:normal;">${esc(o.address || '')}</div></td>
+          <td>${esc(o.phone || '-')}</td>
           <td><span class="fw-600">${o.user_count || 0}</span></td>
           <td><span class="fw-600">${o.borrower_count || 0}</span></td>
           <td>${statusBadge(o.status || 'ACTIVE')}</td>
-          <td class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-primary" title="${t('common.edit')}" onclick="editOrg('${o.org_id}')"><i class="bi bi-pencil"></i></button>
-            <button class="btn btn-sm btn-outline-danger" title="${t('common.delete')}" onclick="deleteOrg('${o.org_id}')"><i class="bi bi-trash"></i></button>
-          </td>
+          <td><div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" title="${t('common.edit')}" data-action="edit" data-id="${esc(o.org_id)}"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger" title="${t('common.delete')}" data-action="delete" data-id="${esc(o.org_id)}"><i class="bi bi-trash"></i></button>
+          </div></td>
         </tr>`).join('');
     } catch (err) {
-      document.getElementById('org-tbody').innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
+      document.getElementById('org-tbody').innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${esc(err.message)}</td></tr>`;
       showToast('Failed to load organizations: ' + err.message, 'danger');
     } finally {
       hideLoading();
@@ -279,7 +285,7 @@
   }
 
   window.editOrg = function(orgId) {
-    const org = orgList.find(o => o.org_id === orgId);
+    const org = orgList.find(o => String(o.org_id) === String(orgId));
     if (!org) return;
     document.getElementById('edit-org-id').value = org.org_id;
     document.getElementById('edit-org-name').value = org.name || '';
@@ -288,7 +294,7 @@
     document.getElementById('edit-org-status').value = org.status || 'ACTIVE';
     document.getElementById('edit-admin-name').value = org.admin_user?.name || '';
     document.getElementById('edit-admin-phone').value = org.admin_user?.phone || '';
-    document.getElementById('edit-admin-password').value = org.admin_user?.password || '';
+    document.getElementById('edit-admin-password').value = '';
     document.getElementById('edit-org-error').classList.add('d-none');
     new bootstrap.Modal(document.getElementById('editOrgModal')).show();
   };
@@ -334,7 +340,7 @@
   }
 
   window.deleteOrg = function(orgId) {
-    const org = orgList.find(o => o.org_id === orgId);
+    const org = orgList.find(o => String(o.org_id) === String(orgId));
     if (!org) return;
     document.getElementById('del-org-id').value = org.org_id;
     document.getElementById('del-org-body').textContent = t('org.delete_body', {name: org.name});

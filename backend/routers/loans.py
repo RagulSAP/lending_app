@@ -15,10 +15,13 @@ from models import Customer, Loan, LoanInstallment, LoanStatusHistory, Wallet, T
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.loan_calc import calculate_loan, calculate_loan_simple, calculate_interest_only_loan
+from core_functions.loan_calc import (
+    calculate_loan, calculate_loan_simple, calculate_interest_only_loan,
+    schedule_error, MAX_INSTALLMENTS,
+)
 from core_functions.overdue import compute_overdue, overdue_fields, sync_overdue_status
 from core_functions.timeutil import today_ist
-from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+from core_functions.responses import success_response, error_response, model_to_dict, parse_date, server_error, finite_float
 
 loans_bp = Blueprint("loans", __name__, url_prefix="/api/loans")
 
@@ -75,25 +78,28 @@ def create_loan():
         return error_response("installment_type must be 'DAILY', 'WEEKLY', or 'MONTHLY'")
 
     try:
-        principal = float(data["disbursement_amount"])
+        # Money is whole rupees: round first, then validate / store / deduct the rounded value.
+        principal = round(finite_float(data["disbursement_amount"], "disbursement_amount"))
         if is_interest_only:
-            collection_amount = float(data["collection_amount"])
+            collection_amount = round(finite_float(data["collection_amount"], "collection_amount"))
             num_installments = None
         elif use_simple:
-            collection_amount = float(data["collection_amount"])
-            num_installments = int(data["num_installments"])
+            collection_amount = round(finite_float(data["collection_amount"], "collection_amount"))
+            num_installments = int(finite_float(data["num_installments"], "num_installments"))
         else:
             interest_type = str(data["interest_type"]).upper()
-            annual_rate = float(data["interest_rate"])
-            processing_fee = float(data.get("processing_fee") or 0)
-            num_installments = int(data["num_installments"])
-    except (TypeError, ValueError):
-        return error_response("Numeric fields must be valid numbers")
+            annual_rate = finite_float(data["interest_rate"], "interest_rate")
+            processing_fee = finite_float(data.get("processing_fee") or 0, "processing_fee")
+            num_installments = int(finite_float(data["num_installments"], "num_installments"))
+    except ValueError as ve:
+        return error_response(str(ve))
 
     if principal <= 0:
         return error_response("disbursement_amount must be positive")
     if not is_interest_only and num_installments < 1:
         return error_response("num_installments must be at least 1")
+    if not is_interest_only and num_installments > MAX_INSTALLMENTS:
+        return error_response(f"num_installments cannot exceed {MAX_INSTALLMENTS}")
     if (use_simple or is_interest_only) and collection_amount <= 0:
         return error_response("collection_amount must be positive")
     if use_simple and not is_interest_only and collection_amount * num_installments < principal:
@@ -116,6 +122,9 @@ def create_loan():
 
     db = SessionLocal()
     try:
+        # Lock the wallet row first so concurrent money-moving requests serialize (MySQL).
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         customer = db.query(Customer).filter(
             Customer.customer_id == data["customer_id"],
             Customer.org_id == current["org_id"],
@@ -126,7 +135,6 @@ def create_loan():
             return error_response("Cannot disburse loan to an inactive customer")
 
         # Validate rotation_balance before proceeding — disbursements come from rotation capital
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         wallet_balance = round(float(wallet.rotation_balance or 0), 2) if wallet else 0.0
         if not wallet or wallet_balance < principal:
             return error_response(
@@ -165,6 +173,10 @@ def create_loan():
             return error_response(str(ve))
 
         schedule = calc["schedule"]
+        if not is_interest_only:
+            sched_err = schedule_error(schedule)
+            if sched_err:
+                return error_response(sched_err)
         last_due_date = parse_date(schedule[-1]["due_date"])
 
         loan_id = str(uuid.uuid4())
@@ -173,7 +185,7 @@ def create_loan():
             customer_id=customer.customer_id,
             org_id=current["org_id"],
             loan_type=loan_type,
-            disbursement_amount=round(principal, 2),
+            disbursement_amount=principal,
             interest_type=None if (use_simple or is_interest_only) else interest_type,
             interest_rate=None if (use_simple or is_interest_only) else round(annual_rate, 4),
             processing_fee=0 if (use_simple or is_interest_only) else round(processing_fee, 2),
@@ -184,7 +196,7 @@ def create_loan():
             installment_amount=calc["installment_amount"],
             total_payable=calc["total_payable"],
             total_paid=0,
-            balance_amount=round(principal),  # tracks outstanding principal only
+            balance_amount=principal,  # tracks outstanding principal only (whole rupees)
             status="ACTIVE",
             remarks=data.get("remarks") or "",
             created_by=current["user_id"],
@@ -235,7 +247,7 @@ def create_loan():
                 org_id=current["org_id"],
                 transaction_type="LOAN_DISBURSEMENT",
                 transaction_date=disbursement_date,
-                amount=round(principal, 2),
+                amount=principal,
                 wallet_id=wallet.wallet_id,
             )
             db.add(disbursement_txn)
@@ -254,7 +266,7 @@ def create_loan():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -389,6 +401,9 @@ def update_loan(loan_id):
 
     db = SessionLocal()
     try:
+        # Lock the wallet row first so concurrent money-moving requests serialize (MySQL).
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         loan = db.query(Loan).filter(
             Loan.loan_id == loan_id,
             Loan.org_id == current["org_id"],
@@ -433,13 +448,14 @@ def update_loan(loan_id):
 
         try:
             old_principal = round(float(loan.disbursement_amount or 0))
-            new_principal = round(float(data.get("disbursement_amount", old_principal)))
-            new_coll = round(float(data.get("collection_amount", loan.installment_amount or 0)))
-            new_n = int(data.get("num_installments", loan.num_installments or 0) or 0)
-            new_rate = float(data.get("interest_rate", loan.interest_rate or 0) or 0)
-            new_fee = float(data.get("processing_fee", loan.processing_fee or 0) or 0)
-        except (TypeError, ValueError):
-            return error_response("Numeric fields must be valid numbers")
+            # Money is whole rupees: round first, then validate / store / move the rounded value.
+            new_principal = round(finite_float(data.get("disbursement_amount", old_principal), "disbursement_amount"))
+            new_coll = round(finite_float(data.get("collection_amount", loan.installment_amount or 0), "collection_amount"))
+            new_n = int(finite_float(data.get("num_installments", loan.num_installments or 0) or 0, "num_installments"))
+            new_rate = finite_float(data.get("interest_rate", loan.interest_rate or 0) or 0, "interest_rate")
+            new_fee = finite_float(data.get("processing_fee", loan.processing_fee or 0) or 0, "processing_fee")
+        except ValueError as ve:
+            return error_response(str(ve))
 
         remarks_in = data.get("remarks")
         new_remarks = (str(remarks_in).strip() if remarks_in is not None else loan.remarks) or ""
@@ -484,17 +500,20 @@ def update_loan(loan_id):
             elif legacy:
                 if new_n < 1:
                     return error_response("num_installments must be at least 1")
+                if new_n > MAX_INSTALLMENTS:
+                    return error_response(f"num_installments cannot exceed {MAX_INSTALLMENTS}")
                 if new_rate < 0:
                     return error_response("interest_rate must be non-negative")
             else:
                 if new_n < 1:
                     return error_response("num_installments must be at least 1")
+                if new_n > MAX_INSTALLMENTS:
+                    return error_response(f"num_installments cannot exceed {MAX_INSTALLMENTS}")
                 if new_coll <= 0:
                     return error_response("collection_amount must be positive")
                 if new_coll * new_n < new_principal:
                     return error_response("Total collections (collection_amount × num_installments) must be >= loan amount")
 
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         delta = new_principal - old_principal
         if structural and delta != 0:
             if not wallet:
@@ -528,6 +547,10 @@ def update_loan(loan_id):
                 return error_response(str(ve))
 
             schedule = calc["schedule"]
+            if not is_io:
+                sched_err = schedule_error(schedule)
+                if sched_err:
+                    return error_response(sched_err)
             old_status = loan.status
 
             if not old_io:
@@ -607,6 +630,6 @@ def update_loan(loan_id):
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()

@@ -11,7 +11,8 @@ from flask import Blueprint, request, g
 from flask_jwt_extended import jwt_required, get_jwt
 
 from database import SessionLocal
-from models import User, Role
+from models import User, Role, Organization
+from config import Config
 from core_functions.auth import create_token, get_current_user_info
 from core_functions.responses import success_response, error_response
 
@@ -52,6 +53,13 @@ def login():
 
         if user.status != 1:
             return error_response("Account is inactive. Contact your administrator.", 403)
+
+        # A deactivated organisation blocks all of its users. SUPER_ADMIN lives in the
+        # reserved system org and is never blocked by an org status.
+        if user.role_id != Config.ROLE_SUPER_ADMIN and user.org_id != Config.SYSTEM_ORG_ID:
+            org = db.query(Organization).filter(Organization.org_id == user.org_id).first()
+            if org is not None and (org.status or "ACTIVE").strip().upper() != "ACTIVE":
+                return error_response("Organization is inactive", 403)
 
         role_name = _get_role_name(db, user.role_id)
 

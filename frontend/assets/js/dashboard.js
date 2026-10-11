@@ -25,7 +25,7 @@
         maintainAspectRatio: false,
         plugins: {
           legend: {
-            position: 'right',
+            position: window.innerWidth < 768 ? 'bottom' : 'right',
             labels: {
               font: { size: 11, family: 'Inter' },
               padding: 12,
@@ -76,8 +76,8 @@
 
   // ---- COLLECTOR DASHBOARD ----
   async function renderCollectorDashboard() {
-    const today = new Date().toISOString().split('T')[0];
-    const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+    const today = localISODate();
+    const firstOfMonth = localISODate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
     document.getElementById('page-content').innerHTML = `
       <div class="filter-bar">
         <div class="form-group">
@@ -99,7 +99,7 @@
         </div>
         <div class="table-container">
           <table class="table">
-            <thead><tr><th>${t('dash.col_date')}</th><th>${t('dash.col_customer')}</th><th>${t('dash.col_loan')}</th><th>${t('dash.col_amount')}</th><th>${t('dash.col_mode')}</th></tr></thead>
+            <thead><tr><th>${t('dash.col_date')}</th><th>${t('dash.col_customer')}</th><th>${t('dash.col_amount')}</th><th>${t('dash.col_mode')}</th></tr></thead>
             <tbody id="coll-tbody"></tbody>
           </table>
         </div>
@@ -123,9 +123,9 @@
       const payments = s.recent_payments || [];
       const tbody = document.getElementById('coll-tbody');
       if (!payments.length) {
-        tbody.innerHTML = `<tr><td colspan="5" class="table-empty"><i class="bi bi-inbox"></i>${t('dash.no_recent')}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="table-empty"><i class="bi bi-inbox"></i>${t('dash.no_recent')}</td></tr>`;
       } else {
-        tbody.innerHTML = payments.map(p => `<tr><td>${formatDate(p.transaction_date)}</td><td>${p.customer_name || '-'}</td><td>#${p.loan_id || '-'}</td><td>${formatCurrency(p.amount)}</td><td><span class="badge bg-light text-dark">${p.payment_mode || '-'}</span></td></tr>`).join('');
+        tbody.innerHTML = payments.map(p => `<tr><td>${formatDate(p.transaction_date)}</td><td>${esc(p.customer_name) || '-'}</td><td>${formatCurrency(p.amount)}</td><td><span class="badge bg-light text-dark">${p.payment_mode || '-'}</span></td></tr>`).join('');
       }
     } catch (err) {
       showToast('Failed to load data: ' + err.message, 'danger');
@@ -140,8 +140,8 @@
       <div style="background:var(--card-bg);border-radius:12px;padding:14px 16px 14px 20px;border:1px solid var(--border);
                   box-shadow:var(--shadow-sm);position:relative;overflow:hidden;">
         <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:${accent};border-radius:12px 0 0 12px;"></div>
-        <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:5px;">${label}</div>
-        <div id="${id}" style="font-size:18px;font-weight:700;color:var(--text-primary);line-height:1.2;">—</div>
+        <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.6px;font-weight:600;margin-bottom:5px;">${label}</div>
+        <div id="${id}" style="font-size:clamp(14px,4.6vw,18px);overflow-wrap:anywhere;font-weight:700;color:var(--text-primary);line-height:1.2;">—</div>
       </div>`;
 
     const miniCard = (id, label, icon, chipClass, color, subId, href) => `
@@ -249,7 +249,7 @@
       // Trend chart — default last 30 days
       const today = new Date();
       const d30ago = new Date(today); d30ago.setDate(d30ago.getDate() - 29);
-      const fmtDate = d => d.toISOString().split('T')[0];
+      const fmtDate = d => localISODate(d);
       document.getElementById('trend-from').value = fmtDate(d30ago);
       document.getElementById('trend-to').value   = fmtDate(today);
 
@@ -334,7 +334,7 @@
       await loadTrendChart(fmtDate(d30ago), fmtDate(today));
 
     } catch (err) {
-      document.getElementById('page-content').innerHTML += `<div class="alert alert-danger mt-3">${err.message}</div>`;
+      document.getElementById('page-content').innerHTML += `<div class="alert alert-danger mt-3">${esc(err.message)}</div>`;
     } finally {
       hideLoading();
     }

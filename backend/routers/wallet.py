@@ -2,6 +2,7 @@
 Wallet management routes.
 Blueprint prefix: /api/wallet
 """
+import math
 import uuid
 from datetime import date
 
@@ -13,13 +14,32 @@ from models import Wallet, Transaction, Partner, Customer
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+from core_functions.responses import success_response, error_response, model_to_dict, parse_date, server_error, finite_float
 from core_functions.timeutil import today_ist
 
 wallet_bp = Blueprint("wallet", __name__, url_prefix="/api/wallet")
 
 _ADMIN_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER)
 _VIEW_ROLES  = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_ACCOUNTANT)
+_BALANCE_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_STAFF, Config.ROLE_ACCOUNTANT)
+
+
+@wallet_bp.route("/balance", methods=["GET"])
+@require_roles(*_BALANCE_ROLES)
+def get_rotation_balance():
+    """
+    GET /api/wallet/balance — only the rotation balance available for disbursement
+    (whole rupees, 0 if there is no wallet / it is overdrawn). Lets STAFF see what can be
+    lent without exposing the full wallet.
+    """
+    current = get_current_user_info()
+    db = SessionLocal()
+    try:
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        balance = float(wallet.rotation_balance or 0) if wallet else 0.0
+        return success_response(data={"rotation_balance": max(int(math.floor(balance)), 0)})
+    finally:
+        db.close()
 
 
 @wallet_bp.route("/", methods=["GET"])
@@ -144,9 +164,9 @@ def topup_wallet():
         return error_response("JSON body is required")
 
     try:
-        amount = float(data.get("amount") or 0)
-    except (TypeError, ValueError):
-        return error_response("amount must be a number")
+        amount = finite_float(data.get("amount") or 0, "amount")
+    except ValueError as ve:
+        return error_response(str(ve))
     if amount <= 0:
         return error_response("amount must be positive")
 
@@ -158,7 +178,7 @@ def topup_wallet():
 
     db = SessionLocal()
     try:
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
         if not wallet:
             wallet = Wallet(
                 wallet_id=str(uuid.uuid4()),
@@ -202,7 +222,7 @@ def topup_wallet():
         return success_response(data=d, message="Wallet topped up successfully"), 201
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -219,9 +239,9 @@ def withdraw():
         return error_response("JSON body is required")
 
     try:
-        amount = float(data.get("amount") or 0)
-    except (TypeError, ValueError):
-        return error_response("amount must be a number")
+        amount = finite_float(data.get("amount") or 0, "amount")
+    except ValueError as ve:
+        return error_response(str(ve))
     if amount <= 0:
         return error_response("amount must be positive")
 
@@ -238,7 +258,7 @@ def withdraw():
 
     db = SessionLocal()
     try:
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
         if not wallet:
             return error_response("No wallet found for this organisation", 404)
 
@@ -294,6 +314,6 @@ def withdraw():
         return success_response(data=d, message="Withdrawal successful"), 201
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()

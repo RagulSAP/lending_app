@@ -22,7 +22,7 @@
   }
 
   function renderPage() {
-    const collectorOptions = collectors.map(c => `<option value="${c.user_id}">${c.name} (${c.phone || ''})</option>`).join('');
+    const collectorOptions = collectors.map(c => `<option value="${esc(c.user_id)}">${esc(c.name)} (${esc(c.phone || '')})</option>`).join('');
     document.getElementById('page-content').innerHTML = `
       <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -51,22 +51,22 @@
                 <label class="form-label">${t('onboard.phone')} <span class="text-danger">*</span></label>
                 <input type="tel" class="form-control" id="f-phone" placeholder="10-digit phone" maxlength="10">
               </div>
-              <div class="col-md-3">
+              <div class="col-6 col-md-3">
                 <label class="form-label">${t('onboard.pincode')}</label>
-                <input type="text" class="form-control" id="f-pincode" placeholder="6-digit" maxlength="6">
+                <input type="text" inputmode="numeric" class="form-control" id="f-pincode" placeholder="6-digit" maxlength="6">
                 <span id="f-pincode-feedback" style="font-size:12px;"></span>
               </div>
-              <div class="col-md-3">
+              <div class="col-6 col-md-3">
                 <label class="form-label">${t('onboard.area')}</label>
                 <select class="form-select" id="f-area" disabled>
                   <option value="">Enter pincode first</option>
                 </select>
               </div>
-              <div class="col-md-3">
+              <div class="col-6 col-md-3">
                 <label class="form-label">${t('onboard.city')} <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="f-city" placeholder="City">
               </div>
-              <div class="col-md-3">
+              <div class="col-6 col-md-3">
                 <label class="form-label">${t('onboard.state')}</label>
                 <input type="text" class="form-control" id="f-state" placeholder="State">
               </div>
@@ -76,7 +76,7 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">${t('onboard.aadhaar')}</label>
-                <input type="text" class="form-control" id="f-aadhaar" placeholder="12-digit Aadhaar" maxlength="12">
+                <input type="text" inputmode="numeric" class="form-control" id="f-aadhaar" placeholder="12-digit Aadhaar" maxlength="12">
               </div>
               <div class="col-md-6">
                 <label class="form-label">${t('onboard.pan')}</label>
@@ -105,9 +105,9 @@
                 <label class="form-label">${t('onboard.photo')} <span class="text-danger">*</span></label>
                 <div class="file-upload-zone" id="photo-zone" onclick="document.getElementById('photo-input').click()">
                   <i class="bi bi-camera"></i>
-                  <p>${t('onboard.click_photo')}<br><small>${t('onboard.file_hint')}</small></p>
+                  <p>${t('onboard.click_photo')}<br><small>JPG or PNG, max 5MB</small></p>
                 </div>
-                <input type="file" id="photo-input" accept="image/jpeg,image/png,application/pdf" class="d-none">
+                <input type="file" id="photo-input" accept="image/jpeg,image/png" class="d-none">
                 <div id="photo-preview" class="d-none"></div>
               </div>
               <div class="col-md-6">
@@ -238,13 +238,13 @@
         ? `<i class="bi bi-dash-circle me-2"></i>${t('onboard.remove_loan')}`
         : `<i class="bi bi-plus-circle me-2"></i>${t('onboard.add_loan')}`;
       if (isHidden) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = localISODate();
         document.getElementById('l-date').value = today;
         // Show wallet balance
         let balance = 0;
         try {
-          const wres = await api.get('/api/wallet');
-          balance = (wres.data && wres.data.wallet) ? parseFloat(wres.data.wallet.rotation_balance || 0) : 0;
+          const wres = await api.get('/api/wallet/balance');
+          balance = (wres.data && wres.data.rotation_balance) ? parseFloat(wres.data.rotation_balance || 0) : 0;
         } catch (_) {}
         const balEl = document.getElementById('l-wallet-balance');
         if (balEl) {
@@ -345,9 +345,9 @@
       input.value = '';
       return;
     }
-    const allowed = ['image/jpeg', 'image/png', 'application/pdf'];
+    const allowed = type === 'photo' ? ['image/jpeg', 'image/png'] : ['image/jpeg', 'image/png', 'application/pdf'];
     if (!allowed.includes(file.type)) {
-      showToast('Only JPG, PNG or PDF files allowed', 'danger');
+      showToast(type === 'photo' ? 'Photo must be a JPG or PNG image' : 'Only JPG, PNG or PDF files allowed', 'danger');
       input.value = '';
       return;
     }
@@ -357,13 +357,13 @@
     const zoneEl = document.getElementById(type === 'photo' ? 'photo-zone' : 'id-zone');
     const previewEl = document.getElementById(type === 'photo' ? 'photo-preview' : 'id-preview');
     const sizeKB = (file.size / 1024).toFixed(1);
-    const changeBtnHtml = `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearFile('${type}')"><i class="bi bi-arrow-repeat me-1"></i>${t('onboard.change')}</button>`;
+    const changeBtnHtml = `<button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="clearFile('${esc(type)}')"><i class="bi bi-arrow-repeat me-1"></i>${t('onboard.change')}</button>`;
 
     if (file.type === 'application/pdf') {
       previewEl.innerHTML = `
         <div class="file-img-preview">
           <i class="bi bi-file-earmark-pdf" style="font-size:52px;color:#DC2626;"></i>
-          <div class="file-img-name">${file.name}</div>
+          <div class="file-img-name" style="word-break:break-all;min-width:0;">${esc(file.name)}</div>
           <div class="file-img-size">${sizeKB} KB · PDF</div>
           ${changeBtnHtml}
         </div>`;
@@ -375,7 +375,7 @@
         previewEl.innerHTML = `
           <div class="file-img-preview">
             <img src="${e.target.result}" alt="Preview">
-            <div class="file-img-name">${file.name}</div>
+            <div class="file-img-name" style="word-break:break-all;min-width:0;">${esc(file.name)}</div>
             <div class="file-img-size">${sizeKB} KB</div>
             ${changeBtnHtml}
           </div>`;
@@ -452,7 +452,7 @@
     if (!idType) missing.push('ID proof type not selected');
     if (!idProofFile) missing.push('ID proof document not uploaded');
     if (missing.length) {
-      const list = missing.map(m => `<li style="margin-bottom:4px;">${m}</li>`).join('');
+      const list = missing.map(m => `<li style="margin-bottom:4px;">${esc(m)}</li>`).join('');
       showAlert('<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Missing Information',
         `<p style="margin-bottom:8px;">Please complete the following before submitting:</p><ul style="padding-left:20px;margin:0;">${list}</ul>`);
       return;

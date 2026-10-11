@@ -7,6 +7,7 @@
   let currentUser = null;
   let editingUserId = null;
   let editModal = null;
+  let loadedUsers = [];   // rows from the last loadUsers() call
 
   async function init() {
     await initPage(t('users.title'), [1, 2]);
@@ -22,9 +23,9 @@
   function renderPage() {
     const isAdmin = currentUser && currentUser.role_id === ROLES.ADMIN;
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-center justify-content-end">
-        ${isAdmin ? `<a href="user-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> ${t('users.add')}</a>` : ''}
-      </div>
+      ${isAdmin ? `<div class="page-header d-flex align-items-center justify-content-end">
+        <a href="user-onboard.html" class="btn btn-primary"><i class="bi bi-person-plus"></i> ${t('users.add')}</a>
+      </div>` : ''}
       <div class="filter-bar">
         <div class="form-group">
           <label class="form-label">${t('users.role')}</label>
@@ -79,6 +80,15 @@
     document.getElementById('f-search').addEventListener('keydown', e => {
       if (e.key === 'Enter') { currentPage = 1; loadUsers(); }
     });
+    // Row actions: ids only (no user data in inline handlers)
+    document.getElementById('users-tbody').addEventListener('click', e => {
+      const btn = e.target.closest('button[data-action]');
+      if (!btn) return;
+      const id = btn.dataset.id;
+      if (btn.dataset.action === 'edit') window.openEditModal(id);
+      else if (btn.dataset.action === 'toggle') window.toggleUserStatus(id);
+      else if (btn.dataset.action === 'delete') window.deleteUser(id);
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -121,7 +131,7 @@
                 <div class="col-md-6">
                   <label class="form-label">${t('users.password')}</label>
                   <div class="input-group">
-                    <input type="password" class="form-control" id="eu-password" placeholder="${t('users.pass_hint')}">
+                    <input type="password" class="form-control" id="eu-password" placeholder="${t('users.pass_hint')}" autocomplete="new-password">
                     <button type="button" class="btn btn-outline-secondary" onclick="togglePass('eu-password', this)" tabindex="-1"><i class="bi bi-eye"></i></button>
                   </div>
                 </div>
@@ -160,8 +170,9 @@
       showLoading();
       const res = await api.get('/api/users', { role_id, status, search, page: currentPage, per_page: perPage });
       const users = res.data || [];
-      const total = res.total || users.length;
-      totalPages = Math.ceil(total / perPage) || 1;
+      loadedUsers = users;
+      const total = res.total ?? users.length;
+      totalPages = Math.max(1, Math.ceil((total || 0) / (res.per_page || perPage)));
 
       const badge = document.getElementById('count-badge');
       if (badge) badge.textContent = total + ' user' + (total !== 1 ? 's' : '');
@@ -174,11 +185,11 @@
         const offset = (currentPage - 1) * perPage;
         tbody.innerHTML = users.map((u, i) => {
           const isActive = u.status == 1 || u.status === 'ACTIVE';
-          const safeName = (u.name || '').replace(/'/g, "\\'");
+          const uid = esc(u.user_id);
           return `<tr>
             <td>${offset + i + 1}</td>
-            <td><div class="fw-600">${u.name}</div></td>
-            <td>${u.phone || '-'}</td>
+            <td><div class="fw-600">${esc(u.name)}</div></td>
+            <td>${esc(u.phone || '-')}</td>
             <td><span class="badge bg-light text-dark" style="font-size:12px;">${roleName(u.role_id)}</span></td>
             <td>${statusBadge(u.status !== undefined ? u.status : 'ACTIVE')}</td>
             <td>${formatDate(u.created_at)}</td>
@@ -186,16 +197,16 @@
               ${u.role_id === 1 ? '<span style="font-size:12px;color:#94a3b8;">—</span>' : `
               <div class="d-flex gap-1 flex-wrap action-btns">
                 <button type="button" class="btn btn-sm btn-outline-primary"
-                  onclick="openEditModal('${u.user_id}')" title="${t('common.edit')}">
+                  data-action="edit" data-id="${uid}" title="${t('common.edit')}">
                   <i class="bi bi-pencil"></i>
                 </button>
                 <button type="button" class="btn btn-sm ${isActive ? 'btn-warning' : 'btn-success'}"
-                  onclick="toggleUserStatus('${u.user_id}', ${u.status})"
+                  data-action="toggle" data-id="${uid}"
                   title="${isActive ? t('common.deactivate') : t('common.activate')}">
                   <i class="bi ${isActive ? 'bi-pause-fill' : 'bi-play-fill'}"></i>
                 </button>
                 <button type="button" class="btn btn-sm btn-outline-danger"
-                  onclick="deleteUser('${u.user_id}', '${safeName}')" title="${t('common.delete')}">
+                  data-action="delete" data-id="${uid}" title="${t('common.delete')}">
                   <i class="bi bi-trash"></i>
                 </button>
               </div>`}
@@ -206,7 +217,7 @@
       renderPagination();
     } catch (err) {
       document.getElementById('users-tbody').innerHTML =
-        `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
+        `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${esc(err.message)}</td></tr>`;
       showToast('Failed to load users: ' + err.message, 'danger');
     } finally {
       hideLoading();
@@ -238,6 +249,10 @@
   // ---------------------------------------------------------------------------
   // Open edit modal — fetch user details then populate
   // ---------------------------------------------------------------------------
+  function findUser(userId) {
+    return loadedUsers.find(x => String(x.user_id) === String(userId));
+  }
+
   window.openEditModal = async function (userId) {
     editingUserId = userId;
     const errEl = document.getElementById('eu-error');
@@ -249,16 +264,14 @@
 
     try {
       showLoading();
-      // Fetch from the list (already in memory from the last load)
-      const res = await api.get('/api/users', { per_page: 1000 });
-      const users = res.data || [];
-      const u = users.find(x => x.user_id === userId);
+      // Use the rows already loaded for the current page (backend caps per_page at 100)
+      const u = findUser(userId);
       if (!u) { showToast('User not found', 'danger'); return; }
 
       document.getElementById('eu-name').value = u.name || '';
       document.getElementById('eu-phone').value = u.phone || '';
       document.getElementById('eu-role').value = String(u.role_id || 2);
-      document.getElementById('eu-password').value = u.password || '';
+      document.getElementById('eu-password').value = '';
 
       editModal.show();
     } catch (err) {
@@ -314,7 +327,10 @@
   // ---------------------------------------------------------------------------
   // Toggle status
   // ---------------------------------------------------------------------------
-  window.toggleUserStatus = async function (userId, currentStatus) {
+  window.toggleUserStatus = async function (userId) {
+    const row = findUser(userId);
+    if (!row) { showToast('User not found', 'danger'); return; }
+    const currentStatus = row.status;
     const isActive = currentStatus == 1 || currentStatus === 'ACTIVE';
     const ok = await confirmDialog(isActive ? t('users.deact_confirm') : t('users.act_confirm'));
     if (!ok) return;
@@ -330,7 +346,10 @@
   // ---------------------------------------------------------------------------
   // Delete
   // ---------------------------------------------------------------------------
-  window.deleteUser = async function (userId, name) {
+  window.deleteUser = async function (userId) {
+    const row = findUser(userId);
+    if (!row) { showToast('User not found', 'danger'); return; }
+    const name = row.name || '';
     const ok = await confirmDialog(t('users.del_confirm', { name }));
     if (!ok) return;
     try {

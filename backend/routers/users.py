@@ -11,7 +11,7 @@ from models import User, Role
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, model_to_dict
+from core_functions.responses import success_response, error_response, model_to_dict, server_error
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
 
@@ -93,7 +93,7 @@ def create_user():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -135,7 +135,7 @@ def list_users():
         role_map = _role_map(db)
         result = []
         for u in users:
-            d = model_to_dict(u)
+            d = model_to_dict(u, exclude=["password"])
             d["role_name"] = role_map.get(u.role_id, "")
             result.append(d)
 
@@ -207,7 +207,7 @@ def update_user(user_id):
         )
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -242,7 +242,7 @@ def update_user_status(user_id):
         return success_response(message=f"User {'activated' if new_status else 'deactivated'} successfully")
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -272,6 +272,6 @@ def delete_user(user_id):
         return success_response(message="User deleted successfully")
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()

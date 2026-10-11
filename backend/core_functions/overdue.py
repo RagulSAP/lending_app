@@ -31,6 +31,75 @@ def _elapsed_periods(disbursement_date, installment_type, today):
     return k
 
 
+def interest_paid_counts(db, loan_ids):
+    """{loan_id: number of interest collections} for interest-only loans (principal repayments excluded)."""
+    if not loan_ids:
+        return {}
+    rows = (
+        db.query(Transaction.loan_id, func.count(Transaction.transaction_id))
+        .filter(
+            Transaction.loan_id.in_(list(loan_ids)),
+            Transaction.transaction_type == "LOAN_COLLECTION",
+            or_(Transaction.remarks.is_(None), ~Transaction.remarks.like(PRINCIPAL_REMARK_PREFIX + "%")),
+        )
+        .group_by(Transaction.loan_id)
+        .all()
+    )
+    return {lid: n for lid, n in rows}
+
+
+def next_interest_due(loan, paid_count, today=None):
+    """
+    (due_date, amount) of the next uncollected interest period of an interest-only loan,
+    or None when that period is already past (it is overdue, not "due") or the loan has
+    no disbursement date. `loan` needs disbursement_date, installment_type, installment_amount.
+    """
+    today = today or today_ist()
+    if not loan.disbursement_date or not loan.installment_type:
+        return None
+    due = _get_due_date(loan.disbursement_date, loan.installment_type, paid_count + 1)
+    if due < today:
+        return None
+    return due, round(float(loan.installment_amount or 0), 2)
+
+
+def interest_only_due_periods(db, org_id, today, hi):
+    """
+    Uncollected interest periods of open interest-only (vatti) loans that fall due within
+    [today, hi]. Periods are numbered k = paid_count + 1, paid_count + 2, ...; period k is due
+    on _get_due_date(disbursement_date, installment_type, k). Periods before today are overdue
+    (see compute_overdue), not "due", so they are not returned.
+    Returns a list of {"loan_id", "customer_id", "due_date", "amount"}.
+    """
+    loans = (
+        db.query(Loan)
+        .filter(
+            Loan.org_id == org_id,
+            Loan.status.in_(OPEN_STATUSES),
+            Loan.loan_type == "INTEREST_ONLY",
+            Loan.disbursement_date.isnot(None),
+        )
+        .all()
+    )
+    if not loans:
+        return []
+    paid = interest_paid_counts(db, [l.loan_id for l in loans])
+    out = []
+    for loan in loans:
+        amount = round(float(loan.installment_amount or 0), 2)
+        # first period that is not before today, and not yet collected
+        k = max(paid.get(loan.loan_id, 0), _elapsed_periods(loan.disbursement_date, loan.installment_type, today)) + 1
+        while True:
+            due = _get_due_date(loan.disbursement_date, loan.installment_type, k)
+            if due > hi:
+                break
+            if due >= today:
+                out.append({"loan_id": loan.loan_id, "customer_id": loan.customer_id,
+                            "due_date": due, "amount": amount})
+            k += 1
+    return out
+
+
 def compute_overdue(db, loans, today=None):
     """
     Returns {loan_id: {"count", "amount", "oldest_due", "days"}} for the overdue
@@ -67,17 +136,7 @@ def compute_overdue(db, loans, today=None):
 
     io_loans = [l for l in open_loans if (l.loan_type or "") == "INTEREST_ONLY" and l.disbursement_date]
     if io_loans:
-        paid_rows = (
-            db.query(Transaction.loan_id, func.count(Transaction.transaction_id))
-            .filter(
-                Transaction.loan_id.in_([l.loan_id for l in io_loans]),
-                Transaction.transaction_type == "LOAN_COLLECTION",
-                or_(Transaction.remarks.is_(None), ~Transaction.remarks.like(PRINCIPAL_REMARK_PREFIX + "%")),
-            )
-            .group_by(Transaction.loan_id)
-            .all()
-        )
-        paid = {lid: n for lid, n in paid_rows}
+        paid = interest_paid_counts(db, [l.loan_id for l in io_loans])
         for loan in io_loans:
             elapsed = _elapsed_periods(loan.disbursement_date, loan.installment_type, today)
             missed = elapsed - paid.get(loan.loan_id, 0)

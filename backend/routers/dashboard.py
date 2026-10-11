@@ -13,6 +13,7 @@ from models import Transaction
 from config import Config
 from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, parse_date
+from core_functions.timeutil import today_ist
 from core_functions.dashboard_service import (
     get_admin_manager_dashboard,
     get_collector_dashboard,
@@ -91,7 +92,7 @@ def dashboard_trend():
     ):
         return error_response("Not available for your role", 403)
 
-    today = date_type.today()
+    today = today_ist()
     date_to   = parse_date(request.args.get("date_to"))   or today
     date_from = parse_date(request.args.get("date_from")) or (date_to - timedelta(days=29))
 

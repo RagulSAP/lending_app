@@ -127,6 +127,7 @@ class Transaction(Base):
         Index("ix_transaction_type", "transaction_type"),
         Index("ix_transaction_date", "transaction_date"),
         Index("ix_transaction_org_type_date", "org_id", "transaction_type", "transaction_date"),
+        Index("ix_transaction_expense_id", "expense_id"),
     )
     id               = Column(Integer, primary_key=True, autoincrement=True)
     transaction_id   = Column(String(36), unique=True, nullable=False)
@@ -141,6 +142,7 @@ class Transaction(Base):
     payment_mode     = Column(String(100))  # CASH / UPI / BANK_TRANSFER / CHEQUE
     wallet_id        = Column(String(36), ForeignKey("wallet.wallet_id"))
     partner_id       = Column(String(36))
+    expense_id       = Column(String(36))   # links an EXPENSE transaction to its expense row
     remarks          = Column(String(225))
     created_at       = Column(DateTime, default=_now_ist, server_default=func.now())
     updated_at       = Column(DateTime, default=_now_ist, server_default=func.now(), onupdate=_now_ist)

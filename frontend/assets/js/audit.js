@@ -33,11 +33,12 @@
     if (!auth.requireLogin()) return;
     const user = auth.getUser();
     if (!user || user.role_id > 1) {
-      window.location.href = '/dashboard.html';
+      const home = homePageFor(user ? user.role_id : null);
+      const curPage = window.location.pathname.split('/').pop() || 'index.html';
+      if (curPage !== home) window.location.href = home;
       return;
     }
     await initPage('Audit Log', [0, 1]);
-    if (typeof initAutoLogout === 'function') initAutoLogout();
     renderPage();
     loadUsers();
     loadSessions();
@@ -45,15 +46,16 @@
 
   /* ── Page HTML ───────────────────────────────────────────────────────────── */
   function renderPage() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localISODate();
     document.getElementById('page-content').innerHTML = `
       <style>
         /* ── Session cards ── */
         .session-card {
-          border: 1px solid #E2E8F0;
+          border: 1px solid var(--border);
           border-radius: 12px;
           padding: 18px 20px;
-          background: #fff;
+          background: var(--card-bg);
+          color: var(--text-primary);
           cursor: pointer;
           transition: box-shadow .2s, transform .15s;
           position: relative;
@@ -92,7 +94,9 @@
         #audit-drawer {
           position: fixed; top: 0; right: -520px; bottom: 0;
           width: min(520px, 100vw);
-          background: #fff;
+          background: var(--card-bg);
+          border-color: var(--border);
+          color: var(--text-primary);
           box-shadow: -6px 0 32px rgba(0,0,0,.18);
           z-index: 1050;
           transition: right .35s cubic-bezier(.4,0,.2,1);
@@ -101,12 +105,12 @@
         #audit-drawer.open { right: 0; }
         .drawer-header {
           padding: 18px 20px 14px;
-          border-bottom: 1px solid #F1F5F9;
-          background: #F8FAFC;
+          border-bottom: 1px solid var(--border);
+          background: var(--page-bg);
         }
         .drawer-body {
-          flex: 1; overflow-y: auto;
-          padding: 24px 24px 40px;
+          flex: 1; overflow-y: auto; overflow-x: hidden;
+          padding: 24px 24px calc(40px + env(safe-area-inset-bottom, 0px));
         }
 
         /* ── Timeline ── */
@@ -145,7 +149,7 @@
           flex: 1; padding: 2px 0 28px 14px;
         }
         .tl-action {
-          font-weight: 600; font-size: 13.5px; color: #1E293B;
+          font-weight: 600; font-size: 13.5px; color: var(--text-primary);
           margin-bottom: 4px;
         }
         .tl-meta {
@@ -175,7 +179,9 @@
           padding: 5px 14px; font-size: 12px; font-weight: 600;
           transition: background .15s, color .15s;
           cursor: pointer;
+          min-height: 40px;
         }
+        #drawer-user-info { min-width: 0; }
         .replay-btn:hover { background: #6366F1; color: #fff; }
 
         /* ── Empty / loading ── */
@@ -222,7 +228,7 @@
       <!-- Detail drawer -->
       <div id="audit-drawer">
         <div class="drawer-header">
-          <div class="d-flex align-items-start justify-content-between">
+          <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
             <div id="drawer-user-info"></div>
             <div class="d-flex gap-2 align-items-center">
               <button class="replay-btn" onclick="auditPage.replay()">
@@ -240,6 +246,10 @@
         </div>
       </div>
     `;
+    document.getElementById('session-grid').addEventListener('click', e => {
+      const card = e.target.closest('.session-card');
+      if (card && card.dataset.sid) openSession(card.dataset.sid);
+    });
   }
 
   /* ── Data loaders ────────────────────────────────────────────────────────── */
@@ -283,7 +293,7 @@
       sessions.forEach(s => { _sessionsMap[s.session_id] = s; });
       grid.innerHTML = sessions.map(s => sessionCardHTML(s)).join('');
     } catch (err) {
-      grid.innerHTML = `<div class="col-12"><div class="audit-empty text-danger"><i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>${err.message}</div></div>`;
+      grid.innerHTML = `<div class="col-12"><div class="audit-empty text-danger"><i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>${esc(err.message)}</div></div>`;
     }
   }
 
@@ -295,16 +305,16 @@
     const startStr   = s.started_at ? fmtDateTime(s.started_at) : '—';
     const durStr     = fmtDuration(s.duration_seconds);
     const sid        = s.session_id;
-    const sidShort   = sid ? sid.slice(0, 8) + '…' : '—';
+    const sidShort   = sid ? esc(sid.slice(0, 8)) + '…' : '—';
 
     return `
       <div class="col-12 col-md-6 col-xl-4">
         <div class="session-card" style="--role-color:${roleColor}; border-left: 4px solid ${roleColor};"
-             onclick="auditPage.openSession('${sid}')">
+             data-sid="${esc(sid)}">
           <div class="d-flex align-items-center gap-3 mb-3">
-            <div class="session-avatar" style="background:${roleColor}">${initials}</div>
-            <div class="flex-1">
-              <div class="fw-semibold text-dark lh-1 mb-1">${esc(s.user_name)}</div>
+            <div class="session-avatar" style="background:${roleColor}">${esc(initials)}</div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold lh-1 mb-1">${esc(s.user_name)}</div>
               <span class="badge rounded-pill" style="background:${roleColor}20; color:${roleColor}; font-size:10px;">${roleName}</span>
             </div>
           </div>
@@ -319,11 +329,11 @@
             </div>
           </div>
           <div class="d-flex align-items-center justify-content-between">
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
               <span class="action-badge" style="background:#EEF2FF; color:#6366F1;">
-                <i class="bi bi-activity"></i> ${s.action_count} ${t('audit.actions')}
+                <i class="bi bi-activity"></i> ${esc(s.action_count)} ${t('audit.actions')}
               </span>
-              ${s.ip_address ? `<span class="action-badge" style="background:#F1F5F9; color:#64748B;"><i class="bi bi-router"></i> ${esc(s.ip_address)}</span>` : ''}
+              ${s.ip_address ? `<span class="action-badge" style="background:#F1F5F9; color:#64748B; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><i class="bi bi-router"></i> ${esc(s.ip_address)}</span>` : ''}
             </div>
             <i class="bi bi-chevron-right text-secondary"></i>
           </div>
@@ -353,7 +363,7 @@
       wrap.innerHTML = buildTimelineHTML(actions);
       playAnimation();
     } catch (err) {
-      wrap.innerHTML = `<div class="audit-empty text-danger"><i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>${err.message}</div>`;
+      wrap.innerHTML = `<div class="audit-empty text-danger"><i class="bi bi-exclamation-triangle fs-2 d-block mb-2"></i>${esc(err.message)}</div>`;
     }
   }
 
@@ -372,7 +382,7 @@
     const initials  = (s.user_name || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
     return `
       <div class="d-flex align-items-center gap-3">
-        <div class="session-avatar" style="background:${roleColor}; width:46px; height:46px; font-size:16px;">${initials}</div>
+        <div class="session-avatar" style="background:${roleColor}; width:46px; height:46px; font-size:16px;">${esc(initials)}</div>
         <div>
           <div class="fw-bold fs-6">${esc(s.user_name)}</div>
           <span class="badge rounded-pill" style="background:${roleColor}20; color:${roleColor}; font-size:11px;">${roleName}</span>
@@ -382,9 +392,9 @@
 
   function drawerMetaHTML(s) {
     const dur     = fmtDuration(s.duration_seconds);
-    const sidStr  = s.session_id ? s.session_id.slice(0, 16) + '…' : '—';
+    const sidStr  = s.session_id ? esc(s.session_id.slice(0, 16)) + '…' : '—';
     const items   = [
-      `<span><i class="bi bi-activity me-1"></i>${s.action_count} ${t('audit.actions')}</span>`,
+      `<span><i class="bi bi-activity me-1"></i>${esc(s.action_count)} ${t('audit.actions')}</span>`,
       `<span><i class="bi bi-clock me-1"></i>${dur}</span>`,
       s.ip_address ? `<span><i class="bi bi-router me-1"></i>${esc(s.ip_address)}</span>` : '',
       `<span style="font-family:monospace; font-size:10px; color:#94A3B8;">${sidStr}</span>`,
@@ -417,7 +427,7 @@
             <div class="tl-action">${esc(a.action)}</div>
             <div class="tl-meta">
               ${a.endpoint ? `<span class="text-truncate" style="max-width:200px; font-family:monospace; font-size:12.5px;">${esc(a.http_method || '')} ${esc(a.endpoint)}</span>` : ''}
-              ${sc ? `<span class="tl-status" style="background:${scBg}; color:${scColor};">${sc}</span>` : ''}
+              ${sc ? `<span class="tl-status" style="background:${scBg}; color:${scColor};">${esc(sc)}</span>` : ''}
               <span class="tl-time-badge">${timeStr}</span>
               <span class="tl-time-badge" style="color:#6366F1;">${elStr}</span>
               ${a.action_category ? `<span class="tl-time-badge" style="background:${c.bg}; color:${c.color};">${c.label}</span>` : ''}
@@ -481,15 +491,10 @@
     return rm ? `${h}h ${rm}m` : `${h}h`;
   }
 
-  function esc(str) {
-    if (!str) return '';
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
   function search() { loadSessions(); }
 
   function clearFilters() {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localISODate();
     document.getElementById('flt-from').value = today;
     document.getElementById('flt-to').value   = today;
     document.getElementById('flt-user').value = '';

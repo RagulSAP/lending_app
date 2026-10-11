@@ -17,8 +17,11 @@ from core_functions.file_storage import save_kyc_file, delete_kyc_file
 from core_functions.loan_calc import _add_months
 from core_functions.timeutil import today_ist
 from core_functions.dashboard_service import mark_overdue_loans
-from core_functions.overdue import compute_overdue, overdue_fields, sync_overdue_status
-from core_functions.responses import success_response, error_response, model_to_dict
+from core_functions.overdue import (
+    compute_overdue, overdue_fields, sync_overdue_status,
+    interest_only_due_periods, next_interest_due,
+)
+from core_functions.responses import success_response, error_response, model_to_dict, server_error
 
 customers_bp = Blueprint("customers", __name__, url_prefix="/api/customers")
 
@@ -114,7 +117,7 @@ def create_customer():
         # Clean up orphan files
         delete_kyc_file(photo_path)
         delete_kyc_file(id_proof_path)
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -139,7 +142,7 @@ def _quick_filter_customer_ids(db, org_id, quick_filter):
         hi = today + timedelta(days=7)
     else:
         hi = _add_months(today, 1)
-    return (
+    pi_ids = (
         select(Loan.customer_id)
         .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
         .where(
@@ -149,6 +152,15 @@ def _quick_filter_customer_ids(db, org_id, quick_filter):
             LoanInstallment.due_date >= today,
             LoanInstallment.due_date <= hi,
         )
+    )
+    # Interest-only (vatti) loans have no installment rows: add customers with an uncollected
+    # interest period due inside the window.
+    vatti_ids = sorted({v["customer_id"] for v in interest_only_due_periods(db, org_id, today, hi)})
+    if not vatti_ids:
+        return pi_ids
+    return select(Customer.customer_id).where(
+        Customer.org_id == org_id,
+        or_(Customer.customer_id.in_(pi_ids), Customer.customer_id.in_(vatti_ids)),
     )
 
 
@@ -344,8 +356,14 @@ def list_customers():
                     for r in due_rows
                 }
 
+            today = today_ist()
             for idx_row in loan_rows:
                 nd = next_due.get(idx_row.loan_id) or {}
+                if idx_row.loan_type == "INTEREST_ONLY" and not nd:
+                    # next uncollected interest period, unless it is already past (overdue)
+                    iv = next_interest_due(idx_row, paid_counts.get(idx_row.loan_id, 0), today)
+                    if iv:
+                        nd = {"date": iv[0].isoformat(), "amount": iv[1]}
                 loans_map.setdefault(idx_row.customer_id, []).append({
                     "loan_id":             idx_row.loan_id,
                     "loan_type":           idx_row.loan_type or "PRINCIPAL_INTEREST",
@@ -534,7 +552,7 @@ def update_customer(customer_id):
         return success_response(data=model_to_dict(customer), message="Customer updated successfully")
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -602,7 +620,7 @@ def update_customer_kyc(customer_id):
         for path in new_files:
             if path not in old_files:
                 delete_kyc_file(path)
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -641,7 +659,7 @@ def update_customer_status(customer_id):
         return success_response(message=f"Customer status updated to {new_status}")
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -712,6 +730,9 @@ def delete_customer(customer_id):
         if not customer:
             return error_response("Customer not found", 404)
 
+        # Lock the wallet row before reading loan balances so concurrent requests serialize (MySQL).
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         loans = db.query(Loan).filter(Loan.customer_id == customer_id).all()
         loan_ids = [l.loan_id for l in loans]
         outstanding = round(sum(
@@ -719,7 +740,6 @@ def delete_customer(customer_id):
         ))
 
         if outstanding > 0:
-            wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
             if not wallet:
                 return error_response("Wallet not found for this organization", 400)
             wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + outstanding, 2)
@@ -765,6 +785,6 @@ def delete_customer(customer_id):
         )
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()

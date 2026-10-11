@@ -3,6 +3,9 @@ Loan calculation engine: EMI / flat-rate schedule generation.
 """
 from datetime import date, timedelta
 
+# Upper bound on the number of installments a single loan may have.
+MAX_INSTALLMENTS = 1000
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -29,6 +32,30 @@ def _get_due_date(disbursement_date: date, installment_type: str, i: int) -> dat
     if installment_type == "MONTHLY":
         return _add_months(disbursement_date, i)
     raise ValueError(f"Unknown installment_type: {installment_type}")
+
+
+def schedule_error(schedule):
+    """
+    Returns a user-facing message if the schedule is not payable as generated
+    (an installment whose collection cannot cover its own principal, i.e. a
+    negative interest share), otherwise None.
+    """
+    for item in schedule:
+        if item["interest_amount"] < 0:
+            return (
+                f"The collection amount is too low: installment {item['installment_number']} "
+                f"needs a principal of {item['principal_amount']:,} but only "
+                f"{item['total_amount']:,} is collected. Increase the collection amount "
+                f"or the number of installments."
+            )
+    return None
+
+
+def _check_installment_count(n):
+    if n < 1:
+        raise ValueError("num_installments must be at least 1")
+    if n > MAX_INSTALLMENTS:
+        raise ValueError(f"num_installments cannot exceed {MAX_INSTALLMENTS}")
 
 
 def _periods_per_year(installment_type: str) -> int:
@@ -67,6 +94,7 @@ def calculate_loan(
             interest_amount, total_amount, balance_amount
     """
     n = num_installments
+    _check_installment_count(n)
     period_rate = (annual_rate / 100.0) / _periods_per_year(installment_type)
 
     if interest_type == "FLAT":
@@ -167,6 +195,7 @@ def calculate_loan_simple(
     Interest is implicit: total_payable - principal.
     """
     n = num_installments
+    _check_installment_count(n)
     coll = round(collection_amount)
     princ = round(principal)
     total_payable = coll * n

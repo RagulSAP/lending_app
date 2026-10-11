@@ -25,8 +25,8 @@ def get_sessions():
     if not _can_access(info):
         return error_response("Access denied", 403)
 
-    page     = int(request.args.get("page", 1))
-    per_page = int(request.args.get("per_page", 25))
+    page     = max(request.args.get("page", 1, type=int) or 1, 1)
+    per_page = min(max(request.args.get("per_page", 25, type=int) or 25, 1), 200)
     date_from   = request.args.get("date_from")
     date_to     = request.args.get("date_to")
     user_filter = request.args.get("user_id")

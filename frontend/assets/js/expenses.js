@@ -10,6 +10,7 @@
   let editingExpenseId = null;
   let addExpModal = null;
   let editExpModal = null;
+  let expenseList = [];
 
   async function init() {
     await initPage(t('exp.title'), [1, 2, 3, 5]);
@@ -29,10 +30,15 @@
   }
 
   function getCategoryOptions(selectedId) {
-    if (!categories.length) return '<option value="">No categories — add one first</option>';
+    if (!categories.length) {
+      const canAdd = currentUser && [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
+      return canAdd
+        ? '<option value="">No categories — add one first</option>'
+        : '<option value="">No categories available</option>';
+    }
     return '<option value="">Select category...</option>' +
       categories.map(c =>
-        `<option value="${c.category_id}"${selectedId == c.category_id ? ' selected' : ''}>${c.name}</option>`
+        `<option value="${esc(c.category_id)}"${selectedId == c.category_id ? ' selected' : ''}>${esc(c.name)}</option>`
       ).join('');
   }
 
@@ -61,7 +67,7 @@
           <label class="form-label">${t('exp.category')}</label>
           <select class="form-select" id="f-cat">
             <option value="">${t('exp.all_cats')}</option>
-            ${categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('')}
+            ${categories.map(c => `<option value="${esc(c.category_id)}">${esc(c.name)}</option>`).join('')}
           </select>
         </div>
         <div class="form-group">
@@ -86,7 +92,7 @@
           </div>
         </div>
         <div class="table-container">
-          <table class="table table-wide">
+          <table class="table table-wide${canManage ? ' table-sticky-actions' : ''}">
             <thead>
               <tr>
                 <th>#</th>
@@ -234,12 +240,23 @@
       document.getElementById('e-cat').value = '';
       document.getElementById('e-amount').value = '';
       document.getElementById('e-remark').value = '';
-      document.getElementById('e-date').value = new Date().toISOString().split('T')[0];
+      document.getElementById('e-date').value = localISODate();
       addExpModal.show();
     });
     document.getElementById('save-exp-btn').addEventListener('click', saveExpense);
     document.getElementById('search-btn').addEventListener('click', () => { currentPage = 1; loadExpenses(); });
     document.getElementById('export-btn').addEventListener('click', exportToExcel);
+    document.getElementById('exp-tbody').addEventListener('click', function (ev) {
+      const btn = ev.target.closest('button[data-exp-action]');
+      if (!btn) return;
+      const e = expenseList.find(x => String(x.expense_id) === btn.dataset.expId);
+      if (!e) return;
+      if (btn.dataset.expAction === 'edit') {
+        window.openEditExpense(e.expense_id, e.category_id, e.expense_amount, e.expense_remark || e.remark || '', (e.expense_date || '').slice(0, 10));
+      } else {
+        window.deleteExpense(e.expense_id, formatCurrency(e.expense_amount));
+      }
+    });
 
     if (canManage) {
       editExpModal = new bootstrap.Modal(document.getElementById('editExpModal'));
@@ -267,9 +284,9 @@
       showLoading();
       const res = await api.get('/api/expenses', { category_id, date_from, date_to, page: currentPage, per_page: perPage });
       const expenses = res.data || [];
-      const total = res.total || expenses.length;
-      const totalAmt = res.total_amount || 0;
-      totalPages = total ? Math.ceil(total / perPage) : 1;
+      const total = res.total ?? expenses.length;
+      const totalAmt = res.total_amount ?? expenses.reduce((s, e) => s + (parseFloat(e.expense_amount) || 0), 0);
+      totalPages = Math.max(1, Math.ceil((total || 0) / (res.per_page || perPage)));
 
       const countBadge = document.getElementById('count-badge');
       const totalBadge = document.getElementById('total-badge');
@@ -283,23 +300,21 @@
       if (!expenses.length) {
         tbody.innerHTML = `<tr><td colspan="${colCount}" class="table-empty"><i class="bi bi-receipt"></i>${t('exp.no_expenses')}</td></tr>`;
       } else {
+        expenseList = expenses;
         tbody.innerHTML = expenses.map((e, i) => {
-          const safeRemark = (e.expense_remark || e.remark || '').replace(/"/g, '&quot;');
           const dateStr = formatDate(e.expense_date || e.created_at);
           return `<tr>
             <td>${offset + i + 1}</td>
             <td>${dateStr}</td>
-            <td>${e.category_name || '-'}</td>
+            <td>${esc(e.category_name) || '-'}</td>
             <td class="fw-600 text-danger">${formatCurrency(e.expense_amount)}</td>
-            <td>${e.entered_by || '-'}</td>
-            <td style="max-width:180px;word-break:break-word;white-space:normal;">${e.expense_remark || e.remark || '-'}</td>
+            <td>${esc(e.entered_by) || '-'}</td>
+            <td style="max-width:180px;word-break:break-word;white-space:normal;">${esc(e.expense_remark || e.remark) || '-'}</td>
             ${canManage ? `<td>
               <div class="d-flex gap-1 action-btns">
-                <button type="button" class="btn btn-sm btn-outline-primary"
-                  onclick="openEditExpense('${e.expense_id}','${e.category_id}','${e.expense_amount}','${(e.expense_remark||'').replace(/'/g,"\\'")}','${(e.expense_date||'').slice(0,10)}')"
+                <button type="button" class="btn btn-sm btn-outline-primary" data-exp-action="edit" data-exp-id="${esc(e.expense_id)}"
                   title="${t('common.edit')}"><i class="bi bi-pencil"></i></button>
-                <button type="button" class="btn btn-sm btn-outline-danger"
-                  onclick="deleteExpense('${e.expense_id}','${formatCurrency(e.expense_amount)}')"
+                <button type="button" class="btn btn-sm btn-outline-danger" data-exp-action="delete" data-exp-id="${esc(e.expense_id)}"
                   title="${t('common.delete')}"><i class="bi bi-trash"></i></button>
               </div>
             </td>` : ''}
@@ -309,7 +324,7 @@
       renderPagination();
     } catch (err) {
       document.getElementById('exp-tbody').innerHTML =
-        `<tr><td colspan="7" class="table-empty"><i class="bi bi-exclamation-circle"></i>${err.message}</td></tr>`;
+        `<tr><td colspan="${canManage ? 7 : 6}" class="table-empty"><i class="bi bi-exclamation-circle"></i>${esc(err.message)}</td></tr>`;
       showToast('Failed to load expenses: ' + err.message, 'danger');
     } finally {
       hideLoading();
@@ -360,7 +375,7 @@
     document.getElementById('ee-cat').innerHTML = getCategoryOptions(categoryId);
     document.getElementById('ee-amount').value = parseFloat(amount).toFixed(2);
     document.getElementById('ee-remark').value = remark;
-    document.getElementById('ee-date').value = dateStr || new Date().toISOString().split('T')[0];
+    document.getElementById('ee-date').value = dateStr || localISODate();
     document.getElementById('update-exp-btn').disabled = false;
     document.getElementById('update-exp-txt').classList.remove('d-none');
     document.getElementById('update-exp-load').classList.add('d-none');
@@ -436,7 +451,7 @@
       document.getElementById('e-cat').innerHTML = getCategoryOptions();
       const fCat = document.getElementById('f-cat');
       fCat.innerHTML = `<option value="">${t('exp.all_cats')}</option>` +
-        categories.map(c => `<option value="${c.category_id}">${c.name}</option>`).join('');
+        categories.map(c => `<option value="${esc(c.category_id)}">${esc(c.name)}</option>`).join('');
     } catch (err) {
       errEl.textContent = err.message;
       errEl.classList.remove('d-none');
@@ -468,7 +483,7 @@
         const res = await api.get('/api/expenses', { category_id, date_from, date_to, page, per_page: 100 });
         const rows = res.data || [];
         all = all.concat(rows);
-        const total = res.total || rows.length;
+        const total = res.total ?? rows.length;
         if (all.length >= total || !rows.length) break;
         page++;
       }
@@ -487,7 +502,7 @@
       ws['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 35 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localISODate();
       XLSX.writeFile(wb, `expenses_${today}.xlsx`);
       showToast(`Exported ${all.length} expense${all.length !== 1 ? 's' : ''} to Excel`, 'success');
     } catch (err) {

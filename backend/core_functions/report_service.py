@@ -2,12 +2,12 @@
 Report data queries and export helpers (Excel via openpyxl, PDF via reportlab).
 """
 import io
-from datetime import datetime
+from datetime import datetime, time, timedelta
 
 from sqlalchemy import func
 from sqlalchemy.orm import aliased
 
-from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory, Partner
+from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory, Partner, _now_ist
 
 
 # ---------------------------------------------------------------------------
@@ -208,6 +208,8 @@ def get_loans_report(
             "num_installments": loan.num_installments,
             "installment_amount": round(float(loan.installment_amount), 2) if loan.installment_amount else 0.0,
             "installment_type": loan.installment_type,
+            "interest_rate": round(float(loan.interest_rate), 2) if loan.interest_rate is not None else None,
+            "interest_type": loan.interest_type,
             "total_payable": round(float(loan.total_payable), 2) if loan.total_payable else 0.0,
             "total_paid": round(float(loan.total_paid), 2) if loan.total_paid else 0.0,
             "balance_amount": round(float(loan.balance_amount), 2) if loan.balance_amount else 0.0,
@@ -286,10 +288,12 @@ def get_expenses_report(
         .join(User, User.user_id == Expense.user_id, isouter=True)
         .filter(ExpenseCategory.org_id == org_id)
     )
+    # expense_date is a DATETIME: compare against whole-day bounds so expenses entered on
+    # date_to (stored with or without a time) are included.
     if date_from:
-        q = q.filter(Expense.expense_date >= date_from)
+        q = q.filter(Expense.expense_date >= datetime.combine(date_from, time.min))
     if date_to:
-        q = q.filter(Expense.expense_date <= date_to)
+        q = q.filter(Expense.expense_date < datetime.combine(date_to + timedelta(days=1), time.min))
     if category_id:
         q = q.filter(Expense.category_id == category_id)
 
@@ -346,7 +350,7 @@ def export_to_excel(report_type: str, records: list, filters_label: str = "") ->
     ws.cell(ws.max_row, 1).font = Font(bold=True, size=14)
     if filters_label:
         ws.append([filters_label])
-    ws.append([f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}"])
+    ws.append([f"Generated: {_now_ist().strftime('%Y-%m-%d %H:%M')}"])
     ws.append([])
 
     headers = REPORT_HEADERS.get(report_type, [])
@@ -406,7 +410,7 @@ def export_to_pdf(report_type: str, records: list, filters_label: str = "") -> i
     if filters_label:
         elements.append(Paragraph(filters_label, styles["Normal"]))
     elements.append(
-        Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", styles["Normal"])
+        Paragraph(f"Generated: {_now_ist().strftime('%Y-%m-%d %H:%M')}", styles["Normal"])
     )
     elements.append(Spacer(1, 12))
 

@@ -10,6 +10,7 @@
   let allTransactions = [];
   let txnSortDir = 'desc';
   let _confirmResolve = null;
+  let canManage = false;
 
   function amountToWords(n) {
     n = Math.round(n);
@@ -31,6 +32,8 @@
 
   async function init() {
     await initPage('Wallet', [1, 2, 5]);
+    const user = auth.getUser();
+    canManage = !!user && [ROLES.ADMIN, ROLES.MANAGER].includes(user.role_id);
     renderPage();
     await loadAll();
   }
@@ -64,7 +67,7 @@
   function renderPage() {
     document.getElementById('page-content').innerHTML = `
       <div class="wallet-compact">
-      <div class="d-flex align-items-center justify-content-end flex-wrap gap-2 mb-3">
+      ${canManage ? `<div class="d-flex align-items-center justify-content-end flex-wrap gap-2 mb-3">
         <button type="button" class="btn btn-sm btn-outline-secondary" id="partners-btn">
           <i class="bi bi-people me-1"></i>${t('wallet.partners')}<span id="partners-count" style="display:none;margin-left:6px;background:rgba(0,0,0,.12);border-radius:10px;padding:0 7px;font-size:11px;font-weight:700;"></span>
         </button>
@@ -74,7 +77,7 @@
         <button type="button" class="btn btn-sm btn-primary" id="topup-btn">
           <i class="bi bi-plus-circle me-1"></i>${t('wallet.topup')}
         </button>
-      </div>
+      </div>` : ''}
 
       <!-- Balances + partner split-up -->
       <div class="row g-3 mb-3">
@@ -95,7 +98,7 @@
             <div class="card-header-flex" style="margin-bottom:6px;">
               <h6 class="card-title" style="font-size:13px;"><i class="bi bi-pie-chart me-2 text-primary"></i>Partner Split-up</h6>
             </div>
-            <div id="partner-split-empty" class="d-none" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:#64748B;text-align:center;">
+            <div id="partner-split-empty" class="d-none" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-secondary);text-align:center;">
               No partner contributions yet.
             </div>
             <div id="partner-split-wrap" style="flex:1;display:flex;align-items:center;gap:14px;min-height:0;">
@@ -116,7 +119,7 @@
         </div>
         <div class="row g-2 mb-3 align-items-end">
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.type')}</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">${t('wallet.type')}</label>
             <select class="form-select form-select-sm" id="txn-type-filter">
               <option value="">All Types</option>
               <option value="WALLET_DEPOSIT">${t('wallet.type_topup')}</option>
@@ -127,32 +130,33 @@
             </select>
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('common.date_from')}</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">${t('common.date_from')}</label>
             <input type="date" class="form-control form-control-sm" id="txn-from-date">
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('common.date_to')}</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">${t('common.date_to')}</label>
             <input type="date" class="form-control form-control-sm" id="txn-to-date">
           </div>
           <div class="col-6 col-md-3">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.partner_cust')}</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">${t('wallet.partner_cust')}</label>
             <input type="text" class="form-control form-control-sm" id="txn-search" placeholder="${t('common.search')}…">
           </div>
           <div class="col-6 col-md-2">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.sort_by')}</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">${t('wallet.sort_by')}</label>
             <select class="form-select form-select-sm" id="txn-sort-by">
               <option value="date">${t('wallet.col_date')}</option>
               <option value="amount">${t('wallet.col_amount')}</option>
             </select>
           </div>
           <div class="col-6 col-md-1 d-flex flex-column">
-            <label class="form-label" style="font-size:11px;color:#64748B;margin-bottom:3px;">${t('wallet.order')}</label>
+            <label class="form-label" style="font-size:11px;color:var(--text-secondary);margin-bottom:3px;">${t('wallet.order')}</label>
             <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="txn-sort-dir-btn" title="Toggle sort order">
               <i class="bi bi-sort-down" id="txn-sort-dir-icon"></i>
             </button>
           </div>
         </div>
-        <div id="txn-result-count" style="font-size:12px;color:#64748B;margin-bottom:8px;"></div>
+        <div id="txn-result-count" style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;"></div>
+        <div id="txn-limit-note" class="d-none" style="font-size:12px;color:var(--text-secondary);margin:-4px 0 8px;"><i class="bi bi-info-circle me-1"></i>Showing the latest 100 transactions</div>
         <div class="table-container">
           <table class="table">
             <thead>
@@ -166,10 +170,12 @@
       </div>
       </div>`;
 
-    document.getElementById('topup-btn').addEventListener('click', openTopupModal);
-    document.getElementById('withdraw-btn').addEventListener('click', openWithdrawModal);
-    document.getElementById('partners-btn').addEventListener('click', openPartnersModal);
-    injectModals();
+    if (canManage) {
+      document.getElementById('topup-btn').addEventListener('click', openTopupModal);
+      document.getElementById('withdraw-btn').addEventListener('click', openWithdrawModal);
+      document.getElementById('partners-btn').addEventListener('click', openPartnersModal);
+      injectModals();
+    }
 
     ['txn-type-filter', 'txn-from-date', 'txn-to-date', 'txn-sort-by'].forEach(id => {
       document.getElementById(id).addEventListener('change', applyFiltersAndSort);
@@ -247,6 +253,8 @@
       return 0;
     });
 
+    const limitEl = document.getElementById('txn-limit-note');
+    if (limitEl) limitEl.classList.toggle('d-none', allTransactions.length < 100);
     const countEl = document.getElementById('txn-result-count');
     if (countEl) {
       const isFiltered = type || from || to || search;
@@ -296,13 +304,14 @@
         },
       },
     });
-    const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     legend.innerHTML = partnerSplitData.map((p, i) => `
-      <div style="display:flex;align-items:center;gap:7px;font-size:12px;line-height:1.3;">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:1px 7px;font-size:12px;line-height:1.3;">
         <span style="width:9px;height:9px;border-radius:50%;background:${colors[i]};flex-shrink:0;"></span>
-        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);" title="${esc(p.name)}">${esc(p.name)}</span>
-        <span style="font-weight:600;color:var(--text-primary);">${formatCurrency(p.amount)}</span>
-        <span style="color:var(--text-secondary);min-width:38px;text-align:right;">${p.percent}%</span>
+        <span style="flex:1 1 70px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);" title="${esc(p.name)}">${esc(p.name)}</span>
+        <span style="display:flex;gap:7px;white-space:nowrap;margin-left:auto;">
+          <span style="font-weight:600;color:var(--text-primary);">${formatCurrency(p.amount)}</span>
+          <span style="color:var(--text-secondary);min-width:38px;text-align:right;">${esc(p.percent)}%</span>
+        </span>
       </div>`).join('');
   }
 
@@ -335,20 +344,20 @@
     const el = document.getElementById('partners-list-modal');
     if (!el) return;
     if (!partners.length) {
-      el.innerHTML = `<div style="padding:20px 16px;font-size:13px;color:#64748B;text-align:center;"><i class="bi bi-people" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4;"></i>${t('wallet.no_partners')}</div>`;
+      el.innerHTML = `<div style="padding:20px 16px;font-size:13px;color:var(--text-secondary);text-align:center;"><i class="bi bi-people" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4;"></i>${t('wallet.no_partners')}</div>`;
       return;
     }
     el.innerHTML = `<div class="table-container" style="border-radius:0;"><table class="table table-sm mb-0">
-      <thead><tr><th>${t('wallet.partner_name')}</th><th>${t('common.phone')}</th><th style="width:48px;"></th></tr></thead>
+      <thead><tr><th>${t('wallet.partner_name')}</th><th>${t('common.phone')}</th>${canManage ? '<th style="width:48px;"></th>' : ''}</tr></thead>
       <tbody>${partners.map(p => `
         <tr>
-          <td class="fw-600">${p.name}</td>
-          <td>${p.phone || '-'}</td>
-          <td onclick="event.stopPropagation()">
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePartner('${p.partner_id}','${(p.name || '').replace(/'/g,"\\'")}')">
+          <td class="fw-600">${esc(p.name)}</td>
+          <td>${esc(p.phone) || '-'}</td>
+          ${canManage ? `<td>
+            <button type="button" class="btn btn-sm btn-outline-danger" data-remove-partner="${esc(p.partner_id)}">
               <i class="bi bi-trash"></i>
             </button>
-          </td>
+          </td>` : ''}
         </tr>`).join('')}
       </tbody>
     </table></div>`;
@@ -380,18 +389,18 @@
       const isDebit = ['LOAN_DISBURSEMENT', 'EXPENSE'].includes(tx.transaction_type);
       const amtColor = isDebit ? '#DC2626' : '#16A34A';
       const partner  = tx.partner_name
-        ? `<span class="fw-600">${tx.partner_name}</span>`
+        ? `<span class="fw-600">${esc(tx.partner_name)}</span>`
         : `<span style="color:#CBD5E1;">—</span>`;
       const customer = tx.customer_name
-        ? `<span class="fw-600">${tx.customer_name}</span>`
+        ? `<span class="fw-600">${esc(tx.customer_name)}</span>`
         : `<span style="color:#CBD5E1;">—</span>`;
       return `<tr>
-        <td>${formatDate(tx.transaction_date)}</td>
+        <td style="white-space:nowrap;">${formatDate(tx.transaction_date)}</td>
         <td><span class="badge-status ${cfg.cls}"><i class="bi ${cfg.icon} me-1"></i>${cfg.label}</span></td>
-        <td style="font-weight:600;color:${amtColor};">${cfg.sign}${formatCurrency(tx.amount)}</td>
+        <td style="font-weight:600;white-space:nowrap;color:${amtColor};">${cfg.sign}${formatCurrency(tx.amount)}</td>
         <td>${partner}</td>
         <td>${customer}</td>
-        <td style="font-size:12px;color:#64748B;">${tx.remarks || '-'}</td>
+        <td style="font-size:12px;color:var(--text-secondary);">${esc(tx.remarks) || '-'}</td>
       </tr>`;
     }).join('');
   }
@@ -415,14 +424,14 @@
                   <div class="col-12">
                     <label class="form-label">${t('wallet.amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="tu-amount" placeholder="e.g. 50000" min="1" step="1">
-                    <div id="tu-amount-words" style="font-size:12px;color:#4F46E5;font-style:italic;margin-top:4px;min-height:16px;"></div>
+                    <div id="tu-amount-words" style="font-size:12px;color:var(--text-secondary);font-style:italic;margin-top:4px;min-height:16px;"></div>
                   </div>
                   <div class="col-12">
                     <label class="form-label">${t('wallet.partner')} <span class="text-danger">*</span></label>
                     <select class="form-select" id="tu-partner">
                       <option value="">Select partner</option>
                     </select>
-                    <div style="font-size:11px;color:#64748B;margin-top:4px;">Add partners in the Partners section first.</div>
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Add partners in the Partners section first.</div>
                   </div>
                   <div class="col-12">
                     <label class="form-label">${t('common.date')} <span class="text-danger">*</span></label>
@@ -458,28 +467,28 @@
         <div class="modal fade" id="topup-confirm-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
           <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content">
-              <div class="modal-header" style="background:#FFFBEB;border-bottom:1px solid #FDE68A;">
+              <div class="modal-header" style="background:rgba(245,158,11,.15);border-bottom:1px solid rgba(245,158,11,.35);">
                 <h5 class="modal-title fw-600" style="font-size:15px;">
                   <i class="bi bi-shield-exclamation me-2 text-warning"></i>${t('wallet.confirm_topup')}
                 </h5>
               </div>
               <div class="modal-body">
-                <p style="font-size:12.5px;color:#64748B;margin-bottom:12px;">
+                <p style="font-size:12.5px;color:var(--text-secondary);margin-bottom:12px;">
                   ${t('wallet.confirm_details')}
                 </p>
-                <div style="background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;padding:14px;">
+                <div style="background:var(--page-bg);border-radius:8px;border:1px solid var(--border);padding:14px;">
                   <div class="mb-3">
-                    <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('wallet.amount')}</div>
-                    <div id="tc-amount" style="font-size:22px;font-weight:700;color:#2563EB;"></div>
-                    <div id="tc-amount-words" style="font-size:11px;color:#4F46E5;font-style:italic;margin-top:2px;"></div>
+                    <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('wallet.amount')}</div>
+                    <div id="tc-amount" style="font-size:22px;font-weight:700;"></div>
+                    <div id="tc-amount-words" style="font-size:11px;color:var(--text-secondary);font-style:italic;margin-top:2px;"></div>
                   </div>
                   <div class="mb-2" style="display:flex;gap:24px;flex-wrap:wrap;">
                     <div>
-                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('wallet.partner')}</div>
+                      <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('wallet.partner')}</div>
                       <div id="tc-partner" style="font-size:13px;font-weight:600;"></div>
                     </div>
                     <div>
-                      <div style="font-size:10px;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('common.date')}</div>
+                      <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('common.date')}</div>
                       <div id="tc-date" style="font-size:13px;font-weight:600;"></div>
                     </div>
                   </div>
@@ -529,19 +538,19 @@
                       <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-invest">
                         <input type="radio" name="wd-source" value="invest" style="accent-color:#2563EB;">
                         <div>
-                          <div style="font-size:13px;font-weight:600;color:#1E40AF;">${t('wallet.invest_bal')}</div>
-                          <div id="wd-invest-bal" style="font-size:12px;color:#64748B;word-break:break-all;line-height:1.3;">—</div>
+                          <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${t('wallet.invest_bal')}</div>
+                          <div id="wd-invest-bal" style="font-size:12px;color:var(--text-secondary);word-break:break-all;line-height:1.3;">—</div>
                         </div>
                       </label>
                       <label class="d-flex align-items-center gap-2" style="cursor:pointer;padding:10px 16px;border:1.5px solid #E2E8F0;border-radius:8px;flex:1;min-width:120px;" id="wd-opt-interest">
                         <input type="radio" name="wd-source" value="interest" style="accent-color:#16A34A;">
                         <div>
-                          <div style="font-size:13px;font-weight:600;color:#166534;">${t('wallet.interest_bal')}</div>
-                          <div id="wd-interest-bal" style="font-size:12px;color:#64748B;word-break:break-all;line-height:1.3;">—</div>
+                          <div style="font-size:13px;font-weight:600;color:var(--text-primary);">${t('wallet.interest_bal')}</div>
+                          <div id="wd-interest-bal" style="font-size:12px;color:var(--text-secondary);word-break:break-all;line-height:1.3;">—</div>
                         </div>
                       </label>
                     </div>
-                    <div style="font-size:11px;color:#64748B;margin-top:6px;">
+                    <div style="font-size:11px;color:var(--text-secondary);margin-top:6px;">
                       <i class="bi bi-info-circle me-1"></i>${t('wallet.rotation_bal')}: <strong id="wd-rotation-bal">—</strong> — ${t('wallet.withdraw_rotation_note')}
                     </div>
                   </div>
@@ -554,7 +563,7 @@
                   <div class="col-12">
                     <label class="form-label">${t('wallet.amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="wd-amount" placeholder="e.g. 10000" min="1" step="1">
-                    <div id="wd-amount-words" style="font-size:12px;color:#4F46E5;font-style:italic;margin-top:4px;min-height:16px;"></div>
+                    <div id="wd-amount-words" style="font-size:12px;color:var(--text-secondary);font-style:italic;margin-top:4px;min-height:16px;"></div>
                   </div>
                   <div class="col-12">
                     <label class="form-label">${t('common.date')} <span class="text-danger">*</span></label>
@@ -613,6 +622,10 @@
         </div>`;
       document.body.appendChild(el.firstElementChild);
       window._partnersModal = new bootstrap.Modal(document.getElementById('partners-modal'));
+      document.getElementById('partners-list-modal').addEventListener('click', function (ev) {
+        const btn = ev.target.closest('[data-remove-partner]');
+        if (btn) window.removePartner(btn.getAttribute('data-remove-partner'));
+      });
       document.getElementById('add-partner-btn').addEventListener('click', () => {
         window._partnersModal.hide();
         openAddPartnerModal();
@@ -662,10 +675,10 @@
   function openTopupModal() {
     const sel = document.getElementById('tu-partner');
     sel.innerHTML = '<option value="">Select partner</option>' +
-      partners.map(p => `<option value="${p.partner_id}">${p.name}${p.phone ? ' (' + p.phone + ')' : ''}</option>`).join('');
+      partners.map(p => `<option value="${esc(p.partner_id)}">${esc(p.name)}${p.phone ? ' (' + esc(p.phone) + ')' : ''}</option>`).join('');
     document.getElementById('tu-amount').value = '';
     document.getElementById('tu-amount-words').textContent = '';
-    document.getElementById('tu-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('tu-date').value = localISODate();
     document.getElementById('tu-remarks').value = '';
     document.getElementById('topup-error').classList.add('d-none');
     document.getElementById('tu-save-btn').disabled = false;
@@ -780,13 +793,13 @@
 
     const sel = document.getElementById('wd-partner');
     sel.innerHTML = `<option value="">— ${t('wallet.no_partner')} —</option>` +
-      partners.map(p => `<option value="${p.partner_id}">${p.name}${p.phone ? ' (' + p.phone + ')' : ''}</option>`).join('');
+      partners.map(p => `<option value="${esc(p.partner_id)}">${esc(p.name)}${p.phone ? ' (' + esc(p.phone) + ')' : ''}</option>`).join('');
 
     document.querySelectorAll('input[name="wd-source"]').forEach(r => r.checked = false);
     updateWithdrawSourceHighlight();
     document.getElementById('wd-amount').value = '';
     document.getElementById('wd-amount-words').textContent = '';
-    document.getElementById('wd-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('wd-date').value = localISODate();
     document.getElementById('wd-remarks').value = '';
     document.getElementById('wd-error').classList.add('d-none');
     document.getElementById('wd-save-btn').disabled = false;
@@ -843,11 +856,16 @@
   }
 
   window.removePartner = async function (partnerId, name) {
+    if (!canManage) return;
+    if (name == null) {
+      const found = partners.find(p => String(p.partner_id) === String(partnerId));
+      name = found ? (found.name || '') : '';
+    }
     const ok = await confirmDialog(t('wallet.remove_partner', { name }));
     if (!ok) return;
     try {
       await api.delete(`/api/partners/${partnerId}`);
-      partners = partners.filter(p => p.partner_id !== partnerId);
+      partners = partners.filter(p => String(p.partner_id) !== String(partnerId));
       showToast(t('wallet.partner_removed'), 'success');
       renderPartners();
     } catch (err) {

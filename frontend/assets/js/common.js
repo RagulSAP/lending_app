@@ -43,6 +43,14 @@ document.addEventListener('wheel', function (e) {
     5: ['dashboard.html','expenses.html','reports.html'],
   };
 
+  // Landing page for a role (must be a page that role is allowed to open)
+  function homePageFor(roleId) {
+    if (roleId === 0) return 'organizations.html';
+    if (roleId === 3) return 'customers.html';
+    return 'dashboard.html';
+  }
+  window.homePageFor = homePageFor;
+
   function renderSidebar() {
     const el = document.getElementById('sidebar');
     if (!el) return;
@@ -120,7 +128,7 @@ document.addEventListener('wheel', function (e) {
     if (!el) return;
     const user = auth.getUser();
     const name = user ? (user.name || '') : '';
-    const initials = name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0,2) || 'U';
+    const initials = esc(name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0,2) || 'U');
     const _dateStr = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     el.innerHTML = `
       <button class="topbar-hamburger" id="topbar-hamburger" type="button" aria-label="Toggle sidebar">
@@ -130,7 +138,7 @@ document.addEventListener('wheel', function (e) {
       <span class="d-none d-md-inline topbar-date-pill">${_dateStr}</span>
       <div class="topbar-user">
         <div class="topbar-user-info d-none d-sm-block">
-          <div class="topbar-user-name">${name}</div>
+          <div class="topbar-user-name">${esc(name)}</div>
           <div class="topbar-user-role">${roleName(user ? user.role_id : null)}</div>
         </div>
         <div class="topbar-avatar">${initials}</div>
@@ -191,6 +199,7 @@ document.addEventListener('wheel', function (e) {
     }
     sb.classList.toggle('show');
     ov.classList.toggle('show');
+    _lockBodyScroll(sb.classList.contains('show'));
   }
 
   function closeSidebar() {
@@ -198,7 +207,26 @@ document.addEventListener('wheel', function (e) {
     const ov = document.getElementById('sidebar-overlay');
     if (sb) sb.classList.remove('show');
     if (ov) ov.classList.remove('show');
+    _lockBodyScroll(false);
   }
+
+  // Lock page scroll behind the mobile sidebar (don't unlock if a modal is still open)
+  function _lockBodyScroll(lock) {
+    if (lock) {
+      document.body.style.overflow = 'hidden';
+    } else if (!document.querySelector('.modal.show')) {
+      document.body.style.overflow = '';
+    }
+  }
+
+  // Bootstrap removes body.modal-open when the top modal of a stack closes; restore it
+  // if another modal is still showing.
+  document.addEventListener('hidden.bs.modal', () => {
+    if (document.querySelector('.modal.show')) {
+      document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
+    }
+  });
 
   function showToast(message, type) {
     type = type || 'success';
@@ -213,7 +241,7 @@ document.addEventListener('wheel', function (e) {
     const icon = icons[type] || icons.info;
     const t = document.createElement('div');
     t.className = 'toast-item toast-' + type;
-    t.innerHTML = `<i class="bi ${icon} toast-icon"></i><span class="toast-text">${message}</span><button class="toast-close" onclick="this.closest('.toast-item').remove()"><i class="bi bi-x"></i></button>`;
+    t.innerHTML = `<i class="bi ${icon} toast-icon"></i><span class="toast-text">${esc(message)}</span><button class="toast-close" onclick="this.closest('.toast-item').remove()"><i class="bi bi-x"></i></button>`;
     c.appendChild(t);
     setTimeout(() => { if (t.parentNode) { t.style.cssText='opacity:0;transform:translateX(100%);transition:all 0.3s ease'; setTimeout(()=>t.remove(),300); } }, 4000);
   }
@@ -235,11 +263,11 @@ document.addEventListener('wheel', function (e) {
   }
 
   function formatCurrency(n) {
-    if (n === null || n === undefined || n === '') return '₹ 0';
+    if (n === null || n === undefined || n === '') return '₹ 0';
     const num = parseFloat(n);
-    if (isNaN(num)) return '₹ 0';
+    if (isNaN(num)) return '₹ 0';
     const rounded = Math.round(num * 100) / 100;
-    return '₹ ' + rounded.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+    return '₹ ' + rounded.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
 
   function formatDate(d) {
@@ -286,7 +314,7 @@ document.addEventListener('wheel', function (e) {
       '1':        `<span class="badge-status badge-active"><i class="bi bi-check-circle-fill"></i> ${t('common.active')}</span>`,
       '0':        `<span class="badge-status badge-inactive"><i class="bi bi-x-circle-fill"></i> ${t('common.inactive')}</span>`,
     };
-    return m[s] || '<span class="badge-status badge-closed">' + status + '</span>';
+    return m[s] || '<span class="badge-status badge-closed">' + esc(status) + '</span>';
   }
 
   function confirmDialog(message) {
@@ -326,7 +354,10 @@ document.addEventListener('wheel', function (e) {
     });
   }
 
-  function showAlert(title, message) {
+  // title/message are rendered as HTML (existing callers pass icon/<ul> markup built from
+  // static text). Callers MUST esc() any user data they interpolate, or pass
+  // opts.text = true to have both treated as plain text.
+  function showAlert(title, message, opts) {
     let modal = document.getElementById('alert-modal');
     if (!modal) {
       modal = document.createElement('div');
@@ -347,8 +378,9 @@ document.addEventListener('wheel', function (e) {
         </div>`;
       document.body.appendChild(modal);
     }
-    document.getElementById('alert-modal-title').innerHTML = title;
-    document.getElementById('alert-modal-body').innerHTML = message;
+    const asText = !!(opts && opts.text);
+    document.getElementById('alert-modal-title').innerHTML = asText ? esc(title) : title;
+    document.getElementById('alert-modal-body').innerHTML = asText ? esc(message) : message;
     new bootstrap.Modal(modal).show();
   }
   window.showAlert = showAlert;
@@ -369,7 +401,7 @@ document.addEventListener('wheel', function (e) {
       const bar = document.createElement('div');
       bar.id = '_inactivity-warn';
       bar.innerHTML = `
-        <div style="position:fixed;bottom:76px;left:50%;transform:translateX(-50%);z-index:9999;
+        <div style="position:fixed;bottom:calc(76px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);z-index:9999;
                     background:#1E293B;color:#fff;border-radius:12px;padding:12px 16px;
                     display:flex;align-items:center;gap:14px;
                     box-shadow:0 4px 24px rgba(0,0,0,.35);
@@ -406,8 +438,10 @@ document.addEventListener('wheel', function (e) {
     if (!auth.requireLogin()) return;
     const user = auth.getUser();
     if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(user.role_id)) {
-      if (user.role_id === 0) { window.location.href = 'organizations.html'; }
-      else { window.location.href = 'dashboard.html'; }
+      const home = homePageFor(user.role_id);
+      const curPage = window.location.pathname.split('/').pop() || 'index.html';
+      // Never redirect to the page we are already on (would reload forever)
+      if (curPage !== home) window.location.href = home;
       return;
     }
     renderTopbar(pageTitle);
@@ -444,6 +478,18 @@ document.addEventListener('wheel', function (e) {
   window.statusBadge = statusBadge;
   window.formatCurrency = formatCurrency;
   window.formatDate = formatDate;
+
+  // Escape user-controlled text before putting it into innerHTML or an HTML attribute.
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"'`]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' }[c]));
+  }
+  // Local calendar date as YYYY-MM-DD (toISOString() is UTC and is a day behind in IST before 05:30).
+  function localISODate(d) {
+    d = d || new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  window.esc = esc;
+  window.localISODate = localISODate;
   window.formatDateTime = formatDateTime;
   window.showToast = showToast;
   window.showLoading = showLoading;
@@ -468,7 +514,7 @@ document.addEventListener('wheel', function (e) {
         if (areaId) {
           const areaEl = document.getElementById(areaId);
           areaEl.innerHTML = '<option value="">-- Select Area --</option>' +
-            offices.map(o => `<option value="${o.Name}">${o.Name}</option>`).join('');
+            offices.map(o => `<option value="${esc(o.Name)}">${esc(o.Name)}</option>`).join('');
           areaEl.value = '';
           areaEl.disabled = false;
         }

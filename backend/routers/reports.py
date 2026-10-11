@@ -11,7 +11,7 @@ from database import SessionLocal
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, parse_date
+from core_functions.responses import success_response, error_response, parse_date, server_error
 from core_functions.overdue import sync_overdue_status
 from core_functions.report_service import (
     get_transactions_report,
@@ -289,6 +289,6 @@ def export_report():
             )
 
     except Exception as exc:
-        return error_response(f"Export failed: {exc}", 500)
+        return server_error()
     finally:
         db.close()

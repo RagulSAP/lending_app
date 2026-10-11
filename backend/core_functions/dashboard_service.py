@@ -8,7 +8,7 @@ from models import Customer, Loan, LoanInstallment, Transaction, Wallet, User, O
 from config import Config
 from core_functions.loan_calc import _add_months
 from core_functions.timeutil import today_ist
-from core_functions.overdue import sync_overdue_status, compute_overdue
+from core_functions.overdue import sync_overdue_status, compute_overdue, interest_only_due_periods
 
 
 def mark_overdue_loans(db, org_id: str) -> int:
@@ -122,6 +122,41 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .one()
     )
 
+    # Interest-only (vatti) loans have no installment rows: add their uncollected interest periods
+    # to every window. A customer with both kinds of dues is counted once.
+    vatti = interest_only_due_periods(db, org_id, today, month_end)
+
+    def _vatti_window(hi):
+        return [v for v in vatti if v["due_date"] <= hi]
+
+    def _combined_due(hi, pi_cnt, pi_amt):
+        rows = _vatti_window(hi)
+        if not rows:
+            return pi_cnt or 0, float(pi_amt or 0)
+        vatti_custs = {v["customer_id"] for v in rows}
+        already_counted = {
+            cid for (cid,) in db.query(Loan.customer_id)
+            .join(LoanInstallment, LoanInstallment.loan_id == Loan.loan_id)
+            .filter(
+                Loan.org_id == org_id,
+                Loan.status.in_(["ACTIVE", "OVERDUE"]),
+                Loan.customer_id.in_(list(vatti_custs)),
+                LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+                LoanInstallment.due_date >= today,
+                LoanInstallment.due_date <= hi,
+            )
+            .distinct()
+            .all()
+        }
+        return (
+            (pi_cnt or 0) + len(vatti_custs - already_counted),
+            float(pi_amt or 0) + sum(v["amount"] for v in rows),
+        )
+
+    due_today_cnt, due_today_amt = _combined_due(today, due_row.t_cnt, due_row.t_amt)
+    due_week_cnt, due_week_amt = _combined_due(week_end, due_row.w_cnt, due_row.w_amt)
+    due_month_cnt, due_month_amt = _combined_due(month_end, due_row.m_cnt, due_row.m_amt)
+
     # Overdue: loans with missed installments / interest collections, and the amount missed
     overdue_loans = db.query(Loan).filter(Loan.org_id == org_id, Loan.status == "OVERDUE").all()
     overdue_info = compute_overdue(db, overdue_loans, today)
@@ -214,12 +249,12 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         "collected_this_month": round(collected_this_month, 2),
         "overdue_count": overdue_count,
         "overdue_amount": round(overdue_amount, 2),
-        "due_today_count":  due_row.t_cnt or 0,
-        "due_today_amount": round(float(due_row.t_amt or 0), 2),
-        "due_week_count":   due_row.w_cnt or 0,
-        "due_week_amount":  round(float(due_row.w_amt or 0), 2),
-        "due_month_count":  due_row.m_cnt or 0,
-        "due_month_amount": round(float(due_row.m_amt or 0), 2),
+        "due_today_count":  due_today_cnt,
+        "due_today_amount": round(due_today_amt, 2),
+        "due_week_count":   due_week_cnt,
+        "due_week_amount":  round(due_week_amt, 2),
+        "due_month_count":  due_month_cnt,
+        "due_month_amount": round(due_month_amt, 2),
         "wallet_balance":           round(wallet_balance, 2),
         "wallet_invest_balance":    round(wallet_invest_balance, 2),
         "wallet_rotation_balance":  round(wallet_rotation_balance, 2),

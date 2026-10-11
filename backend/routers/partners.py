@@ -11,7 +11,7 @@ from models import Partner
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, model_to_dict
+from core_functions.responses import success_response, error_response, model_to_dict, server_error
 
 partners_bp = Blueprint("partners", __name__, url_prefix="/api/partners")
 
@@ -61,7 +61,7 @@ def create_partner():
         return success_response(data=model_to_dict(partner), message="Partner added"), 201
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -90,7 +90,7 @@ def update_partner(partner_id):
         return success_response(data=model_to_dict(partner), message="Partner updated")
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -112,6 +112,6 @@ def delete_partner(partner_id):
         return success_response(message="Partner removed")
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()

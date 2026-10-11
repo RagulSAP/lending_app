@@ -3,16 +3,17 @@ Payment collection routes.
 Blueprint prefix: /api/payments
 """
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import timedelta
 
 from flask import Blueprint, request
+from sqlalchemy import or_
 
 from database import SessionLocal
-from models import Loan, LoanInstallment, Transaction, Wallet, Customer, LoanStatusHistory
+from models import Loan, LoanInstallment, Transaction, Wallet, Customer, LoanStatusHistory, _now_ist
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+from core_functions.responses import success_response, error_response, model_to_dict, parse_date, server_error, finite_float
 from core_functions.loan_calc import _get_due_date
 from core_functions.timeutil import today_ist
 from core_functions.overdue import sync_overdue_status
@@ -32,6 +33,14 @@ _VALID_PAYMENT_MODES = {"CASH", "UPI", "BANK_TRANSFER", "CHEQUE"}
 # Interest-only loans have no installment rows, so a principal repayment is
 # recognised by this prefix on the transaction remarks.
 PRINCIPAL_REMARK_TAG = "Principal repayment"
+
+# A repeat of the same payment inside this window is treated as an accidental double submit.
+DUPLICATE_WINDOW_SECONDS = 30
+
+
+def _duplicate_cutoff():
+    """created_at is stored in IST, so the cutoff must be IST too."""
+    return _now_ist() - timedelta(seconds=DUPLICATE_WINDOW_SECONDS)
 
 
 @payments_bp.route("/collect", methods=["POST"])
@@ -72,9 +81,9 @@ def collect_payment():
         return error_response(f"payment_mode must be one of: {', '.join(sorted(_VALID_PAYMENT_MODES))}")
 
     try:
-        amount = float(data.get("amount") or 0)
-    except (TypeError, ValueError):
-        return error_response("amount must be a number")
+        amount = finite_float(data.get("amount") or 0, "amount")
+    except ValueError as ve:
+        return error_response(str(ve))
     if amount <= 0:
         return error_response("amount must be greater than zero")
 
@@ -85,9 +94,9 @@ def collect_payment():
     new_interest_amount = None
     if data.get("new_interest_amount") not in (None, ""):
         try:
-            new_interest_amount = float(data["new_interest_amount"])
-        except (TypeError, ValueError):
-            return error_response("new_interest_amount must be a number")
+            new_interest_amount = finite_float(data["new_interest_amount"], "new_interest_amount")
+        except ValueError as ve:
+            return error_response(str(ve))
         if new_interest_amount <= 0:
             return error_response("new_interest_amount must be greater than zero")
 
@@ -98,6 +107,10 @@ def collect_payment():
 
     db = SessionLocal()
     try:
+        # Lock the wallet row first so concurrent money-moving requests serialize (MySQL);
+        # everything read after this point is therefore up to date.
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         # Load loan + customer in one go (customer is needed for the response)
         loan = db.query(Loan).filter(
             Loan.loan_id == loan_id,
@@ -133,7 +146,21 @@ def collect_payment():
 
         customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
 
+        if not installment_id:
+            # Interest-only (vatti) interest / principal collection: same loan + same amount
+            # within the window is a double submit.
+            vatti_dup = db.query(Transaction).filter(
+                Transaction.loan_id == loan_id,
+                Transaction.installment_id.is_(None),
+                Transaction.transaction_type == "LOAN_COLLECTION",
+                Transaction.amount == round(amount, 2),
+                Transaction.created_at >= _duplicate_cutoff(),
+            ).first()
+            if vatti_dup:
+                return error_response("A payment was just recorded for this loan. Please wait before retrying.")
+
         installment = None
+        inst_fully_paid = False
         if installment_id:
             # Load installment
             installment = db.query(LoanInstallment).filter(
@@ -146,11 +173,10 @@ def collect_payment():
                 return error_response("Installment is already fully paid")
 
             # Duplicate-submission guard
-            recent_cutoff = datetime.utcnow() - timedelta(seconds=30)
             duplicate = db.query(Transaction).filter(
                 Transaction.installment_id == installment_id,
                 Transaction.transaction_type == "LOAN_COLLECTION",
-                Transaction.created_at >= recent_cutoff,
+                Transaction.created_at >= _duplicate_cutoff(),
             ).first()
             if duplicate:
                 return error_response("A payment for this installment was just recorded. Please wait before retrying.")
@@ -162,7 +188,8 @@ def collect_payment():
                 )
 
             # 3. Update installment
-            new_paid = round(float(installment.paid_amount or 0) + amount, 2)
+            paid_before = float(installment.paid_amount or 0)
+            new_paid = round(paid_before + amount, 2)
             new_balance = round(current_balance - amount, 2)
             if new_balance <= 0.005:
                 new_balance = 0.0
@@ -172,6 +199,7 @@ def collect_payment():
                 installment.status = "PARTIAL"
             installment.paid_amount = new_paid
             installment.balance_amount = new_balance
+            inst_fully_paid = installment.status == "PAID"
 
         # 4. Update loan
         old_loan_status = loan.status
@@ -183,16 +211,33 @@ def collect_payment():
             elif new_interest_amount is not None:
                 loan.installment_amount = new_interest_amount
         elif not is_interest_only and installment:
-            # Reduce outstanding principal by the principal portion of this payment only
-            total_inst = float(installment.total_amount or 1)
-            principal_portion = round(amount * float(installment.principal_amount or 0) / total_inst)
-            loan.balance_amount = round(float(loan.balance_amount or 0) - principal_portion)
-            if loan.balance_amount <= 0:
-                loan.balance_amount = 0
-                loan.status = "CLOSED"
+            # Reduce outstanding principal by this payment's share of the installment's
+            # principal. The share is the difference of cumulative rounded shares, so the
+            # total reduction over an installment's payments always equals its
+            # principal_amount exactly (no rounding drift, however it is split).
+            total_inst = float(installment.total_amount or 0)
+            inst_principal = float(installment.principal_amount or 0)
+
+            def _cum_principal(paid):
+                if total_inst <= 0:
+                    return 0
+                return round(inst_principal * paid / total_inst)
+
+            cum_after = round(inst_principal) if inst_fully_paid else _cum_principal(new_paid)
+            principal_portion = cum_after - _cum_principal(paid_before)
+            loan.balance_amount = max(round(float(loan.balance_amount or 0) - principal_portion), 0)
+            if inst_fully_paid:
+                others_open = db.query(LoanInstallment.installment_id).filter(
+                    LoanInstallment.loan_id == loan_id,
+                    LoanInstallment.installment_id != installment_id,
+                    LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+                ).first()
+                if not others_open:
+                    # Every installment is paid: nothing is outstanding any more.
+                    loan.balance_amount = 0
+                    loan.status = "CLOSED"
 
         # 5. Credit wallet
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
         if is_principal:
@@ -235,6 +280,7 @@ def collect_payment():
                 old_status=old_loan_status,
                 new_status=loan.status,
                 changed_by=current["user_id"],
+                changed_at=_now_ist(),
                 remarks="Principal repaid in full" if is_principal else "Loan fully repaid",
             )
             db.add(history)
@@ -255,7 +301,7 @@ def collect_payment():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -302,10 +348,7 @@ def principal_payment():
             if default is None:
                 raise ValueError(f"{name} is required")
             return default
-        try:
-            val = float(raw)
-        except (TypeError, ValueError):
-            raise ValueError(f"{name} must be a number")
+        val = finite_float(raw, name)  # rejects non-numbers, NaN and Infinity
         if val < 0:
             raise ValueError(f"{name} cannot be negative")
         if val != round(val):
@@ -326,6 +369,9 @@ def principal_payment():
 
     db = SessionLocal()
     try:
+        # Lock the wallet row first so concurrent money-moving requests serialize (MySQL).
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         loan = db.query(Loan).filter(
             Loan.loan_id == loan_id,
             Loan.org_id == current["org_id"],
@@ -353,6 +399,21 @@ def principal_payment():
         amount = principal_amount + interest_amount
         if amount <= 0:
             return error_response("Amount must be greater than zero")
+
+        # Idempotency: the same part-payment / foreclosure for this loan and amount within
+        # the window is a double submit.
+        pp_dup = db.query(Transaction).filter(
+            Transaction.loan_id == loan_id,
+            Transaction.transaction_type == "LOAN_COLLECTION",
+            Transaction.amount == round(amount, 2),
+            Transaction.created_at >= _duplicate_cutoff(),
+            or_(
+                Transaction.remarks.like(PART_PAY_REMARK_TAG + "%"),
+                Transaction.remarks.like(FORECLOSE_REMARK_TAG + "%"),
+            ),
+        ).first()
+        if pp_dup:
+            return error_response("A payment was just recorded for this loan. Please wait before retrying.")
 
         new_schedule = []
         if not is_full:
@@ -385,7 +446,6 @@ def principal_payment():
                 })
 
         customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
 
@@ -458,6 +518,7 @@ def principal_payment():
                 old_status=old_loan_status,
                 new_status=loan.status,
                 changed_by=current["user_id"],
+                changed_at=_now_ist(),
                 remarks=history_remark,
             ))
         db.commit()
@@ -479,7 +540,7 @@ def principal_payment():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 

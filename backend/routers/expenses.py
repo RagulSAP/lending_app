@@ -15,7 +15,7 @@ from models import ExpenseCategory, Expense, Transaction, Wallet
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+from core_functions.responses import success_response, error_response, model_to_dict, parse_date, server_error, finite_float
 
 expenses_bp = Blueprint("expenses", __name__, url_prefix="/api/expenses")
 
@@ -103,7 +103,7 @@ def create_category():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -139,9 +139,9 @@ def create_expense():
         return error_response("category_id is required")
 
     try:
-        expense_amount = float(data.get("expense_amount") or 0)
-    except (TypeError, ValueError):
-        return error_response("expense_amount must be a number")
+        expense_amount = finite_float(data.get("expense_amount") or 0, "expense_amount")
+    except ValueError as ve:
+        return error_response(str(ve))
     if expense_amount <= 0:
         return error_response("expense_amount must be greater than zero")
 
@@ -159,8 +159,8 @@ def create_expense():
         if not category:
             return error_response("Expense category not found or inactive", 404)
 
-        # Get wallet
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        # Get wallet (row lock: concurrent money-moving requests serialize on MySQL)
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
 
@@ -194,6 +194,7 @@ def create_expense():
             amount=round(expense_amount, 2),
             payment_mode=None,
             wallet_id=wallet.wallet_id,
+            expense_id=expense_id,
             remarks=expense_remark or category.name,
         )
         db.add(txn)
@@ -209,7 +210,7 @@ def create_expense():
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -283,6 +284,36 @@ def list_expenses():
         db.close()
 
 
+def _find_expense_txn(db, expense, org_id):
+    """
+    The EXPENSE transaction written for this expense. New expenses are linked through
+    Transaction.expense_id. Older expenses have no link: they are matched (and linked)
+    only when exactly one unlinked EXPENSE transaction has the same user, wallet, amount
+    and date; if that is ambiguous nothing is touched.
+    """
+    txn = db.query(Transaction).filter(
+        Transaction.expense_id == expense.expense_id,
+        Transaction.transaction_type == "EXPENSE",
+        Transaction.org_id == org_id,
+    ).first()
+    if txn:
+        return txn
+    exp_date = expense.expense_date.date() if hasattr(expense.expense_date, "date") else expense.expense_date
+    candidates = db.query(Transaction).filter(
+        Transaction.org_id == org_id,
+        Transaction.transaction_type == "EXPENSE",
+        Transaction.expense_id.is_(None),
+        Transaction.user_id == expense.user_id,
+        Transaction.wallet_id == expense.wallet_id,
+        Transaction.amount == expense.expense_amount,
+        Transaction.transaction_date == exp_date,
+    ).all()
+    if len(candidates) == 1:
+        candidates[0].expense_id = expense.expense_id
+        return candidates[0]
+    return None
+
+
 @expenses_bp.route("/<string:expense_id>", methods=["PATCH"])
 @require_roles(*_MANAGE_ROLES)
 def update_expense(expense_id):
@@ -298,6 +329,9 @@ def update_expense(expense_id):
 
     db = SessionLocal()
     try:
+        # Lock the wallet row before reading the expense so concurrent edits serialize (MySQL).
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         expense = (
             db.query(Expense)
             .join(ExpenseCategory, ExpenseCategory.category_id == Expense.category_id)
@@ -308,6 +342,7 @@ def update_expense(expense_id):
             return error_response("Expense not found", 404)
 
         old_amount = float(expense.expense_amount or 0)
+        expense_txn = _find_expense_txn(db, expense, current["org_id"])
 
         if "category_id" in data:
             cat = db.query(ExpenseCategory).filter(
@@ -321,9 +356,9 @@ def update_expense(expense_id):
 
         if "expense_amount" in data:
             try:
-                new_amount = float(data["expense_amount"])
-            except (TypeError, ValueError):
-                return error_response("expense_amount must be a number")
+                new_amount = finite_float(data["expense_amount"], "expense_amount")
+            except ValueError as ve:
+                return error_response(str(ve))
             if new_amount <= 0:
                 return error_response("expense_amount must be greater than zero")
             expense.expense_amount = round(new_amount, 2)
@@ -339,10 +374,17 @@ def update_expense(expense_id):
                 return error_response("expense_date must be YYYY-MM-DD")
             expense.expense_date = datetime.combine(new_date, datetime.min.time())
 
+        # Keep the linked EXPENSE transaction in step with the edited expense
+        if expense_txn is not None:
+            expense_txn.amount = round(new_amount, 2)
+            new_exp_date = expense.expense_date
+            expense_txn.transaction_date = new_exp_date.date() if hasattr(new_exp_date, "date") else new_exp_date
+            cat_now = db.query(ExpenseCategory).filter(ExpenseCategory.category_id == expense.category_id).first()
+            expense_txn.remarks = (expense.expense_remark or (cat_now.name if cat_now else "") or "")[:225]
+
         # Adjust wallet by delta
         delta = new_amount - old_amount
         if delta != 0:
-            wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
             if wallet:
                 wallet.invest_balance   = round(float(wallet.invest_balance   or 0) - delta, 2)
                 wallet.rotation_balance = round(float(wallet.rotation_balance or 0) - delta, 2)
@@ -359,7 +401,7 @@ def update_expense(expense_id):
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
 
@@ -374,6 +416,9 @@ def delete_expense(expense_id):
     current = get_current_user_info()
     db = SessionLocal()
     try:
+        # Lock the wallet row before reading the expense so concurrent requests serialize (MySQL).
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).with_for_update().first()
+
         expense = (
             db.query(Expense)
             .join(ExpenseCategory, ExpenseCategory.category_id == Expense.category_id)
@@ -384,19 +429,21 @@ def delete_expense(expense_id):
             return error_response("Expense not found", 404)
 
         amount = float(expense.expense_amount or 0)
+        expense_txn = _find_expense_txn(db, expense, current["org_id"])
 
         # Reverse invest_balance debit
-        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if wallet:
             wallet.invest_balance   = round(float(wallet.invest_balance   or 0) + amount, 2)
             wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount, 2)
 
+        if expense_txn is not None:
+            db.delete(expense_txn)
         db.delete(expense)
         db.commit()
         return success_response(message="Expense deleted successfully")
 
     except Exception as exc:
         db.rollback()
-        return error_response(f"Database error: {exc}", 500)
+        return server_error()
     finally:
         db.close()
