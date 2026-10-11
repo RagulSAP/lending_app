@@ -40,7 +40,7 @@
       <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
         <div class="d-flex flex-wrap gap-2">
           <button type="button" class="btn btn-outline-secondary" id="partners-btn">
-            <i class="bi bi-people me-1"></i>${t('wallet.partners')}
+            <i class="bi bi-people me-1"></i>${t('wallet.partners')}<span id="partners-count" style="display:none;margin-left:6px;background:rgba(0,0,0,.12);border-radius:10px;padding:0 7px;font-size:11px;font-weight:700;"></span>
           </button>
           <button type="button" class="btn btn-outline-warning" id="withdraw-btn">
             <i class="bi bi-box-arrow-up me-1"></i>${t('wallet.withdraw')}
@@ -261,6 +261,15 @@
   }
 
   function renderPartners() {
+    const badge = document.getElementById('partners-count');
+    if (badge) {
+      if (partners.length > 0) {
+        badge.textContent = partners.length;
+        badge.style.display = 'inline';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
     const el = document.getElementById('partners-list-modal');
     if (!el) return;
     if (!partners.length) {
