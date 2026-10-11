@@ -451,6 +451,12 @@
       'onboard.optional_collector': 'Select collector (optional)',
       'onboard.success':     'Customer onboarded successfully!',
       'onboard.collector_label': 'Assigned Collector',
+      'onboard.loan_type':       'Loan Type',
+      'onboard.lt_pi':           '1. Principal with Interest',
+      'onboard.lt_io':           '2. Interest Only',
+      'onboard.interest_per_inst': 'Interest per Installment (₹)',
+      'onboard.principal_to_recover': 'Principal (due at closure)',
+      'onboard.io_note':         'Interest-only loan: only interest is collected each installment. Principal is recovered separately when the loan is closed.',
 
       // User Onboarding
       'useronboard.title':    'New User Details',
@@ -948,6 +954,12 @@
       'onboard.optional_collector': 'வசூலரை தேர்ந்தெடுக்கவும் (விரும்பினால்)',
       'onboard.success':     'வாடிக்கையாளர் வெற்றிகரமாக சேர்க்கப்பட்டார்!',
       'onboard.collector_label': 'ஒதுக்கப்பட்ட வசூலர்',
+      'onboard.loan_type':       'கடன் வகை',
+      'onboard.lt_pi':           '1. அசல் மற்றும் வட்டி',
+      'onboard.lt_io':           '2. வட்டி மட்டும்',
+      'onboard.interest_per_inst': 'தவணைக்கு வட்டி (₹)',
+      'onboard.principal_to_recover': 'அசல் (மூடும்போது வசூல்)',
+      'onboard.io_note':         'வட்டி மட்டும் கடன்: ஒவ்வொரு தவணையிலும் வட்டி மட்டுமே வசூலிக்கப்படும். கடன் மூடும்போது அசல் திரும்பப் பெறப்படும்.',
 
       // User Onboarding
       'useronboard.title':    'புதிய பயனர் விவரங்கள்',

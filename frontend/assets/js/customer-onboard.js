@@ -140,6 +140,13 @@
               <div id="loan-section" class="loan-info-box d-none mt-3 p-3">
                 <h6 class="mb-3" style="font-size:13px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;">${t('onboard.loan_section')}</h6>
                 <div class="row g-3">
+                  <div class="col-12">
+                    <label class="form-label">${t('onboard.loan_type')} <span class="text-danger">*</span></label>
+                    <select class="form-select" id="l-loan-type">
+                      <option value="PRINCIPAL_INTEREST">${t('onboard.lt_pi')}</option>
+                      <option value="INTEREST_ONLY">${t('onboard.lt_io')}</option>
+                    </select>
+                  </div>
                   <div class="col-md-6">
                     <label class="form-label">${t('onboard.loan_amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-amount" placeholder="e.g. 10000" min="1" step="1">
@@ -153,23 +160,28 @@
                       <option value="MONTHLY">${t('pay.monthly')}</option>
                     </select>
                   </div>
-                  <div class="col-md-6">
+                  <div class="col-md-6" id="l-num-inst-wrap">
                     <label class="form-label">${t('onboard.num_inst')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-num-inst" placeholder="e.g. 12" min="1" step="1">
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">${t('onboard.coll_amount')} <span class="text-danger">*</span></label>
+                    <label class="form-label" id="l-coll-label">${t('onboard.coll_amount')} <span class="text-danger">*</span></label>
                     <input type="number" class="form-control" id="l-collection" placeholder="e.g. 1000" min="1" step="1">
+                  </div>
+                  <div class="col-12" id="l-io-note" style="display:none;">
+                    <div class="alert alert-info mb-0" style="font-size:12px;padding:8px 12px;">
+                      <i class="bi bi-info-circle me-1"></i>${t('onboard.io_note')}
+                    </div>
                   </div>
                   <div class="col-12" id="l-summary" style="display:none;">
                     <div class="loan-summary-box" style="display:flex;flex-wrap:wrap;text-align:center;border-radius:8px;overflow:hidden;">
                       <div style="flex:1;min-width:120px;padding:10px 8px;">
-                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.total_recover')}</div>
+                        <div id="l-summary-label1" style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.total_recover')}</div>
                         <div id="l-total" style="font-size:15px;font-weight:700;color:#1D4ED8;">&#8377; 0</div>
                       </div>
                       <div style="width:1px;background:#BFDBFE;align-self:stretch;flex-shrink:0;"></div>
                       <div style="flex:1;min-width:120px;padding:10px 8px;">
-                        <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.interest_earned')}</div>
+                        <div id="l-summary-label2" style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">${t('onboard.interest_earned')}</div>
                         <div id="l-interest" style="font-size:15px;font-weight:700;color:#16A34A;">&#8377; 0</div>
                       </div>
                       <div style="flex:1 0 100%;padding:8px 10px;border-top:1px solid #BFDBFE;">
@@ -243,11 +255,38 @@
       }
     });
 
+    // Loan type toggle
+    function applyLoanTypeMode() {
+      const loanType = document.getElementById('l-loan-type').value;
+      const isIO = loanType === 'INTEREST_ONLY';
+      const numWrap = document.getElementById('l-num-inst-wrap');
+      const ioNote  = document.getElementById('l-io-note');
+      const collLabel = document.getElementById('l-coll-label');
+
+      numWrap.style.display  = isIO ? 'none' : '';
+      ioNote.style.display   = isIO ? 'block' : 'none';
+      collLabel.innerHTML    = isIO
+        ? `${t('onboard.interest_per_inst')} <span class="text-danger">*</span>`
+        : `${t('onboard.coll_amount')} <span class="text-danger">*</span>`;
+
+      const lbl1 = document.getElementById('l-summary-label1');
+      const lbl2 = document.getElementById('l-summary-label2');
+      const totalEl = document.getElementById('l-total');
+      const intEl   = document.getElementById('l-interest');
+      if (lbl1) lbl1.textContent = isIO ? t('onboard.interest_per_inst') : t('onboard.total_recover');
+      if (lbl2) lbl2.textContent = isIO ? t('onboard.principal_to_recover') : t('onboard.interest_earned');
+      if (totalEl) totalEl.style.color = isIO ? '#D97706' : '#1D4ED8';
+      if (intEl)   intEl.style.color   = '#16A34A';
+
+      updateLoanSummary();
+    }
+
     // Live loan summary calculation
     function updateLoanSummary() {
+      const loanType = document.getElementById('l-loan-type').value;
+      const isIO = loanType === 'INTEREST_ONLY';
       const amtEl = document.getElementById('l-amount');
       const amount = parseFloat(amtEl.value) || 0;
-      const n = parseInt(document.getElementById('l-num-inst').value) || 0;
       const col = parseFloat(document.getElementById('l-collection').value) || 0;
       const summary = document.getElementById('l-summary');
 
@@ -270,16 +309,29 @@
         }
       }
 
-      if (amount > 0 && n > 0 && col > 0) {
-        const total = col * n;
-        const interest = total - amount;
-        document.getElementById('l-total').textContent = '₹ ' + total.toLocaleString('en-IN');
-        document.getElementById('l-interest').textContent = '₹ ' + interest.toLocaleString('en-IN');
-        summary.style.display = 'block';
+      if (isIO) {
+        if (amount > 0 && col > 0) {
+          document.getElementById('l-total').textContent = '₹ ' + col.toLocaleString('en-IN');
+          document.getElementById('l-interest').textContent = '₹ ' + amount.toLocaleString('en-IN');
+          summary.style.display = 'block';
+        } else {
+          summary.style.display = 'none';
+        }
       } else {
-        summary.style.display = 'none';
+        const n = parseInt(document.getElementById('l-num-inst').value) || 0;
+        if (amount > 0 && n > 0 && col > 0) {
+          const total = col * n;
+          const interest = total - amount;
+          document.getElementById('l-total').textContent = '₹ ' + total.toLocaleString('en-IN');
+          document.getElementById('l-interest').textContent = '₹ ' + interest.toLocaleString('en-IN');
+          summary.style.display = 'block';
+        } else {
+          summary.style.display = 'none';
+        }
       }
     }
+
+    document.getElementById('l-loan-type').addEventListener('change', applyLoanTypeMode);
     ['l-amount', 'l-num-inst', 'l-collection'].forEach(id => {
       document.getElementById(id).addEventListener('input', updateLoanSummary);
     });
@@ -455,17 +507,22 @@
           document.getElementById('submit-load').classList.add('d-none');
           return;
         }
-        if (amount > 0 && numInst > 0 && colAmt > 0) {
+        const loanType = document.getElementById('l-loan-type').value;
+        const isIO = loanType === 'INTEREST_ONLY';
+        const ready = isIO ? (amount > 0 && colAmt > 0) : (amount > 0 && numInst > 0 && colAmt > 0);
+        if (ready) {
           try {
-            await api.post('/api/loans/', {
+            const loanPayload = {
               customer_id: customerId,
+              loan_type: loanType,
               disbursement_amount: amount,
               installment_type: document.getElementById('l-inst-type').value,
-              num_installments: numInst,
               collection_amount: colAmt,
               disbursement_date: document.getElementById('l-date').value || null,
               remarks: document.getElementById('l-remarks').value.trim()
-            });
+            };
+            if (!isIO) loanPayload.num_installments = numInst;
+            await api.post('/api/loans/', loanPayload);
           } catch (le) {
             showToast('Customer created but loan setup failed: ' + le.message, 'warning');
           }

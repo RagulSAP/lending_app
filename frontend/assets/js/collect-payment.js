@@ -264,15 +264,18 @@
         <div class="col-md-6">
           <div class="loan-card">
             <div class="d-flex justify-content-between align-items-start mb-2">
-              <div class="fw-600" style="font-size:13px;">${l.installment_type} · ${l.num_installments} installments</div>
+              <div>
+                <div class="fw-600" style="font-size:13px;">${l.installment_type} ${l.loan_type === 'INTEREST_ONLY' ? '· Interest Only' : l.num_installments ? '· ' + l.num_installments + ' installments' : ''}</div>
+                ${l.loan_type === 'INTEREST_ONLY' ? '<span class="badge" style="font-size:10px;background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;">Interest Only</span>' : ''}
+              </div>
               ${statusBadge(l.status)}
             </div>
             <div class="row g-1 mb-3" style="font-size:12.5px;">
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.disbursed')}:</span> ${formatCurrency(l.disbursement_amount)}</div>
-              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.balance')}:</span>
-                <span class="fw-600 text-danger">${formatCurrency(l.balance_amount || 0)}</span>
+              <div class="col-6"><span style="color:var(--text-secondary);">${l.loan_type === 'INTEREST_ONLY' ? 'Principal' : t('pay.balance')}:</span>
+                <span class="fw-600 text-danger">${formatCurrency(l.loan_type === 'INTEREST_ONLY' ? l.disbursement_amount : (l.balance_amount || 0))}</span>
               </div>
-              <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.collection')}:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
+              <div class="col-6"><span style="color:var(--text-secondary);">Interest/Inst:</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
             </div>
             <div class="d-flex gap-2">

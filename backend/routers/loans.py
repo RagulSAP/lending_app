@@ -15,7 +15,7 @@ from models import Customer, Loan, LoanInstallment, LoanStatusHistory, Wallet, T
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
-from core_functions.loan_calc import calculate_loan, calculate_loan_simple
+from core_functions.loan_calc import calculate_loan, calculate_loan_simple, calculate_interest_only_loan
 from core_functions.responses import success_response, error_response, model_to_dict, parse_date
 
 loans_bp = Blueprint("loans", __name__, url_prefix="/api/loans")
@@ -25,6 +25,7 @@ _VIEW_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_STAFF, Config
 
 _VALID_INTEREST_TYPES = {"FLAT", "REDUCING"}
 _VALID_INSTALLMENT_TYPES = {"DAILY", "WEEKLY", "MONTHLY"}
+_VALID_LOAN_TYPES = {"PRINCIPAL_INTEREST", "INTEREST_ONLY"}
 
 
 # ---------------------------------------------------------------------------
@@ -45,10 +46,18 @@ def create_loan():
     if not data:
         return error_response("JSON body is required")
 
+    loan_type = str(data.get("loan_type") or "PRINCIPAL_INTEREST").upper()
+    if loan_type not in _VALID_LOAN_TYPES:
+        return error_response("loan_type must be 'PRINCIPAL_INTEREST' or 'INTEREST_ONLY'")
+
+    is_interest_only = loan_type == "INTEREST_ONLY"
+
     # Determine model: simple (collection_amount) or legacy (interest_rate)
     use_simple = data.get("collection_amount") is not None
 
-    if use_simple:
+    if is_interest_only:
+        required = ["customer_id", "disbursement_amount", "installment_type", "collection_amount"]
+    elif use_simple:
         required = ["customer_id", "disbursement_amount", "installment_type",
                     "num_installments", "collection_amount"]
     else:
@@ -65,23 +74,27 @@ def create_loan():
 
     try:
         principal = float(data["disbursement_amount"])
-        num_installments = int(data["num_installments"])
-        if use_simple:
+        if is_interest_only:
             collection_amount = float(data["collection_amount"])
+            num_installments = None
+        elif use_simple:
+            collection_amount = float(data["collection_amount"])
+            num_installments = int(data["num_installments"])
         else:
             interest_type = str(data["interest_type"]).upper()
             annual_rate = float(data["interest_rate"])
             processing_fee = float(data.get("processing_fee") or 0)
+            num_installments = int(data["num_installments"])
     except (TypeError, ValueError):
         return error_response("Numeric fields must be valid numbers")
 
     if principal <= 0:
         return error_response("disbursement_amount must be positive")
-    if num_installments < 1:
+    if not is_interest_only and num_installments < 1:
         return error_response("num_installments must be at least 1")
-    if use_simple and collection_amount <= 0:
+    if (use_simple or is_interest_only) and collection_amount <= 0:
         return error_response("collection_amount must be positive")
-    if use_simple and collection_amount * num_installments < principal:
+    if use_simple and not is_interest_only and collection_amount * num_installments < principal:
         return error_response("Total collections (collection_amount × num_installments) must be >= loan amount")
 
     # Disbursement date: use provided or default to today (IST)
@@ -121,7 +134,15 @@ def create_loan():
 
         # Calculate schedule
         try:
-            if use_simple:
+            if is_interest_only:
+                calc = calculate_interest_only_loan(
+                    principal=principal,
+                    collection_amount=collection_amount,
+                    installment_type=installment_type,
+                    disbursement_date=disbursement_date,
+                )
+                num_installments = calc["num_installments"]
+            elif use_simple:
                 calc = calculate_loan_simple(
                     principal=principal,
                     collection_amount=collection_amount,
@@ -149,10 +170,11 @@ def create_loan():
             loan_id=loan_id,
             customer_id=customer.customer_id,
             org_id=current["org_id"],
+            loan_type=loan_type,
             disbursement_amount=round(principal, 2),
-            interest_type=None if use_simple else interest_type,
-            interest_rate=None if use_simple else round(annual_rate, 4),
-            processing_fee=0 if use_simple else round(processing_fee, 2),
+            interest_type=None if (use_simple or is_interest_only) else interest_type,
+            interest_rate=None if (use_simple or is_interest_only) else round(annual_rate, 4),
+            processing_fee=0 if (use_simple or is_interest_only) else round(processing_fee, 2),
             disbursement_date=disbursement_date,
             due_date=last_due_date,
             installment_type=installment_type,

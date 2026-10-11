@@ -202,6 +202,42 @@ def calculate_loan_simple(
     }
 
 
+def calculate_interest_only_loan(
+    principal: float,
+    collection_amount: float,
+    installment_type: str,
+    disbursement_date: date,
+) -> dict:
+    """
+    Interest-only loan: borrower pays only interest each period.
+    Principal is a balloon payment recovered separately at loan closure.
+    Generates a default initial batch of installments:
+      MONTHLY → 12, WEEKLY → 52, DAILY → 30.
+    """
+    _DEFAULT = {"MONTHLY": 12, "WEEKLY": 52, "DAILY": 30}
+    n = _DEFAULT.get(installment_type, 12)
+
+    schedule = []
+    for i in range(1, n + 1):
+        due = _get_due_date(disbursement_date, installment_type, i)
+        schedule.append({
+            "installment_number": i,
+            "due_date": due.isoformat(),
+            "principal_amount": 0.0,
+            "interest_amount": round(collection_amount, 2),
+            "total_amount": round(collection_amount, 2),
+            "balance_amount": round(principal, 2),  # loan principal stays constant
+        })
+
+    return {
+        "installment_amount": round(collection_amount, 2),
+        "total_interest": 0.0,  # open-ended; not calculable upfront
+        "total_payable": round(principal, 2),  # only the principal needs to be recovered
+        "num_installments": n,
+        "schedule": schedule,
+    }
+
+
 def get_num_installments(installment_type: str, disbursement_date: date, due_date: date) -> int:
     """
     Calculate the number of installments from the date range.

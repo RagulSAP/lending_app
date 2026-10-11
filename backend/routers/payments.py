@@ -129,10 +129,12 @@ def collect_payment():
         # 4. Update loan
         old_loan_status = loan.status
         loan.total_paid = round(float(loan.total_paid or 0) + amount, 2)
-        loan.balance_amount = round(float(loan.balance_amount or 0) - amount, 2)
-        if loan.balance_amount <= 0.005:
-            loan.balance_amount = 0.0
-            loan.status = "CLOSED"
+        # INTEREST_ONLY: principal is a balloon payment — interest payments don't reduce balance
+        if (loan.loan_type or "PRINCIPAL_INTEREST") != "INTEREST_ONLY":
+            loan.balance_amount = round(float(loan.balance_amount or 0) - amount, 2)
+            if loan.balance_amount <= 0.005:
+                loan.balance_amount = 0.0
+                loan.status = "CLOSED"
 
         # 5. Credit wallet — full amount to rotation_balance; interest portion tracked in interest_balance
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()

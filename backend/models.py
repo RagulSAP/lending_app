@@ -82,6 +82,7 @@ class Loan(Base):
     loan_id             = Column(String(36), unique=True, nullable=False)
     customer_id         = Column(String(36), ForeignKey("customers.customer_id"), nullable=False)
     org_id              = Column(String(36), ForeignKey("organizations.org_id"), nullable=False)
+    loan_type           = Column(String(50), default="PRINCIPAL_INTEREST")  # PRINCIPAL_INTEREST / INTEREST_ONLY
     disbursement_amount = Column(Numeric(10, 2), nullable=False)
     interest_type       = Column(String(100))   # FLAT / REDUCING
     interest_rate       = Column(Numeric(10, 2))  # annual %

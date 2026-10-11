@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS `loans` (
   `processing_fee`      NUMERIC(10,2)   DEFAULT 0,
   `disbursement_date`   DATE,
   `due_date`            DATE,
+  `loan_type`           VARCHAR(50)   NOT NULL DEFAULT 'PRINCIPAL_INTEREST', -- PRINCIPAL_INTEREST / INTEREST_ONLY
   `installment_type`    VARCHAR(100),                       -- DAILY / WEEKLY / MONTHLY
   `num_installments`    INT,
   `installment_amount`  NUMERIC(10,2),                      -- collection amount per installment
@@ -308,3 +309,10 @@ INSERT IGNORE INTO `expense_categories` (category_id, org_id, name, description,
 -- ALTER TABLE `wallet`
 --   ADD COLUMN `rotation_balance` NUMERIC(10,2) NOT NULL DEFAULT 0 AFTER `invest_balance`;
 -- UPDATE `wallet` SET `rotation_balance` = `invest_balance` WHERE `rotation_balance` = 0;
+
+-- ----------------------------------------------------------------
+-- Migration: add loan_type column (run on existing database)
+-- ----------------------------------------------------------------
+-- ALTER TABLE `loans`
+--   ADD COLUMN `loan_type` VARCHAR(50) NOT NULL DEFAULT 'PRINCIPAL_INTEREST'
+--   AFTER `org_id`;
