@@ -17,6 +17,7 @@ from core_functions.file_storage import save_kyc_file, delete_kyc_file
 from core_functions.loan_calc import _add_months
 from core_functions.timeutil import today_ist
 from core_functions.dashboard_service import mark_overdue_loans
+from core_functions.overdue import compute_overdue, overdue_fields, sync_overdue_status
 from core_functions.responses import success_response, error_response, model_to_dict
 
 customers_bp = Blueprint("customers", __name__, url_prefix="/api/customers")
@@ -186,6 +187,8 @@ def list_customers():
                 total=len(customers),
             )
 
+        sync_overdue_status(db, org_id)
+
         # Subquery: earliest pending installment date per customer (for sorting)
         sort_sub = (
             db.query(
@@ -267,6 +270,7 @@ def list_customers():
                 .all()
             )
             loan_ids = [row.loan_id for row in loan_rows]
+            overdue_info = compute_overdue(db, loan_rows)
 
             paid_counts = {}
             next_due = {}
@@ -355,6 +359,7 @@ def list_customers():
                     "paid_installments":   paid_counts.get(idx_row.loan_id, 0),
                     "next_due_date":       nd.get("date"),
                     "next_due_amount":     nd.get("amount"),
+                    **overdue_fields(overdue_info.get(idx_row.loan_id)),
                 })
 
         rows = []
@@ -366,6 +371,9 @@ def list_customers():
                 ln["loan_number"] = n
             d["loans"] = cust_loans
             d["loan_count"] = len(cust_loans)
+            d["is_overdue"] = any(ln["is_overdue"] for ln in cust_loans)
+            d["overdue_amount"] = round(sum(ln["overdue_amount"] for ln in cust_loans), 2)
+            d["days_overdue"] = max([ln["days_overdue"] for ln in cust_loans] or [0])
 
             if len(cust_loans) == 1:
                 ln = cust_loans[0]
@@ -431,6 +439,8 @@ def get_customer(customer_id):
         ).first()
         if not customer:
             return error_response("Customer not found", 404)
+
+        sync_overdue_status(db, current["org_id"])
 
         # Active loan summary
         active_loans = (

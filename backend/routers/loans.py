@@ -16,6 +16,8 @@ from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
 from core_functions.loan_calc import calculate_loan, calculate_loan_simple, calculate_interest_only_loan
+from core_functions.overdue import compute_overdue, overdue_fields, sync_overdue_status
+from core_functions.timeutil import today_ist
 from core_functions.responses import success_response, error_response, model_to_dict, parse_date
 
 loans_bp = Blueprint("loans", __name__, url_prefix="/api/loans")
@@ -268,6 +270,7 @@ def get_loan(loan_id):
     current = get_current_user_info()
     db = SessionLocal()
     try:
+        sync_overdue_status(db, current["org_id"])
         loan = db.query(Loan).filter(
             Loan.loan_id == loan_id,
             Loan.org_id == current["org_id"],
@@ -289,7 +292,15 @@ def get_loan(loan_id):
         data = model_to_dict(loan)
         data["customer_name"] = customer.name if customer else None
         data["customer_phone"] = customer.phone if customer else None
-        data["installments"] = [model_to_dict(i) for i in installments]
+        today = today_ist()
+        data["installments"] = []
+        for i in installments:
+            row = model_to_dict(i)
+            late = i.status in ("PENDING", "PARTIAL") and i.due_date and i.due_date < today
+            row["is_overdue"] = bool(late)
+            row["days_overdue"] = (today - i.due_date).days if late else 0
+            data["installments"].append(row)
+        data.update(overdue_fields(compute_overdue(db, [loan], today).get(loan.loan_id)))
         data["payment_count"] = db.query(Transaction).filter(
             Transaction.loan_id == loan_id,
             Transaction.transaction_type == "LOAN_COLLECTION",
@@ -328,6 +339,7 @@ def get_customer_loans(customer_id):
         if not customer:
             return error_response("Customer not found", 404)
 
+        sync_overdue_status(db, current["org_id"])
         loans = (
             db.query(Loan)
             .filter(Loan.customer_id == customer_id, Loan.org_id == current["org_id"])
@@ -335,8 +347,14 @@ def get_customer_loans(customer_id):
             .all()
         )
 
+        overdue_info = compute_overdue(db, loans)
+        rows = []
+        for l in loans:
+            row = model_to_dict(l)
+            row.update(overdue_fields(overdue_info.get(l.loan_id)))
+            rows.append(row)
         return success_response(
-            data=[model_to_dict(l) for l in loans],
+            data=rows,
             total=len(loans),
         )
     finally:
@@ -579,6 +597,7 @@ def update_loan(loan_id):
 
         loan.remarks = new_remarks
         db.commit()
+        sync_overdue_status(db, current["org_id"])
 
         out = model_to_dict(loan)
         out["installments"] = [model_to_dict(i) for i in installment_objs]

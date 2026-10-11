@@ -8,8 +8,8 @@
 8. ⁠if we click number of today card, it should open customer page with today as date filter to display only those customers which we need to go for collection - done
 9. ⁠remove topup insight card in wallet as it is same as investment - done
 10. ⁠need to have a pie chart in wallet to show the partner splitups - done
-11. ⁠In report, rename top-up to wallet top-up and add partner name column
+11. ⁠In report, rename top-up to wallet top-up and add partner name column - done
 12. ⁠principal and interest round off - done
 13. Customer- remove status and add disbursed date and show whether it is loan or vatti - done
-14. ⁠overdue is not showing correctly in collect payment modal
+14. ⁠overdue is not showing correctly in collect payment modal - done
 15. ⁠check if disbursed amount is reducing as and when principal is adding up - done

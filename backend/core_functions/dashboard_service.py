@@ -8,23 +8,12 @@ from models import Customer, Loan, LoanInstallment, Transaction, Wallet, User, O
 from config import Config
 from core_functions.loan_calc import _add_months
 from core_functions.timeutil import today_ist
+from core_functions.overdue import sync_overdue_status, compute_overdue
 
 
 def mark_overdue_loans(db, org_id: str) -> int:
-    """Mark ACTIVE loans as OVERDUE when their due_date has passed. Returns count updated."""
-    today = today_ist()
-    result = (
-        db.query(Loan)
-        .filter(
-            Loan.org_id == org_id,
-            Loan.status == "ACTIVE",
-            Loan.due_date < today,
-        )
-        .update({"status": "OVERDUE"}, synchronize_session=False)
-    )
-    if result:
-        db.commit()
-    return result or 0
+    """Sync Loan.status with the real overdue state (see core_functions.overdue). Returns loans changed."""
+    return sync_overdue_status(db, org_id)
 
 
 # ---------------------------------------------------------------------------
@@ -133,14 +122,11 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .one()
     )
 
-    # Overdue — single query for both count and amount (replaces 2 queries)
-    overdue_row = (
-        db.query(func.count(Loan.loan_id), func.sum(Loan.balance_amount))
-        .filter(Loan.org_id == org_id, Loan.status == "OVERDUE")
-        .one()
-    )
-    overdue_count  = overdue_row[0] or 0
-    overdue_amount = float(overdue_row[1] or 0)
+    # Overdue: loans with missed installments / interest collections, and the amount missed
+    overdue_loans = db.query(Loan).filter(Loan.org_id == org_id, Loan.status == "OVERDUE").all()
+    overdue_info = compute_overdue(db, overdue_loans, today)
+    overdue_count  = len(overdue_info)
+    overdue_amount = sum(v["amount"] for v in overdue_info.values())
 
     # Wallet
     wallet = db.query(Wallet).filter(Wallet.org_id == org_id).first()

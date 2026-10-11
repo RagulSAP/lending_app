@@ -12,6 +12,7 @@ from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, parse_date
+from core_functions.overdue import sync_overdue_status
 from core_functions.report_service import (
     get_transactions_report,
     get_loans_report,
@@ -93,6 +94,7 @@ def loans_report():
 
     db = SessionLocal()
     try:
+        sync_overdue_status(db, current["org_id"])
         records, total = get_loans_report(
             db,
             org_id=current["org_id"],
@@ -216,6 +218,8 @@ def export_report():
 
     db = SessionLocal()
     try:
+        if report_name == "loans":
+            sync_overdue_status(db, current["org_id"])
         if report_name == "transactions":
             records, _, _ta = get_transactions_report(
                 db,

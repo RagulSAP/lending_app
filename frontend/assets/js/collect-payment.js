@@ -103,7 +103,8 @@
             </div>
             <div class="modal-body">
               <!-- Loan summary -->
-              <div class="row g-2 mb-4" id="pm-loan-summary"></div>
+              <div class="row g-2 mb-3" id="pm-loan-summary"></div>
+              <div id="pm-overdue-alert" class="d-none"></div>
 
               <!-- Installment / history section (toggled per loan type) -->
               <div id="pm-inst-section">
@@ -775,6 +776,7 @@
               </div>
               <div class="col-6"><span style="color:var(--text-secondary);">${l.loan_type === 'INTEREST_ONLY' ? 'Interest/Coll:' : 'Installment:'}</span> <span class="fw-600">${formatCurrency(l.installment_amount)}</span></div>
               <div class="col-6"><span style="color:var(--text-secondary);">${t('pay.type')}:</span> ${l.installment_type}</div>
+              ${l.is_overdue ? `<div class="col-12"><span style="color:#DC2626;font-weight:600;font-size:12px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue ${formatCurrency(l.overdue_amount)} &middot; ${l.days_overdue} day(s)</span></div>` : ''}
             </div>
             <div class="d-flex gap-2">
               <button type="button" class="btn btn-success flex-fill" onclick="selectLoan('${l.loan_id}')">
@@ -874,6 +876,19 @@
         </div>
       </div>`;
 
+    const overdueEl = document.getElementById('pm-overdue-alert');
+    if (l.is_overdue) {
+      const dayTxt = l.days_overdue === 1 ? '1 day' : `${l.days_overdue} days`;
+      overdueEl.className = 'alert alert-danger py-2 mb-3';
+      overdueEl.style.fontSize = '13px';
+      overdueEl.innerHTML = isIO
+        ? `<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Overdue:</strong> ${l.overdue_installments} interest collection(s) missed &middot; <strong>${formatCurrency(l.overdue_amount)}</strong> &middot; oldest due ${dayTxt} ago`
+        : `<i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Overdue:</strong> <strong>${formatCurrency(l.overdue_amount)}</strong> across ${l.overdue_installments} installment(s) &middot; oldest is ${dayTxt} late`;
+    } else {
+      overdueEl.className = 'd-none';
+      overdueEl.innerHTML = '';
+    }
+
     if (isIO) {
       // Interest-only: show payment history + always-visible collect form
       document.getElementById('pm-inst-heading').innerHTML =
@@ -922,14 +937,17 @@
           const selectable = ['PENDING', 'PARTIAL'].includes(inst.status);
           const balance = parseFloat(inst.balance_amount || 0) ||
             ((parseFloat(inst.total_amount) || 0) - (parseFloat(inst.paid_amount) || 0));
-          return `<tr style="${selectable ? 'cursor:pointer;' : 'opacity:0.5;'}"
+          const late = !!inst.is_overdue;
+          return `<tr style="${selectable ? 'cursor:pointer;' + (late ? 'background:rgba(220,38,38,.07);' : '') : 'opacity:0.5;'}"
                       ${selectable ? `onclick="pmSelectInstallment(${i})" id="pm-inst-row-${i}"` : ''}>
             <td>${inst.installment_number || i + 1}</td>
             <td>${formatDate(inst.due_date)}</td>
             <td>${formatCurrency(inst.total_amount)}</td>
             <td>${formatCurrency(inst.paid_amount || 0)}</td>
             <td><strong>${formatCurrency(balance)}</strong></td>
-            <td>${statusBadge(inst.status)}</td>
+            <td>${late
+              ? `${statusBadge('OVERDUE')}<div style="font-size:10px;color:#DC2626;margin-top:2px;">${inst.days_overdue} day(s) late</div>`
+              : statusBadge(inst.status)}</td>
             <td>${selectable
               ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="pmSelectInstallment(${i});event.stopPropagation();">Select</button>`
               : inst.paid_date

@@ -15,6 +15,7 @@ from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, model_to_dict, parse_date
 from core_functions.loan_calc import _get_due_date
 from core_functions.timeutil import today_ist
+from core_functions.overdue import sync_overdue_status
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
 
@@ -239,6 +240,7 @@ def collect_payment():
             db.add(history)
 
         db.commit()
+        sync_overdue_status(db, current["org_id"])
 
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
@@ -459,6 +461,7 @@ def principal_payment():
                 remarks=history_remark,
             ))
         db.commit()
+        sync_overdue_status(db, current["org_id"])
 
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None

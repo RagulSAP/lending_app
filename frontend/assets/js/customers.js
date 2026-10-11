@@ -481,6 +481,9 @@
             ? `<div style="font-size:13px;">${formatDate(c.next_due_date)}</div>
                <div style="font-size:12px;font-weight:600;color:#DC2626;">${formatCurrency(c.next_due_amount || 0)}</div>`
             : `<span style="font-size:12px;color:var(--text-secondary);">—</span>`;
+          const overdueTag = c.is_overdue
+            ? `<div style="font-size:11px;font-weight:600;color:#DC2626;white-space:nowrap;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue ${c.days_overdue}d &middot; ${formatCurrency(c.overdue_amount)}</div>`
+            : '';
           const multi = (c.loan_count || 0) > 1;
           const childRows = multi ? c.loans.map(ln => {
             const instCell = ln.loan_type === 'INTEREST_ONLY'
@@ -511,7 +514,7 @@
               <td>${formatCurrency(ln.disbursement_amount)}</td>
               <td><span class="fw-600" style="color:#DC2626;">${formatCurrency(ln.outstanding_amount)}</span></td>
               <td>${instCell}</td>
-              <td>${dueCell}</td>
+              <td>${dueCell}${ln.is_overdue ? `<div style="font-size:11px;font-weight:600;color:#DC2626;white-space:nowrap;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Overdue ${ln.days_overdue}d &middot; ${formatCurrency(ln.overdue_amount)}</div>` : ''}</td>
               ${collectCell}
             </tr>`;
           }).join('') : '';
@@ -536,7 +539,7 @@
             <td>${c.disbursement_amount != null ? formatCurrency(c.disbursement_amount) : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${c.outstanding_amount != null ? `<span class="fw-600" style="color:#DC2626;">${formatCurrency(c.outstanding_amount)}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
             <td>${multi ? '<span style="color:var(--text-secondary);font-size:12px;">—</span>' : c.loan_type === 'INTEREST_ONLY' ? `<span class="fw-600">${c.paid_installments || 0}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">interest paid</span>` : c.num_installments != null ? `<span class="fw-600">${c.paid_installments || 0}/${c.num_installments}</span><span style="font-size:11px;color:var(--text-secondary);margin-left:4px;">${t('cust.completed')}</span>` : '<span style="color:var(--text-secondary);font-size:12px;">—</span>'}</td>
-            <td>${nextDueCell}</td>
+            <td>${nextDueCell}${overdueTag}</td>
             ${actionsCell}
           </tr>`;
           return mainRow + childRows;
