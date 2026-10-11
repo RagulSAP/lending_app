@@ -233,10 +233,10 @@
           <div class="table-container">
             <table class="table table-xwide">
               <thead>
-                <tr><th>#</th><th>${t('rep.col_customer')}</th><th>Onboarded By</th><th>Disbursed</th><th>${t('rep.col_outstanding')}</th><th>${t('rep.col_installments')}</th><th>${t('rep.col_coll_amt')}</th><th>Status</th><th>${t('rep.col_date')}</th></tr>
+                <tr><th>#</th><th>${t('rep.col_customer')}</th><th>Loan Type</th><th>Onboarded By</th><th>Disbursed</th><th>${t('rep.col_outstanding')}</th><th>${t('rep.col_installments')}</th><th>${t('rep.col_coll_amt')}</th><th>Status</th><th>${t('rep.col_date')}</th></tr>
               </thead>
               <tbody id="loan-tbody">
-                <tr><td colspan="9" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
+                <tr><td colspan="10" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -423,7 +423,7 @@
         params.date_to = document.getElementById('loan-to').value;
         params.status = document.getElementById('loan-status').value;
         params.interest_type = document.getElementById('loan-int').value;
-        tbodyId = 'loan-tbody'; colCount = 9; pagId = 'loan-pag'; countId = 'loan-count';
+        tbodyId = 'loan-tbody'; colCount = 10; pagId = 'loan-pag'; countId = 'loan-count';
       } else if (tab === 'expenses') {
         params.date_from = document.getElementById('rep-exp-from').value;
         params.date_to = document.getElementById('rep-exp-to').value;
@@ -484,6 +484,9 @@
         tbody.innerHTML = rows.map((r, i) => `<tr>
           <td>${offset + i + 1}</td>
           <td>${esc(r.customer_name) || '-'}</td>
+          <td>${r.loan_type === 'INTEREST_ONLY'
+            ? '<span style="background:#FEF3C7;color:#92400E;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">Vatti</span>'
+            : '<span style="background:#DBEAFE;color:#1D4ED8;font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;">Loan</span>'}</td>
           <td style="font-size:12px;color:var(--text-secondary);">${esc(r.onboarded_by) || '-'}</td>
           <td>${formatCurrency(r.disbursement_amount)}</td>
           <td class="fw-600 text-danger">${formatCurrency(r.outstanding_amount || r.balance_amount || 0)}</td>

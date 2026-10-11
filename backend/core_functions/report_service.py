@@ -16,7 +16,7 @@ from models import Transaction, Loan, Expense, Customer, User, ExpenseCategory, 
 
 REPORT_HEADERS = {
     "transactions":    ["Date", "Customer", "Amount", "Mode", "Type", "Collected By", "Remarks"],
-    "loans":           ["Loan ID", "Customer", "Disbursed", "Rate %", "Interest Type",
+    "loans":           ["Loan ID", "Customer", "Loan Type", "Disbursed", "Rate %", "Interest Type",
                         "Installment Type", "Total Payable", "Total Paid", "Balance", "Status"],
     "expenses":        ["Date", "Category", "Amount", "Entered By", "Remark"],
     "topup":           ["Date", "Amount", "Done By", "Partner", "Remarks"],
@@ -49,6 +49,7 @@ def _loan_row(r):
     return [
         r.get("loan_id", ""),
         r.get("customer_name", ""),
+        r.get("loan_type_label", ""),
         r.get("disbursement_amount", ""),
         r.get("interest_rate", ""),
         r.get("interest_type", ""),
@@ -200,12 +201,16 @@ def get_loans_report(
 
     records = []
     for loan, customer_name, onboarded_by in rows:
+        is_vatti = (loan.loan_type or "PRINCIPAL_INTEREST") == "INTEREST_ONLY"
         records.append({
             "loan_id": loan.loan_id,
             "customer_name": customer_name,
             "onboarded_by": onboarded_by,
+            "loan_type": loan.loan_type or "PRINCIPAL_INTEREST",
+            "loan_type_label": "Vatti" if is_vatti else "Loan",
             "disbursement_amount": round(float(loan.disbursement_amount), 2) if loan.disbursement_amount else 0.0,
-            "num_installments": loan.num_installments,
+            # A vatti (interest-only) loan has no installments; the stored 12/52/30 is only a placeholder.
+            "num_installments": None if is_vatti else loan.num_installments,
             "installment_amount": round(float(loan.installment_amount), 2) if loan.installment_amount else 0.0,
             "installment_type": loan.installment_type,
             "interest_rate": round(float(loan.interest_rate), 2) if loan.interest_rate is not None else None,
