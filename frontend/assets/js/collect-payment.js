@@ -642,8 +642,10 @@
       }
 
       if (amount > 0 && n > 0 && col > 0) {
-        document.getElementById('al-total').textContent = '₹ ' + (col * n).toLocaleString('en-IN');
-        document.getElementById('al-interest').textContent = '₹ ' + (col * n - amount).toLocaleString('en-IN');
+        const alTotal    = Math.round(col * n * 100) / 100;
+        const alInterest = Math.round((alTotal - amount) * 100) / 100;
+        document.getElementById('al-total').textContent    = formatCurrency(alTotal);
+        document.getElementById('al-interest').textContent = formatCurrency(alInterest);
         summaryEl.style.display = 'block';
       } else {
         summaryEl.style.display = 'none';

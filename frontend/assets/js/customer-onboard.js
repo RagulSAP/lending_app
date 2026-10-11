@@ -311,8 +311,8 @@
 
       if (isIO) {
         if (amount > 0 && col > 0) {
-          document.getElementById('l-total').textContent = '₹ ' + col.toLocaleString('en-IN');
-          document.getElementById('l-interest').textContent = '₹ ' + amount.toLocaleString('en-IN');
+          document.getElementById('l-total').textContent = formatCurrency(col);
+          document.getElementById('l-interest').textContent = formatCurrency(amount);
           summary.style.display = 'block';
         } else {
           summary.style.display = 'none';
@@ -320,10 +320,10 @@
       } else {
         const n = parseInt(document.getElementById('l-num-inst').value) || 0;
         if (amount > 0 && n > 0 && col > 0) {
-          const total = col * n;
-          const interest = total - amount;
-          document.getElementById('l-total').textContent = '₹ ' + total.toLocaleString('en-IN');
-          document.getElementById('l-interest').textContent = '₹ ' + interest.toLocaleString('en-IN');
+          const total = Math.round(col * n * 100) / 100;
+          const interest = Math.round((total - amount) * 100) / 100;
+          document.getElementById('l-total').textContent = formatCurrency(total);
+          document.getElementById('l-interest').textContent = formatCurrency(interest);
           summary.style.display = 'block';
         } else {
           summary.style.display = 'none';
