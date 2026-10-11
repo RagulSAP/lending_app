@@ -256,6 +256,133 @@ def collect_payment():
         db.close()
 
 
+_FORECLOSE_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_STAFF)
+FORECLOSE_REMARK_TAG = "Loan foreclosure"
+
+
+@payments_bp.route("/foreclose", methods=["POST"])
+@require_roles(*_FORECLOSE_ROLES)
+def foreclose_loan():
+    """
+    POST /api/payments/foreclose
+    Body: {loan_id, interest_amount, payment_mode, transaction_date, remarks, confirm_close}
+    Closes a principal-with-interest loan early. The customer pays the outstanding
+    principal plus an adjustable interest amount; all unpaid installments are closed.
+    """
+    current = get_current_user_info()
+    data = request.get_json(silent=True)
+    if not data:
+        return error_response("JSON body is required")
+
+    loan_id = data.get("loan_id") or ""
+    payment_mode = (data.get("payment_mode") or "").strip().upper()
+    remarks = (data.get("remarks") or "").strip()
+
+    if not loan_id:
+        return error_response("loan_id is required")
+    if payment_mode not in _VALID_PAYMENT_MODES:
+        return error_response(f"payment_mode must be one of: {', '.join(sorted(_VALID_PAYMENT_MODES))}")
+    if not data.get("confirm_close"):
+        return error_response("Confirmation is required to close the loan")
+
+    try:
+        interest_amount = float(data.get("interest_amount") or 0)
+    except (TypeError, ValueError):
+        return error_response("interest_amount must be a number")
+    if interest_amount < 0:
+        return error_response("interest_amount cannot be negative")
+    if interest_amount != round(interest_amount):
+        return error_response("interest_amount must be a whole number")
+    interest_amount = round(interest_amount)
+
+    txn_date_str = data.get("transaction_date")
+    txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
+    if not txn_date:
+        return error_response("transaction_date must be in YYYY-MM-DD format")
+
+    db = SessionLocal()
+    try:
+        loan = db.query(Loan).filter(
+            Loan.loan_id == loan_id,
+            Loan.org_id == current["org_id"],
+        ).first()
+        if not loan:
+            return error_response("Loan not found", 404)
+        if loan.status == "CLOSED":
+            return error_response("Loan is already closed")
+        if (loan.loan_type or "PRINCIPAL_INTEREST") == "INTEREST_ONLY":
+            return error_response("Use principal collection to close an interest-only loan")
+
+        customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
+        wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+        if not wallet:
+            return error_response("No wallet found for this organisation", 500)
+
+        principal = round(float(loan.balance_amount or 0))
+        amount = principal + interest_amount
+        if amount <= 0:
+            return error_response("Closure amount must be greater than zero")
+
+        # Close every unpaid installment
+        open_installments = db.query(LoanInstallment).filter(
+            LoanInstallment.loan_id == loan_id,
+            LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
+        ).all()
+        for inst in open_installments:
+            inst.status = "CLOSED"
+            inst.balance_amount = 0
+
+        old_loan_status = loan.status
+        loan.total_paid = round(float(loan.total_paid or 0) + amount, 2)
+        loan.balance_amount = 0
+        loan.status = "CLOSED"
+
+        wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount, 2)
+        wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_amount, 2)
+
+        txn_remarks = f"{FORECLOSE_REMARK_TAG} - {remarks}" if remarks else FORECLOSE_REMARK_TAG
+        txn = Transaction(
+            transaction_id=str(uuid.uuid4()),
+            loan_id=loan_id,
+            customer_id=loan.customer_id,
+            installment_id=None,
+            user_id=current["user_id"],
+            org_id=current["org_id"],
+            transaction_type="LOAN_COLLECTION",
+            transaction_date=txn_date,
+            amount=round(amount, 2),
+            payment_mode=payment_mode,
+            wallet_id=wallet.wallet_id,
+            remarks=txn_remarks[:225],
+        )
+        db.add(txn)
+        db.add(LoanStatusHistory(
+            id=str(uuid.uuid4()),
+            loan_id=loan_id,
+            old_status=old_loan_status,
+            new_status="CLOSED",
+            changed_by=current["user_id"],
+            remarks="Loan foreclosed",
+        ))
+        db.commit()
+
+        txn_data = model_to_dict(txn)
+        txn_data["customer_name"] = customer.name if customer else None
+        txn_data["loan_status"] = loan.status
+        txn_data["principal_amount"] = principal
+        txn_data["interest_amount"] = interest_amount
+        txn_data["wallet_invest_balance"]    = round(float(wallet.invest_balance), 2)
+        txn_data["wallet_rotation_balance"]  = round(float(wallet.rotation_balance), 2)
+        txn_data["wallet_interest_balance"]  = round(float(wallet.interest_balance), 2)
+        return success_response(data=txn_data, message="Loan closed successfully"), 201
+
+    except Exception as exc:
+        db.rollback()
+        return error_response(f"Database error: {exc}", 500)
+    finally:
+        db.close()
+
+
 @payments_bp.route("/", methods=["GET"])
 @require_roles(*_VIEW_ROLES)
 def list_payments():

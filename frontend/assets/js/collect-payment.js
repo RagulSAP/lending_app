@@ -11,6 +11,8 @@
   let closeLoanModal = null;
   let pendingClosePayload = null;
   let newInterestTouched = false;
+  let closeMode = false;
+  let pendingCloseKind = 'IO_PRINCIPAL';
 
   async function init() {
     await initPage(t('pay.collect'), [1, 2, 3, 4]);
@@ -169,9 +171,57 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Foreclosure form (principal-with-interest loans) -->
+              <div id="pm-close-form" class="d-none">
+                <div class="fw-600 mb-2" style="font-size:13px;"><i class="bi bi-lock me-1 text-danger"></i>Close Loan (Foreclosure)</div>
+                <div id="cf-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
+                <div id="cf-info" class="alert alert-secondary" style="font-size:13px;"></div>
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label">Outstanding Principal</label>
+                    <div class="input-group">
+                      <span class="input-group-text">&#8377;</span>
+                      <input type="text" class="form-control" id="cf-principal" readonly>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Interest to Collect <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text">&#8377;</span>
+                      <input type="number" class="form-control" id="cf-interest" min="0" step="1">
+                    </div>
+                  </div>
+                  <div class="col-12">
+                    <div class="p-2 rounded text-center loan-stat-green">
+                      <div style="font-size:11px;color:var(--text-secondary);">Closure Amount (Principal + Interest)</div>
+                      <div class="fw-600" id="cf-total" style="font-size:18px;color:#16a34a;"></div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">${t('pay.payment_mode')} <span class="text-danger">*</span></label>
+                    <select class="form-select" id="cf-mode">
+                      <option value="CASH">${t('pay.cash')}</option>
+                      <option value="UPI">${t('pay.upi')}</option>
+                      <option value="BANK_TRANSFER">${t('pay.bank')}</option>
+                      <option value="CHEQUE">${t('pay.cheque')}</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Closure Date <span class="text-danger">*</span></label>
+                    <input type="date" class="form-control" id="cf-date" value="${today}">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label">${t('pay.remarks')}</label>
+                    <input type="text" class="form-control" id="cf-remarks" placeholder="Optional">
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="modal-footer">
+              <button type="button" class="btn btn-outline-danger me-auto d-none" id="pm-foreclose-btn"><i class="bi bi-lock me-1"></i>Close Loan</button>
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
+              <button type="button" class="btn btn-danger d-none" id="pm-close-submit-btn"><i class="bi bi-lock me-2"></i>Record &amp; Close Loan</button>
               <button type="button" class="btn btn-success d-none" id="pm-submit-btn">
                 <span id="pm-submit-txt"><i class="bi bi-check-circle me-2"></i>Record Payment</span>
                 <span id="pm-submit-load" class="d-none">
@@ -194,7 +244,97 @@
     });
     document.getElementById('pm-amount').addEventListener('input', refreshIOForm);
     document.getElementById('pm-new-interest').addEventListener('input', () => { newInterestTouched = true; });
+    document.getElementById('pm-foreclose-btn').addEventListener('click', () => setCloseMode(!closeMode));
+    document.getElementById('pm-close-submit-btn').addEventListener('click', submitClosure);
+    document.getElementById('cf-interest').addEventListener('input', updateClosureTotal);
     injectCloseLoanModal();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Foreclosure (principal-with-interest loans)
+  // ---------------------------------------------------------------------------
+  function setCloseMode(on) {
+    closeMode = on;
+    document.getElementById('pm-inst-section').classList.toggle('d-none', on);
+    document.getElementById('pm-close-form').classList.toggle('d-none', !on);
+    document.getElementById('pm-close-submit-btn').classList.toggle('d-none', !on);
+    const showPay = !on && !!selectedInstallment;
+    document.getElementById('pm-payment-form').classList.toggle('d-none', !showPay);
+    document.getElementById('pm-submit-btn').classList.toggle('d-none', !showPay);
+    document.getElementById('pm-foreclose-btn').innerHTML = on
+      ? '<i class="bi bi-arrow-left me-1"></i>Back to installments'
+      : '<i class="bi bi-lock me-1"></i>Close Loan';
+    if (on) initCloseForm();
+  }
+
+  function initCloseForm() {
+    const l = selectedLoan;
+    const today = new Date().toISOString().split('T')[0];
+    const principal = Math.round(parseFloat(l.balance_amount) || 0);
+    let accrued = 0;
+    let pending = 0;
+    let openCount = 0;
+    installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status)).forEach(i => {
+      const total = parseFloat(i.total_amount) || 0;
+      const bal = parseFloat(i.balance_amount) || 0;
+      const share = total > 0 ? (parseFloat(i.interest_amount) || 0) * bal / total : 0;
+      pending += share;
+      if (String(i.due_date).slice(0, 10) <= today) accrued += share;
+      openCount++;
+    });
+    document.getElementById('cf-principal').value = principal.toLocaleString('en-IN');
+    document.getElementById('cf-interest').value = Math.round(accrued);
+    document.getElementById('cf-info').innerHTML =
+      `${openCount} installment(s) are still open. Interest accrued up to today: <strong>${formatCurrency(Math.round(accrued))}</strong> &nbsp;·&nbsp; ` +
+      `Interest in the remaining schedule: <strong>${formatCurrency(Math.round(pending))}</strong>.<br>` +
+      'The interest below is pre-filled with the accrued amount. Change it to give a discount or add charges.';
+    document.getElementById('cf-date').value = today;
+    document.getElementById('cf-remarks').value = '';
+    document.getElementById('cf-mode').value = 'CASH';
+    document.getElementById('cf-error').classList.add('d-none');
+    updateClosureTotal();
+  }
+
+  function closureTotals() {
+    const principal = Math.round(parseFloat(selectedLoan.balance_amount) || 0);
+    const interest = parseFloat(document.getElementById('cf-interest').value);
+    return { principal, interest: isNaN(interest) ? 0 : interest };
+  }
+
+  function updateClosureTotal() {
+    const { principal, interest } = closureTotals();
+    document.getElementById('cf-total').textContent = formatCurrency(principal + (interest > 0 ? interest : 0));
+  }
+
+  function submitClosure() {
+    const errEl = document.getElementById('cf-error');
+    errEl.classList.add('d-none');
+    const { principal, interest } = closureTotals();
+    const date = document.getElementById('cf-date').value;
+    if (!Number.isInteger(interest) || interest < 0) {
+      errEl.textContent = 'Interest must be a whole number (0 or more).';
+      errEl.classList.remove('d-none');
+      return;
+    }
+    if (principal + interest <= 0) {
+      errEl.textContent = 'Closure amount must be greater than zero.';
+      errEl.classList.remove('d-none');
+      return;
+    }
+    if (!date) {
+      errEl.textContent = 'Closure date is required.';
+      errEl.classList.remove('d-none');
+      return;
+    }
+    openCloseConfirm({
+      loan_id: selectedLoan.loan_id,
+      interest_amount: interest,
+      principal_amount: principal,
+      amount: principal + interest,
+      payment_mode: document.getElementById('cf-mode').value,
+      remarks: document.getElementById('cf-remarks').value.trim(),
+      transaction_date: date,
+    }, 'FORECLOSE');
   }
 
   // ---------------------------------------------------------------------------
@@ -296,13 +436,30 @@
     document.getElementById('cl-confirm-btn').addEventListener('click', confirmCloseLoan);
   }
 
-  function openCloseConfirm(payload) {
+  function openCloseConfirm(payload, kind) {
     const l = selectedLoan;
     pendingClosePayload = payload;
+    pendingCloseKind = kind || 'IO_PRINCIPAL';
     const modeLabels = { CASH: t('pay.cash'), UPI: t('pay.upi'), BANK_TRANSFER: t('pay.bank'), CHEQUE: t('pay.cheque') };
     const row = (label, value) => `<tr><td style="color:var(--text-secondary);width:48%;">${label}</td><td class="fw-600">${value}</td></tr>`;
     const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    document.getElementById('cl-details').innerHTML = [
+    const foreclose = pendingCloseKind === 'FORECLOSE';
+    const openCount = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status)).length;
+    const rows = foreclose ? [
+      row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
+      row('Loan Type', `Principal with Interest · ${esc(l.installment_type || '')}`),
+      row('Loan Amount', formatCurrency(l.disbursement_amount)),
+      row('Disbursed On', l.disbursement_date ? formatDate(l.disbursement_date) : '—'),
+      row('Collected So Far', formatCurrency(l.total_paid || 0)),
+      row('Open Installments', `${openCount} (will be closed)`),
+      row('Outstanding Principal', formatCurrency(payload.principal_amount)),
+      row('Interest Collected Now', formatCurrency(payload.interest_amount)),
+      row('Closure Amount', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
+      row('Balance After Closure', formatCurrency(0)),
+      row('Payment Mode', esc(modeLabels[payload.payment_mode] || payload.payment_mode)),
+      row('Closure Date', formatDate(payload.transaction_date)),
+      payload.remarks ? row('Remarks', esc(payload.remarks)) : '',
+    ] : [
       row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
       row('Loan Type', `Vatti (Interest Only) · ${esc(l.installment_type || '')}`),
       row('Loan Amount', formatCurrency(l.disbursement_amount)),
@@ -313,7 +470,8 @@
       row('Payment Mode', esc(modeLabels[payload.payment_mode] || payload.payment_mode)),
       row('Closure Date', formatDate(payload.transaction_date)),
       payload.remarks ? row('Remarks', esc(payload.remarks)) : '',
-    ].join('');
+    ];
+    document.getElementById('cl-details').innerHTML = rows.join('');
     document.getElementById('cl-error').classList.add('d-none');
     document.getElementById('cl-confirm-btn').disabled = false;
     document.getElementById('cl-confirm-txt').classList.remove('d-none');
@@ -330,7 +488,8 @@
     document.getElementById('cl-confirm-txt').classList.add('d-none');
     document.getElementById('cl-confirm-load').classList.remove('d-none');
     try {
-      await api.post('/api/payments/collect', Object.assign({}, pendingClosePayload, { confirm_close: true }));
+      const url = pendingCloseKind === 'FORECLOSE' ? '/api/payments/foreclose' : '/api/payments/collect';
+      await api.post(url, Object.assign({}, pendingClosePayload, { confirm_close: true }));
       pendingClosePayload = null;
       closeLoanModal.hide();
       paymentModal.hide();
@@ -514,6 +673,15 @@
   function openPaymentModal() {
     const l = selectedLoan;
     const isIO = l.loan_type === 'INTEREST_ONLY';
+
+    closeMode = false;
+    document.getElementById('pm-inst-section').classList.remove('d-none');
+    document.getElementById('pm-close-form').classList.add('d-none');
+    document.getElementById('pm-close-submit-btn').classList.add('d-none');
+    const canForeclose = !isIO && (auth.getUser() || {}).role_id !== ROLES.COLLECTOR;
+    const forecloseBtn = document.getElementById('pm-foreclose-btn');
+    forecloseBtn.classList.toggle('d-none', !canForeclose);
+    forecloseBtn.innerHTML = '<i class="bi bi-lock me-1"></i>Close Loan';
 
     // Header
     document.getElementById('pm-title').textContent = t('pay.collect');
