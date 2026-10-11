@@ -13,3 +13,6 @@
 13. Customer- remove status and add disbursed date and show whether it is loan or vatti
 14. ⁠overdue is not showing correctly in collect payment modal
 15. ⁠check if disbursed amount is reducing as and when principal is adding up
+
+ALTER TABLE `loans`
+  ADD COLUMN `loan_type` VARCHAR(50) NOT NULL DEFAULT 'PRINCIPAL_INTEREST' AFTER `org_id`;
