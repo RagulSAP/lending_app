@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from sqlalchemy import func, distinct, case, update, and_
 from models import Customer, Loan, LoanInstallment, Transaction, Wallet, User, Organization
 from config import Config
+from core_functions.loan_calc import _add_months
 
 
 def mark_overdue_loans(db, org_id: str) -> int:
@@ -36,11 +37,6 @@ def _week_start(today: date) -> date:
 
 def _month_start(today: date) -> date:
     return today.replace(day=1)
-
-
-def _month_end(today: date) -> date:
-    first_next = (today.replace(day=28) + timedelta(days=4)).replace(day=1)
-    return first_next - timedelta(days=1)
 
 
 # ---------------------------------------------------------------------------
@@ -101,10 +97,10 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
         .scalar() or 0
     )
 
-    # Collections due (customers to visit + amount) today / this week / this month.
-    # Counts distinct customers with an unpaid installment falling due in the range.
-    week_end = today + timedelta(days=7)  # this week's unpaid + everything due in the next 7 days
-    month_end = _month_end(today)
+    # Collections due (customers to visit + amount): today, the next 7 days and the next month,
+    # all starting today. Counts distinct customers with an unpaid installment due in the range.
+    week_end = today + timedelta(days=7)
+    month_end = _add_months(today, 1)
 
     def _due_cnt(lo, hi):
         return func.count(distinct(case(
@@ -121,8 +117,8 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
     due_row = (
         db.query(
             _due_cnt(today, today).label("t_cnt"), _due_amt(today, today).label("t_amt"),
-            _due_cnt(week_start, week_end).label("w_cnt"), _due_amt(week_start, week_end).label("w_amt"),
-            _due_cnt(month_start, month_end).label("m_cnt"), _due_amt(month_start, month_end).label("m_amt"),
+            _due_cnt(today, week_end).label("w_cnt"), _due_amt(today, week_end).label("w_amt"),
+            _due_cnt(today, month_end).label("m_cnt"), _due_amt(today, month_end).label("m_amt"),
         )
         .select_from(LoanInstallment)
         .join(Loan, Loan.loan_id == LoanInstallment.loan_id)
@@ -130,8 +126,8 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
             Loan.org_id == org_id,
             Loan.status.in_(["ACTIVE", "OVERDUE"]),
             LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
-            LoanInstallment.due_date >= min(week_start, month_start),
-            LoanInstallment.due_date <= max(week_end, month_end),
+            LoanInstallment.due_date >= today,
+            LoanInstallment.due_date <= month_end,
         )
         .one()
     )
