@@ -191,23 +191,24 @@ def create_loan():
         db.flush()  # get loan_id persisted before adding installments
 
         installment_objs = []
-        for item in schedule:
-            inst = LoanInstallment(
-                installment_id=str(uuid.uuid4()),
-                loan_id=loan_id,
-                installment_number=item["installment_number"],
-                due_date=parse_date(item["due_date"]),
-                principal_amount=round(item["principal_amount"], 2),
-                interest_amount=round(item["interest_amount"], 2),
-                penalty_amount=0,
-                total_amount=round(item["total_amount"], 2),
-                paid_amount=0,
-                balance_amount=round(item["total_amount"], 2),
-                status="PENDING",
-                paid_date=None,
-            )
-            db.add(inst)
-            installment_objs.append(inst)
+        if not is_interest_only:
+            for item in schedule:
+                inst = LoanInstallment(
+                    installment_id=str(uuid.uuid4()),
+                    loan_id=loan_id,
+                    installment_number=item["installment_number"],
+                    due_date=parse_date(item["due_date"]),
+                    principal_amount=round(item["principal_amount"], 2),
+                    interest_amount=round(item["interest_amount"], 2),
+                    penalty_amount=0,
+                    total_amount=round(item["total_amount"], 2),
+                    paid_amount=0,
+                    balance_amount=round(item["total_amount"], 2),
+                    status="PENDING",
+                    paid_date=None,
+                )
+                db.add(inst)
+                installment_objs.append(inst)
 
         # Record initial status in history
         history = LoanStatusHistory(
@@ -289,6 +290,15 @@ def get_loan(loan_id):
         data["customer_name"] = customer.name if customer else None
         data["customer_phone"] = customer.phone if customer else None
         data["installments"] = [model_to_dict(i) for i in installments]
+
+        if (loan.loan_type or "") == "INTEREST_ONLY":
+            txns = (
+                db.query(Transaction)
+                .filter(Transaction.loan_id == loan_id, Transaction.transaction_type == "LOAN_COLLECTION")
+                .order_by(Transaction.transaction_date.desc())
+                .all()
+            )
+            data["transactions"] = [model_to_dict(t) for t in txns]
 
         return success_response(data=data)
     finally:

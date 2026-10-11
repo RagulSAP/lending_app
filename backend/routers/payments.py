@@ -55,8 +55,6 @@ def collect_payment():
 
     if not loan_id:
         return error_response("loan_id is required")
-    if not installment_id:
-        return error_response("installment_id is required")
     if not payment_mode:
         return error_response("payment_mode is required")
     if payment_mode not in _VALID_PAYMENT_MODES:
@@ -86,62 +84,72 @@ def collect_payment():
         if loan.status == "CLOSED":
             return error_response("Loan is already closed")
 
+        is_interest_only = (loan.loan_type or "PRINCIPAL_INTEREST") == "INTEREST_ONLY"
+
+        if not installment_id and not is_interest_only:
+            return error_response("installment_id is required")
+
         customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
 
-        # Load installment
-        installment = db.query(LoanInstallment).filter(
-            LoanInstallment.installment_id == installment_id,
-            LoanInstallment.loan_id == loan_id,
-        ).first()
-        if not installment:
-            return error_response("Installment not found", 404)
-        if installment.status == "PAID":
-            return error_response("Installment is already fully paid")
+        installment = None
+        if installment_id:
+            # Load installment
+            installment = db.query(LoanInstallment).filter(
+                LoanInstallment.installment_id == installment_id,
+                LoanInstallment.loan_id == loan_id,
+            ).first()
+            if not installment:
+                return error_response("Installment not found", 404)
+            if installment.status == "PAID":
+                return error_response("Installment is already fully paid")
 
-        # Duplicate-submission guard: reject if a payment for this installment was recorded in the last 30 seconds
-        recent_cutoff = datetime.utcnow() - timedelta(seconds=30)
-        duplicate = db.query(Transaction).filter(
-            Transaction.installment_id == installment_id,
-            Transaction.transaction_type == "LOAN_COLLECTION",
-            Transaction.created_at >= recent_cutoff,
-        ).first()
-        if duplicate:
-            return error_response("A payment for this installment was just recorded. Please wait before retrying.")
+            # Duplicate-submission guard
+            recent_cutoff = datetime.utcnow() - timedelta(seconds=30)
+            duplicate = db.query(Transaction).filter(
+                Transaction.installment_id == installment_id,
+                Transaction.transaction_type == "LOAN_COLLECTION",
+                Transaction.created_at >= recent_cutoff,
+            ).first()
+            if duplicate:
+                return error_response("A payment for this installment was just recorded. Please wait before retrying.")
 
-        current_balance = float(installment.balance_amount or 0)
-        if amount > current_balance + 0.005:  # small epsilon for floating point
-            return error_response(
-                f"Amount ({amount:.2f}) exceeds installment balance ({current_balance:.2f})"
-            )
+            current_balance = float(installment.balance_amount or 0)
+            if amount > current_balance + 0.005:
+                return error_response(
+                    f"Amount ({amount:.2f}) exceeds installment balance ({current_balance:.2f})"
+                )
 
-        # 3. Update installment
-        new_paid = round(float(installment.paid_amount or 0) + amount, 2)
-        new_balance = round(current_balance - amount, 2)
-        if new_balance <= 0.005:
-            new_balance = 0.0
-            installment.status = "PAID"
-            installment.paid_date = txn_date
-        else:
-            installment.status = "PARTIAL"
-        installment.paid_amount = new_paid
-        installment.balance_amount = new_balance
+            # 3. Update installment
+            new_paid = round(float(installment.paid_amount or 0) + amount, 2)
+            new_balance = round(current_balance - amount, 2)
+            if new_balance <= 0.005:
+                new_balance = 0.0
+                installment.status = "PAID"
+                installment.paid_date = txn_date
+            else:
+                installment.status = "PARTIAL"
+            installment.paid_amount = new_paid
+            installment.balance_amount = new_balance
 
         # 4. Update loan
         old_loan_status = loan.status
         loan.total_paid = round(float(loan.total_paid or 0) + amount, 2)
-        # INTEREST_ONLY: principal is a balloon payment — interest payments don't reduce balance
-        if (loan.loan_type or "PRINCIPAL_INTEREST") != "INTEREST_ONLY":
+        if not is_interest_only:
+            # INTEREST_ONLY: principal is a balloon — interest payments don't reduce balance
             loan.balance_amount = round(float(loan.balance_amount or 0) - amount, 2)
             if loan.balance_amount <= 0.005:
                 loan.balance_amount = 0.0
                 loan.status = "CLOSED"
 
-        # 5. Credit wallet — full amount to rotation_balance; interest portion tracked in interest_balance
+        # 5. Credit wallet
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
-        total_inst = float(installment.total_amount or 1)
-        interest_portion = round(amount * float(installment.interest_amount or 0) / total_inst, 2)
+        if is_interest_only:
+            interest_portion = round(amount, 2)  # 100% interest for interest-only loans
+        else:
+            total_inst = float(installment.total_amount or 1)
+            interest_portion = round(amount * float(installment.interest_amount or 0) / total_inst, 2)
         wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount,           2)
         wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_portion, 2)
 
@@ -150,7 +158,7 @@ def collect_payment():
             transaction_id=str(uuid.uuid4()),
             loan_id=loan_id,
             customer_id=loan.customer_id,
-            installment_id=installment_id,
+            installment_id=installment_id or None,
             user_id=current["user_id"],
             org_id=current["org_id"],
             transaction_type="LOAN_COLLECTION",

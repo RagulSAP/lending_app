@@ -6,6 +6,7 @@
   let selectedInstallment = null;
   let customerLoans = [];
   let installments = [];
+  let ioTransactions = [];
   let paymentModal = null;
 
   async function init() {
@@ -94,23 +95,25 @@
               <!-- Loan summary -->
               <div class="row g-2 mb-4" id="pm-loan-summary"></div>
 
-              <!-- Installment table -->
-              <div class="fw-600 mb-2" style="font-size:13px;">
-                <i class="bi bi-list-check me-1 text-primary"></i>Select an Installment
-              </div>
-              <div class="table-container mb-3">
-                <table class="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>#</th><th>Due Date</th><th>Total</th>
-                      <th>Paid</th><th>${t('pay.balance')}</th><th>${t('common.status')}</th><th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="pm-inst-tbody"></tbody>
-                </table>
+              <!-- Installment / history section (toggled per loan type) -->
+              <div id="pm-inst-section">
+                <div class="fw-600 mb-2" id="pm-inst-heading" style="font-size:13px;">
+                  <i class="bi bi-list-check me-1 text-primary"></i>Select an Installment
+                </div>
+                <div class="table-container mb-3">
+                  <table class="table table-sm">
+                    <thead id="pm-inst-thead">
+                      <tr>
+                        <th>#</th><th>Due Date</th><th>Total</th>
+                        <th>Paid</th><th>${t('pay.balance')}</th><th>${t('common.status')}</th><th></th>
+                      </tr>
+                    </thead>
+                    <tbody id="pm-inst-tbody"></tbody>
+                  </table>
+                </div>
               </div>
 
-              <!-- Payment form — shown after installment selected -->
+              <!-- Payment form — shown after installment selected (or always for interest-only) -->
               <div id="pm-payment-form" class="d-none">
                 <hr class="my-3">
                 <div id="pm-selected-inst" class="alert alert-info mb-3" style="font-size:13px;"></div>
@@ -310,9 +313,11 @@
       const res = await api.get('/api/loans/' + loanId);
       const loanData = res.data || {};
       installments = loanData.installments || [];
+      ioTransactions = loanData.transactions || [];
       // Merge full API data (has total_paid, balance_amount, etc.) onto selected
       selectedLoan = Object.assign({}, selectedLoan, loanData);
-      delete selectedLoan.installments; // keep it in the separate array
+      delete selectedLoan.installments;
+      delete selectedLoan.transactions;
       openPaymentModal();
     } catch (err) {
       showToast('Failed to load loan details: ' + err.message, 'danger');
@@ -326,30 +331,32 @@
   // ---------------------------------------------------------------------------
   function openPaymentModal() {
     const l = selectedLoan;
+    const isIO = l.loan_type === 'INTEREST_ONLY';
 
     // Header
     document.getElementById('pm-title').textContent = t('pay.collect');
-    document.getElementById('pm-subtitle').textContent =
-      `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.num_installments} installments · ${formatCurrency(l.installment_amount)} each`;
+    document.getElementById('pm-subtitle').textContent = isIO
+      ? `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · Interest Only · ${formatCurrency(l.installment_amount)} / collection`
+      : `${selectedCustomer ? selectedCustomer.name + ' · ' : ''}${l.installment_type} · ${l.num_installments} installments · ${formatCurrency(l.installment_amount)} each`;
 
     // Loan summary mini-cards
     document.getElementById('pm-loan-summary').innerHTML = `
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-neutral">
           <div class="fw-600" style="font-size:15px;">${formatCurrency(l.disbursement_amount)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">Total Loan</div>
+          <div style="font-size:11px;color:var(--text-secondary);">Principal</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center loan-stat-green">
           <div class="fw-600" style="font-size:15px;color:#16a34a;">${formatCurrency(l.total_paid || 0)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">Paid</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${isIO ? 'Interest Collected' : 'Paid'}</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="p-2 rounded text-center balance-stat-box">
-          <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(l.balance_amount || 0)}</div>
-          <div style="font-size:11px;color:var(--text-secondary);">${t('pay.balance')}</div>
+          <div class="fw-600" style="font-size:15px;color:#DC2626;">${formatCurrency(isIO ? l.disbursement_amount : (l.balance_amount || 0))}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">${isIO ? 'Principal Due' : t('pay.balance')}</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
@@ -359,48 +366,86 @@
         </div>
       </div>`;
 
-    // Installments table
-    const tbody = document.getElementById('pm-inst-tbody');
-    const payable = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status));
-    if (!installments.length) {
-      tbody.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-calendar-x"></i>No installments found</td></tr>`;
-    } else {
-      tbody.innerHTML = installments.map((inst, i) => {
-        const selectable = ['PENDING', 'PARTIAL'].includes(inst.status);
-        const balance = parseFloat(inst.balance_amount || 0) ||
-          ((parseFloat(inst.total_amount) || 0) - (parseFloat(inst.paid_amount) || 0));
-        return `<tr style="${selectable ? 'cursor:pointer;' : 'opacity:0.5;'}"
-                    ${selectable ? `onclick="pmSelectInstallment(${i})" id="pm-inst-row-${i}"` : ''}>
-          <td>${inst.installment_number || i + 1}</td>
-          <td>${formatDate(inst.due_date)}</td>
-          <td>${formatCurrency(inst.total_amount)}</td>
-          <td>${formatCurrency(inst.paid_amount || 0)}</td>
-          <td><strong>${formatCurrency(balance)}</strong></td>
-          <td>${statusBadge(inst.status)}</td>
-          <td>${selectable
-            ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="pmSelectInstallment(${i});event.stopPropagation();">Select</button>`
-            : inst.paid_date
-              ? `<span style="font-size:11px;color:var(--text-secondary);"><i class="bi bi-check-circle-fill text-success me-1"></i>${formatDate(inst.paid_date)}</span>`
-              : ''}</td>
-        </tr>`;
-      }).join('');
-    }
+    if (isIO) {
+      // Interest-only: show payment history + always-visible collect form
+      document.getElementById('pm-inst-heading').innerHTML =
+        '<i class="bi bi-clock-history me-1 text-primary"></i>Payment History';
+      document.getElementById('pm-inst-thead').innerHTML = `
+        <tr><th>Date</th><th>Amount</th><th>Mode</th><th>Remarks</th></tr>`;
+      const tbody = document.getElementById('pm-inst-tbody');
+      if (!ioTransactions.length) {
+        tbody.innerHTML = `<tr><td colspan="4" class="table-empty"><i class="bi bi-inbox"></i>No payments yet</td></tr>`;
+      } else {
+        tbody.innerHTML = ioTransactions.map(txn => `
+          <tr>
+            <td>${formatDate(txn.transaction_date)}</td>
+            <td><strong>${formatCurrency(txn.amount)}</strong></td>
+            <td><span class="badge bg-secondary" style="font-size:10px;">${txn.payment_mode || ''}</span></td>
+            <td style="font-size:12px;color:var(--text-secondary);">${txn.remarks || '—'}</td>
+          </tr>`).join('');
+      }
 
-    // Reset payment form
-    document.getElementById('pm-payment-form').classList.add('d-none');
-    document.getElementById('pm-submit-btn').classList.add('d-none');
-    document.getElementById('pm-error').classList.add('d-none');
-    document.getElementById('pm-amount').value = '';
-    document.getElementById('pm-remarks').value = '';
-    document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+      // Auto-show the payment form
+      document.getElementById('pm-selected-inst').innerHTML =
+        `<i class="bi bi-cash-coin text-success me-2"></i>
+         Collect interest payment &nbsp;·&nbsp; Amount per collection: <strong>${formatCurrency(l.installment_amount)}</strong>`;
+      document.getElementById('pm-payment-form').classList.remove('d-none');
+      document.getElementById('pm-submit-btn').classList.remove('d-none');
+      document.getElementById('pm-error').classList.add('d-none');
+      document.getElementById('pm-amount').value = parseFloat(l.installment_amount || 0).toFixed(2);
+      document.getElementById('pm-remarks').value = '';
+      document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+    } else {
+      // Regular loan: installment selection table
+      document.getElementById('pm-inst-heading').innerHTML =
+        '<i class="bi bi-list-check me-1 text-primary"></i>Select an Installment';
+      document.getElementById('pm-inst-thead').innerHTML = `
+        <tr>
+          <th>#</th><th>Due Date</th><th>Total</th>
+          <th>Paid</th><th>${t('pay.balance')}</th><th>${t('common.status')}</th><th></th>
+        </tr>`;
+      const tbody = document.getElementById('pm-inst-tbody');
+      const payable = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status));
+      if (!installments.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="table-empty"><i class="bi bi-calendar-x"></i>No installments found</td></tr>`;
+      } else {
+        tbody.innerHTML = installments.map((inst, i) => {
+          const selectable = ['PENDING', 'PARTIAL'].includes(inst.status);
+          const balance = parseFloat(inst.balance_amount || 0) ||
+            ((parseFloat(inst.total_amount) || 0) - (parseFloat(inst.paid_amount) || 0));
+          return `<tr style="${selectable ? 'cursor:pointer;' : 'opacity:0.5;'}"
+                      ${selectable ? `onclick="pmSelectInstallment(${i})" id="pm-inst-row-${i}"` : ''}>
+            <td>${inst.installment_number || i + 1}</td>
+            <td>${formatDate(inst.due_date)}</td>
+            <td>${formatCurrency(inst.total_amount)}</td>
+            <td>${formatCurrency(inst.paid_amount || 0)}</td>
+            <td><strong>${formatCurrency(balance)}</strong></td>
+            <td>${statusBadge(inst.status)}</td>
+            <td>${selectable
+              ? `<button type="button" class="btn btn-sm btn-outline-primary" onclick="pmSelectInstallment(${i});event.stopPropagation();">Select</button>`
+              : inst.paid_date
+                ? `<span style="font-size:11px;color:var(--text-secondary);"><i class="bi bi-check-circle-fill text-success me-1"></i>${formatDate(inst.paid_date)}</span>`
+                : ''}</td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Reset payment form
+      document.getElementById('pm-payment-form').classList.add('d-none');
+      document.getElementById('pm-submit-btn').classList.add('d-none');
+      document.getElementById('pm-error').classList.add('d-none');
+      document.getElementById('pm-amount').value = '';
+      document.getElementById('pm-remarks').value = '';
+      document.getElementById('pm-date').value = new Date().toISOString().split('T')[0];
+
+      // Auto-select first pending installment if only one unpaid
+      if (payable.length === 1) {
+        const idx = installments.indexOf(payable[0]);
+        if (idx !== -1) setTimeout(() => pmSelectInstallment(idx), 150);
+      }
+    }
 
     paymentModal.show();
-
-    // Auto-select first pending installment if only one unpaid
-    if (payable.length === 1) {
-      const idx = installments.indexOf(payable[0]);
-      if (idx !== -1) setTimeout(() => pmSelectInstallment(idx), 150);
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -444,7 +489,8 @@
     const date = document.getElementById('pm-date').value;
     const remarks = document.getElementById('pm-remarks').value.trim();
 
-    if (!selectedInstallment) {
+    const isIO = selectedLoan && selectedLoan.loan_type === 'INTEREST_ONLY';
+    if (!isIO && !selectedInstallment) {
       errEl.textContent = 'Please select an installment first.';
       errEl.classList.remove('d-none');
       return;
@@ -466,17 +512,33 @@
     document.getElementById('pm-submit-load').classList.remove('d-none');
 
     try {
-      await api.post('/api/payments/collect', {
+      const payload = {
         loan_id: selectedLoan.loan_id,
-        installment_id: selectedInstallment.installment_id,
         amount,
         payment_mode: mode,
         remarks,
         transaction_date: date,
-      });
-      paymentModal.hide();
+      };
+      if (!isIO && selectedInstallment) {
+        payload.installment_id = selectedInstallment.installment_id;
+      }
+      await api.post('/api/payments/collect', payload);
       showToast('Payment recorded successfully!', 'success');
-      if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
+      if (isIO) {
+        // Refresh modal in place: reload loan data so history and totals update
+        const res = await api.get('/api/loans/' + selectedLoan.loan_id);
+        const loanData = res.data || {};
+        ioTransactions = loanData.transactions || [];
+        selectedLoan = Object.assign({}, selectedLoan, loanData);
+        delete selectedLoan.installments;
+        delete selectedLoan.transactions;
+        openPaymentModal();
+        // Also refresh the loan cards in the background
+        if (selectedCustomer) loadLoans(selectedCustomer.customer_id);
+      } else {
+        paymentModal.hide();
+        if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
+      }
     } catch (err) {
       errEl.textContent = err.message;
       errEl.classList.remove('d-none');
