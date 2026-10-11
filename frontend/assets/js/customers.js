@@ -782,7 +782,12 @@
                 <div class="mt-1" style="color:#92400E;">This outstanding amount will be added back to the Rotation balance.</div>
               </div>
               <label class="form-label" for="del-password">Enter your password to confirm</label>
-              <input type="password" class="form-control" id="del-password" placeholder="Your password" autocomplete="new-password">
+              <div class="input-group">
+                <input type="password" class="form-control" id="del-password" placeholder="Your password" autocomplete="new-password">
+                <button type="button" class="btn btn-outline-secondary" id="del-pw-toggle" tabindex="-1" title="Show / hide password">
+                  <i class="bi bi-eye" id="del-pw-icon"></i>
+                </button>
+              </div>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
@@ -802,6 +807,13 @@
       if (e.key === 'Enter' && e.target.value) confirmDeleteCustomer();
     });
     document.getElementById('del-confirm-btn').addEventListener('click', confirmDeleteCustomer);
+    document.getElementById('del-pw-toggle').addEventListener('click', () => {
+      const pw = document.getElementById('del-password');
+      const show = pw.type === 'password';
+      pw.type = show ? 'text' : 'password';
+      document.getElementById('del-pw-icon').className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+      pw.focus();
+    });
     deleteModal = new bootstrap.Modal(document.getElementById('delete-customer-modal'));
   }
 
@@ -815,6 +827,8 @@
       document.getElementById('del-loan-info').classList.add('d-none');
       const pw = document.getElementById('del-password');
       pw.value = '';
+      pw.type = 'password';
+      document.getElementById('del-pw-icon').className = 'bi bi-eye';
       document.getElementById('del-confirm-btn').disabled = true;
       document.getElementById('del-confirm-txt').classList.remove('d-none');
       document.getElementById('del-confirm-load').classList.add('d-none');
