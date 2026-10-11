@@ -12,6 +12,9 @@
   let pendingClosePayload = null;
   let newInterestTouched = false;
   let closeMode = false;
+  let cfNewIntTouched = false;
+  let cfNewNTouched = false;
+  let cfCtx = null;
   let pendingCloseKind = 'IO_PRINCIPAL';
 
   async function init() {
@@ -172,21 +175,28 @@
                 </div>
               </div>
 
-              <!-- Foreclosure form (principal-with-interest loans) -->
+              <!-- Close / part-pay principal form (principal-with-interest loans) -->
               <div id="pm-close-form" class="d-none">
-                <div class="fw-600 mb-2" style="font-size:13px;"><i class="bi bi-lock me-1 text-danger"></i>Close Loan (Foreclosure)</div>
+                <div class="fw-600 mb-2" style="font-size:13px;"><i class="bi bi-lock me-1 text-danger"></i>Close Loan / Part-Pay Principal</div>
                 <div id="cf-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div id="cf-info" class="alert alert-secondary" style="font-size:13px;"></div>
                 <div class="row g-3">
-                  <div class="col-md-6">
+                  <div class="col-md-4">
                     <label class="form-label">Outstanding Principal</label>
                     <div class="input-group">
                       <span class="input-group-text">&#8377;</span>
-                      <input type="text" class="form-control" id="cf-principal" readonly>
+                      <input type="text" class="form-control" id="cf-outstanding" readonly>
                     </div>
                   </div>
-                  <div class="col-md-6">
-                    <label class="form-label">Interest to Collect <span class="text-danger">*</span></label>
+                  <div class="col-md-4">
+                    <label class="form-label">Principal Repayment <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text">&#8377;</span>
+                      <input type="number" class="form-control" id="cf-principal-pay" min="1" step="1">
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <label class="form-label">Interest to Collect Now <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <span class="input-group-text">&#8377;</span>
                       <input type="number" class="form-control" id="cf-interest" min="0" step="1">
@@ -194,10 +204,44 @@
                   </div>
                   <div class="col-12">
                     <div class="p-2 rounded text-center loan-stat-green">
-                      <div style="font-size:11px;color:var(--text-secondary);">Closure Amount (Principal + Interest)</div>
+                      <div style="font-size:11px;color:var(--text-secondary);">Amount Received Now (Principal + Interest)</div>
                       <div class="fw-600" id="cf-total" style="font-size:18px;color:#16a34a;"></div>
                     </div>
                   </div>
+
+                  <!-- Revised schedule: only when the principal repayment is less than outstanding -->
+                  <div class="col-12 d-none" id="cf-reschedule">
+                    <div class="alert alert-warning mb-2" style="font-size:13px;">
+                      <i class="bi bi-info-circle me-1"></i>Part-payment: the unpaid installments will be replaced by a revised schedule for the remaining principal of <strong id="cf-remaining"></strong>.
+                    </div>
+                    <div class="row g-3">
+                      <div class="col-md-4">
+                        <label class="form-label">Remaining Installments <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="cf-new-n" min="1" step="1">
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">Interest per Installment <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                          <span class="input-group-text">&#8377;</span>
+                          <input type="number" class="form-control" id="cf-new-int" min="0" step="1">
+                        </div>
+                      </div>
+                      <div class="col-md-4">
+                        <label class="form-label">First Due Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="cf-first-due">
+                      </div>
+                      <div class="col-12" id="cf-new-hint" style="font-size:12px;color:var(--text-secondary);"></div>
+                      <div class="col-12">
+                        <div class="table-container" style="max-height:200px;overflow-y:auto;">
+                          <table class="table table-sm mb-0" style="font-size:12px;">
+                            <thead><tr><th>#</th><th>Due Date</th><th>Principal</th><th>Interest</th><th>Total</th></tr></thead>
+                            <tbody id="cf-preview"></tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div class="col-md-6">
                     <label class="form-label">${t('pay.payment_mode')} <span class="text-danger">*</span></label>
                     <select class="form-select" id="cf-mode">
@@ -208,7 +252,7 @@
                     </select>
                   </div>
                   <div class="col-md-6">
-                    <label class="form-label">Closure Date <span class="text-danger">*</span></label>
+                    <label class="form-label">Payment Date <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" id="cf-date" value="${today}">
                   </div>
                   <div class="col-12">
@@ -219,7 +263,7 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-outline-danger me-auto d-none" id="pm-foreclose-btn"><i class="bi bi-lock me-1"></i>Close Loan</button>
+              <button type="button" class="btn btn-outline-danger me-auto d-none" id="pm-foreclose-btn"><i class="bi bi-lock me-1"></i>Close / Part-Pay</button>
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-danger d-none" id="pm-close-submit-btn"><i class="bi bi-lock me-2"></i>Record &amp; Close Loan</button>
               <button type="button" class="btn btn-success d-none" id="pm-submit-btn">
@@ -246,7 +290,11 @@
     document.getElementById('pm-new-interest').addEventListener('input', () => { newInterestTouched = true; });
     document.getElementById('pm-foreclose-btn').addEventListener('click', () => setCloseMode(!closeMode));
     document.getElementById('pm-close-submit-btn').addEventListener('click', submitClosure);
-    document.getElementById('cf-interest').addEventListener('input', updateClosureTotal);
+    ['cf-principal-pay', 'cf-interest', 'cf-new-n', 'cf-new-int', 'cf-first-due'].forEach(id => {
+      document.getElementById(id).addEventListener('input', refreshCloseForm);
+    });
+    document.getElementById('cf-new-int').addEventListener('input', () => { cfNewIntTouched = true; });
+    document.getElementById('cf-new-n').addEventListener('input', () => { cfNewNTouched = true; });
     injectCloseLoanModal();
   }
 
@@ -263,78 +311,166 @@
     document.getElementById('pm-submit-btn').classList.toggle('d-none', !showPay);
     document.getElementById('pm-foreclose-btn').innerHTML = on
       ? '<i class="bi bi-arrow-left me-1"></i>Back to installments'
-      : '<i class="bi bi-lock me-1"></i>Close Loan';
+      : '<i class="bi bi-lock me-1"></i>Close / Part-Pay';
     if (on) initCloseForm();
   }
+
+  function addPeriod(dateStr, type, k) {
+    const [y, m, d] = String(dateStr).slice(0, 10).split('-').map(Number);
+    if (type === 'DAILY') return new Date(Date.UTC(y, m - 1, d + k));
+    if (type === 'WEEKLY') return new Date(Date.UTC(y, m - 1, d + 7 * k));
+    const target = new Date(Date.UTC(y, m - 1 + k, 1));
+    const last = new Date(Date.UTC(target.getUTCFullYear(), target.getUTCMonth() + 1, 0)).getUTCDate();
+    target.setUTCDate(Math.min(d, last));
+    return target;
+  }
+
+  function toIso(dt) { return dt.toISOString().split('T')[0]; }
 
   function initCloseForm() {
     const l = selectedLoan;
     const today = new Date().toISOString().split('T')[0];
-    const principal = Math.round(parseFloat(l.balance_amount) || 0);
+    const outstanding = Math.round(parseFloat(l.balance_amount) || 0);
+    const open = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status));
     let accrued = 0;
     let pending = 0;
-    let openCount = 0;
-    installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status)).forEach(i => {
+    open.forEach(i => {
       const total = parseFloat(i.total_amount) || 0;
       const bal = parseFloat(i.balance_amount) || 0;
       const share = total > 0 ? (parseFloat(i.interest_amount) || 0) * bal / total : 0;
       pending += share;
       if (String(i.due_date).slice(0, 10) <= today) accrued += share;
-      openCount++;
     });
-    document.getElementById('cf-principal').value = principal.toLocaleString('en-IN');
+    const firstOpenDue = open.length ? String(open[0].due_date).slice(0, 10) : today;
+    cfCtx = {
+      outstanding,
+      openCount: Math.max(open.length, 1),
+      avgInterest: open.length ? pending / open.length : 0,
+      firstDue: firstOpenDue >= today ? firstOpenDue : today,
+    };
+    cfNewIntTouched = false;
+    cfNewNTouched = false;
+
+    document.getElementById('cf-outstanding').value = outstanding.toLocaleString('en-IN');
+    document.getElementById('cf-principal-pay').value = outstanding;
+    document.getElementById('cf-principal-pay').max = outstanding;
     document.getElementById('cf-interest').value = Math.round(accrued);
-    document.getElementById('cf-info').innerHTML =
-      `${openCount} installment(s) are still open. Interest accrued up to today: <strong>${formatCurrency(Math.round(accrued))}</strong> &nbsp;·&nbsp; ` +
-      `Interest in the remaining schedule: <strong>${formatCurrency(Math.round(pending))}</strong>.<br>` +
-      'The interest below is pre-filled with the accrued amount. Change it to give a discount or add charges.';
+    document.getElementById('cf-first-due').value = cfCtx.firstDue;
     document.getElementById('cf-date').value = today;
     document.getElementById('cf-remarks').value = '';
     document.getElementById('cf-mode').value = 'CASH';
     document.getElementById('cf-error').classList.add('d-none');
-    updateClosureTotal();
+    document.getElementById('cf-info').innerHTML =
+      `${open.length} installment(s) are still open. Interest accrued up to today: <strong>${formatCurrency(Math.round(accrued))}</strong> &nbsp;·&nbsp; ` +
+      `Interest in the remaining schedule: <strong>${formatCurrency(Math.round(pending))}</strong>.<br>` +
+      'Repay the full principal to close the loan, or a smaller amount to continue with a revised schedule. ' +
+      'Interest to collect is pre-filled with the accrued amount; change it to give a discount or add charges.';
+    refreshCloseForm();
   }
 
-  function closureTotals() {
-    const principal = Math.round(parseFloat(selectedLoan.balance_amount) || 0);
-    const interest = parseFloat(document.getElementById('cf-interest').value);
-    return { principal, interest: isNaN(interest) ? 0 : interest };
+  function readCloseForm() {
+    const num = id => {
+      const v = parseFloat(document.getElementById(id).value);
+      return isNaN(v) ? 0 : v;
+    };
+    const outstanding = cfCtx.outstanding;
+    const principalPay = num('cf-principal-pay');
+    return {
+      outstanding,
+      principalPay,
+      interest: num('cf-interest'),
+      partial: principalPay > 0 && principalPay < outstanding,
+      full: principalPay === outstanding,
+      remaining: outstanding - principalPay,
+      newN: Math.floor(num('cf-new-n')),
+      newInt: num('cf-new-int'),
+      firstDue: document.getElementById('cf-first-due').value,
+    };
   }
 
-  function updateClosureTotal() {
-    const { principal, interest } = closureTotals();
-    document.getElementById('cf-total').textContent = formatCurrency(principal + (interest > 0 ? interest : 0));
+  function buildNewSchedule(f) {
+    const rows = [];
+    if (!(f.newN >= 1) || !f.firstDue || f.remaining <= 0) return rows;
+    const base = Math.floor(f.remaining / f.newN);
+    for (let k = 1; k <= f.newN; k++) {
+      const p = k < f.newN ? base : f.remaining - base * (f.newN - 1);
+      rows.push({
+        number: k,
+        due: toIso(addPeriod(f.firstDue, selectedLoan.installment_type, k - 1)),
+        principal: p,
+        interest: f.newInt,
+        total: p + f.newInt,
+      });
+    }
+    return rows;
+  }
+
+  function refreshCloseForm() {
+    if (!cfCtx) return;
+    const f = readCloseForm();
+    const valid = f.principalPay > 0 && f.principalPay <= f.outstanding;
+    document.getElementById('cf-total').textContent =
+      formatCurrency(valid ? f.principalPay + Math.max(f.interest, 0) : 0);
+
+    document.getElementById('cf-reschedule').classList.toggle('d-none', !f.partial);
+    const submitBtn = document.getElementById('pm-close-submit-btn');
+    if (f.partial) {
+      document.getElementById('cf-remaining').textContent = formatCurrency(f.remaining);
+      if (!cfNewNTouched) document.getElementById('cf-new-n').value = cfCtx.openCount;
+      if (!cfNewIntTouched) {
+        document.getElementById('cf-new-int').value = Math.round(cfCtx.avgInterest * f.remaining / f.outstanding);
+      }
+      const g = readCloseForm();
+      const rows = buildNewSchedule(g);
+      document.getElementById('cf-preview').innerHTML = rows.length
+        ? rows.map(r => `<tr><td>${r.number}</td><td>${formatDate(r.due)}</td><td>${formatCurrency(r.principal)}</td><td>${formatCurrency(r.interest)}</td><td><strong>${formatCurrency(r.total)}</strong></td></tr>`).join('')
+        : '<tr><td colspan="5" class="text-center" style="color:var(--text-secondary);">Enter the installment details</td></tr>';
+      document.getElementById('cf-new-hint').textContent = rows.length
+        ? `${rows.length} installment(s) of about ${formatCurrency(rows[0].total)} each (principal ${formatCurrency(rows[0].principal)} + interest ${formatCurrency(rows[0].interest)}). The last installment absorbs any rounding.`
+        : '';
+      submitBtn.className = 'btn btn-primary';
+      submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Record Part-Payment';
+    } else {
+      submitBtn.className = 'btn btn-danger';
+      submitBtn.innerHTML = '<i class="bi bi-lock me-2"></i>Record &amp; Close Loan';
+    }
   }
 
   function submitClosure() {
     const errEl = document.getElementById('cf-error');
     errEl.classList.add('d-none');
-    const { principal, interest } = closureTotals();
+    const fail = msg => { errEl.textContent = msg; errEl.classList.remove('d-none'); };
+    const f = readCloseForm();
     const date = document.getElementById('cf-date').value;
-    if (!Number.isInteger(interest) || interest < 0) {
-      errEl.textContent = 'Interest must be a whole number (0 or more).';
-      errEl.classList.remove('d-none');
-      return;
-    }
-    if (principal + interest <= 0) {
-      errEl.textContent = 'Closure amount must be greater than zero.';
-      errEl.classList.remove('d-none');
-      return;
-    }
-    if (!date) {
-      errEl.textContent = 'Closure date is required.';
-      errEl.classList.remove('d-none');
-      return;
-    }
-    openCloseConfirm({
+
+    if (!Number.isInteger(f.principalPay) || f.principalPay < 1) return fail('Principal repayment must be a whole number of at least 1.');
+    if (f.principalPay > f.outstanding) return fail(`Principal repayment cannot exceed the outstanding principal (${formatCurrency(f.outstanding)}).`);
+    if (!Number.isInteger(f.interest) || f.interest < 0) return fail('Interest must be a whole number (0 or more).');
+    if (!date) return fail('Payment date is required.');
+
+    const payload = {
       loan_id: selectedLoan.loan_id,
-      interest_amount: interest,
-      principal_amount: principal,
-      amount: principal + interest,
+      principal_amount: f.principalPay,
+      interest_amount: f.interest,
+      amount: f.principalPay + f.interest,
       payment_mode: document.getElementById('cf-mode').value,
       remarks: document.getElementById('cf-remarks').value.trim(),
       transaction_date: date,
-    }, 'FORECLOSE');
+    };
+
+    if (f.partial) {
+      if (!Number.isInteger(f.newN) || f.newN < 1) return fail('Enter the number of remaining installments (at least 1).');
+      if (!Number.isInteger(f.newInt) || f.newInt < 0) return fail('Interest per installment must be a whole number (0 or more).');
+      if (!f.firstDue) return fail('First due date is required.');
+      payload.new_num_installments = f.newN;
+      payload.new_interest_per_installment = f.newInt;
+      payload.first_due_date = f.firstDue;
+      payload.schedule = buildNewSchedule(f);
+      payload.remaining_principal = f.remaining;
+      openCloseConfirm(payload, 'PART_PAY');
+    } else {
+      openCloseConfirm(payload, 'FORECLOSE');
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -406,13 +542,13 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title fw-600" style="font-size:16px;">
-                <i class="bi bi-lock-fill me-2 text-danger"></i>Confirm Loan Closure
+                <i class="bi bi-lock-fill me-2 text-danger" id="cl-icon"></i><span id="cl-title">Confirm Loan Closure</span>
               </h5>
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
               <div id="cl-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
-              <p style="font-size:13px;margin-bottom:10px;">Please review the details. Once closed, no more payments can be recorded on this loan.</p>
+              <p style="font-size:13px;margin-bottom:10px;" id="cl-intro">Please review the details. Once closed, no more payments can be recorded on this loan.</p>
               <table class="table table-sm mb-0" style="font-size:13px;"><tbody id="cl-details"></tbody></table>
             </div>
             <div class="modal-footer">
@@ -443,34 +579,62 @@
     const modeLabels = { CASH: t('pay.cash'), UPI: t('pay.upi'), BANK_TRANSFER: t('pay.bank'), CHEQUE: t('pay.cheque') };
     const row = (label, value) => `<tr><td style="color:var(--text-secondary);width:48%;">${label}</td><td class="fw-600">${value}</td></tr>`;
     const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-    const foreclose = pendingCloseKind === 'FORECLOSE';
     const openCount = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status)).length;
-    const rows = foreclose ? [
+    const common = [
       row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
       row('Loan Type', `Principal with Interest · ${esc(l.installment_type || '')}`),
       row('Loan Amount', formatCurrency(l.disbursement_amount)),
       row('Disbursed On', l.disbursement_date ? formatDate(l.disbursement_date) : '—'),
       row('Collected So Far', formatCurrency(l.total_paid || 0)),
-      row('Open Installments', `${openCount} (will be closed)`),
-      row('Outstanding Principal', formatCurrency(payload.principal_amount)),
-      row('Interest Collected Now', formatCurrency(payload.interest_amount)),
-      row('Closure Amount', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
-      row('Balance After Closure', formatCurrency(0)),
+    ];
+    const tail = [
       row('Payment Mode', esc(modeLabels[payload.payment_mode] || payload.payment_mode)),
-      row('Closure Date', formatDate(payload.transaction_date)),
-      payload.remarks ? row('Remarks', esc(payload.remarks)) : '',
-    ] : [
-      row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
-      row('Loan Type', `Vatti (Interest Only) · ${esc(l.installment_type || '')}`),
-      row('Loan Amount', formatCurrency(l.disbursement_amount)),
-      row('Disbursed On', l.disbursement_date ? formatDate(l.disbursement_date) : '—'),
-      row('Interest Collected So Far', formatCurrency(ioInterestCollected())),
-      row('Principal Being Repaid', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
-      row('Balance After Closure', formatCurrency(0)),
-      row('Payment Mode', esc(modeLabels[payload.payment_mode] || payload.payment_mode)),
-      row('Closure Date', formatDate(payload.transaction_date)),
+      row('Payment Date', formatDate(payload.transaction_date)),
       payload.remarks ? row('Remarks', esc(payload.remarks)) : '',
     ];
+    let rows;
+    const isPart = pendingCloseKind === 'PART_PAY';
+    if (isPart) {
+      const first = payload.schedule[0];
+      rows = common.concat([
+        row('Outstanding Principal', formatCurrency(payload.principal_amount + payload.remaining_principal)),
+        row('Principal Repaid Now', formatCurrency(payload.principal_amount)),
+        row('Interest Collected Now', formatCurrency(payload.interest_amount)),
+        row('Amount Received Now', `<span style="color:#16a34a;">${formatCurrency(payload.amount)}</span>`),
+        row('Remaining Principal', `<span style="color:#DC2626;">${formatCurrency(payload.remaining_principal)}</span>`),
+        row('Open Installments Replaced', openCount),
+        row('Revised Schedule', `${payload.schedule.length} × ${formatCurrency(first.total)} (principal ${formatCurrency(first.principal)} + interest ${formatCurrency(first.interest)})`),
+        row('First Due Date', formatDate(payload.first_due_date)),
+      ], tail);
+    } else if (pendingCloseKind === 'FORECLOSE') {
+      rows = common.concat([
+        row('Open Installments', `${openCount} (will be closed)`),
+        row('Outstanding Principal', formatCurrency(payload.principal_amount)),
+        row('Interest Collected Now', formatCurrency(payload.interest_amount)),
+        row('Closure Amount', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
+        row('Balance After Closure', formatCurrency(0)),
+      ], tail);
+    } else {
+      rows = [
+        row('Customer', esc(selectedCustomer ? selectedCustomer.name : '—')),
+        row('Loan Type', `Vatti (Interest Only) · ${esc(l.installment_type || '')}`),
+        row('Loan Amount', formatCurrency(l.disbursement_amount)),
+        row('Disbursed On', l.disbursement_date ? formatDate(l.disbursement_date) : '—'),
+        row('Interest Collected So Far', formatCurrency(ioInterestCollected())),
+        row('Principal Being Repaid', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
+        row('Balance After Closure', formatCurrency(0)),
+      ].concat(tail);
+    }
+    document.getElementById('cl-title').textContent = isPart ? 'Confirm Part-Payment' : 'Confirm Loan Closure';
+    document.getElementById('cl-icon').className = isPart ? 'bi bi-cash-coin me-2 text-primary' : 'bi bi-lock-fill me-2 text-danger';
+    document.getElementById('cl-intro').textContent = isPart
+      ? 'Please review the details. The open installments will be replaced by the revised schedule below.'
+      : 'Please review the details. Once closed, no more payments can be recorded on this loan.';
+    const confirmBtn = document.getElementById('cl-confirm-btn');
+    confirmBtn.className = `btn ${isPart ? 'btn-primary' : 'btn-danger'}`;
+    document.getElementById('cl-confirm-txt').innerHTML = isPart
+      ? '<i class="bi bi-check-circle me-1"></i>Confirm Part-Payment'
+      : '<i class="bi bi-lock me-1"></i>Confirm &amp; Close Loan';
     document.getElementById('cl-details').innerHTML = rows.join('');
     document.getElementById('cl-error').classList.add('d-none');
     document.getElementById('cl-confirm-btn').disabled = false;
@@ -488,12 +652,13 @@
     document.getElementById('cl-confirm-txt').classList.add('d-none');
     document.getElementById('cl-confirm-load').classList.remove('d-none');
     try {
-      const url = pendingCloseKind === 'FORECLOSE' ? '/api/payments/foreclose' : '/api/payments/collect';
+      const kind = pendingCloseKind;
+      const url = kind === 'IO_PRINCIPAL' ? '/api/payments/collect' : '/api/payments/principal-payment';
       await api.post(url, Object.assign({}, pendingClosePayload, { confirm_close: true }));
       pendingClosePayload = null;
       closeLoanModal.hide();
       paymentModal.hide();
-      showToast('Loan closed successfully!', 'success');
+      showToast(kind === 'PART_PAY' ? 'Part-payment recorded and schedule updated!' : 'Loan closed successfully!', 'success');
       if (selectedCustomer) await loadLoans(selectedCustomer.customer_id);
     } catch (err) {
       errEl.textContent = err.message;
@@ -681,7 +846,7 @@
     const canForeclose = !isIO && (auth.getUser() || {}).role_id !== ROLES.COLLECTOR;
     const forecloseBtn = document.getElementById('pm-foreclose-btn');
     forecloseBtn.classList.toggle('d-none', !canForeclose);
-    forecloseBtn.innerHTML = '<i class="bi bi-lock me-1"></i>Close Loan';
+    forecloseBtn.innerHTML = '<i class="bi bi-lock me-1"></i>Close / Part-Pay';
 
     // Header
     document.getElementById('pm-title').textContent = t('pay.collect');

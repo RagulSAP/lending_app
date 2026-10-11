@@ -13,6 +13,7 @@ from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+from core_functions.loan_calc import _get_due_date
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
 
@@ -256,18 +257,28 @@ def collect_payment():
         db.close()
 
 
-_FORECLOSE_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_STAFF)
+_PI_PRINCIPAL_ROLES = (Config.ROLE_ADMIN, Config.ROLE_MANAGER, Config.ROLE_STAFF)
 FORECLOSE_REMARK_TAG = "Loan foreclosure"
+PART_PAY_REMARK_TAG = "Principal part-payment"
 
 
-@payments_bp.route("/foreclose", methods=["POST"])
-@require_roles(*_FORECLOSE_ROLES)
-def foreclose_loan():
+@payments_bp.route("/principal-payment", methods=["POST"])
+@require_roles(*_PI_PRINCIPAL_ROLES)
+def principal_payment():
     """
-    POST /api/payments/foreclose
-    Body: {loan_id, interest_amount, payment_mode, transaction_date, remarks, confirm_close}
-    Closes a principal-with-interest loan early. The customer pays the outstanding
-    principal plus an adjustable interest amount; all unpaid installments are closed.
+    POST /api/payments/principal-payment
+    Principal-with-interest loans only. The customer repays some or all of the
+    outstanding principal, optionally together with an interest amount.
+
+    Body: {loan_id, principal_amount, interest_amount, payment_mode, transaction_date,
+           remarks, confirm_close, new_num_installments, new_interest_per_installment,
+           first_due_date}
+
+    - principal_amount == outstanding principal (or omitted): the loan is closed
+      (foreclosure) and every unpaid installment is closed. confirm_close is required.
+    - principal_amount < outstanding principal: the unpaid installments are replaced
+      by a new schedule of new_num_installments installments for the remaining
+      principal, each carrying new_interest_per_installment, starting on first_due_date.
     """
     current = get_current_user_info()
     data = request.get_json(silent=True)
@@ -282,18 +293,28 @@ def foreclose_loan():
         return error_response("loan_id is required")
     if payment_mode not in _VALID_PAYMENT_MODES:
         return error_response(f"payment_mode must be one of: {', '.join(sorted(_VALID_PAYMENT_MODES))}")
-    if not data.get("confirm_close"):
-        return error_response("Confirmation is required to close the loan")
+
+    def _whole(name, raw, default=None):
+        if raw in (None, ""):
+            if default is None:
+                raise ValueError(f"{name} is required")
+            return default
+        try:
+            val = float(raw)
+        except (TypeError, ValueError):
+            raise ValueError(f"{name} must be a number")
+        if val < 0:
+            raise ValueError(f"{name} cannot be negative")
+        if val != round(val):
+            raise ValueError(f"{name} must be a whole number")
+        return int(round(val))
 
     try:
-        interest_amount = float(data.get("interest_amount") or 0)
-    except (TypeError, ValueError):
-        return error_response("interest_amount must be a number")
-    if interest_amount < 0:
-        return error_response("interest_amount cannot be negative")
-    if interest_amount != round(interest_amount):
-        return error_response("interest_amount must be a whole number")
-    interest_amount = round(interest_amount)
+        interest_amount = _whole("interest_amount", data.get("interest_amount"), default=0)
+        principal_raw = data.get("principal_amount")
+        principal_amount = _whole("principal_amount", principal_raw) if principal_raw not in (None, "") else None
+    except ValueError as ve:
+        return error_response(str(ve))
 
     txn_date_str = data.get("transaction_date")
     txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
@@ -311,36 +332,102 @@ def foreclose_loan():
         if loan.status == "CLOSED":
             return error_response("Loan is already closed")
         if (loan.loan_type or "PRINCIPAL_INTEREST") == "INTEREST_ONLY":
-            return error_response("Use principal collection to close an interest-only loan")
+            return error_response("Use principal collection for an interest-only loan")
+
+        outstanding = round(float(loan.balance_amount or 0))
+        if principal_amount is None:
+            principal_amount = outstanding
+        if principal_amount < 1 and outstanding > 0:
+            return error_response("principal_amount must be at least 1")
+        if principal_amount > outstanding:
+            return error_response(
+                f"Principal amount ({principal_amount:,}) exceeds outstanding principal ({outstanding:,})"
+            )
+        is_full = principal_amount == outstanding
+        if is_full and not data.get("confirm_close"):
+            return error_response("Confirmation is required to close the loan")
+
+        amount = principal_amount + interest_amount
+        if amount <= 0:
+            return error_response("Amount must be greater than zero")
+
+        new_schedule = []
+        if not is_full:
+            try:
+                new_n = _whole("new_num_installments", data.get("new_num_installments"))
+                new_interest = _whole("new_interest_per_installment", data.get("new_interest_per_installment"), default=0)
+            except ValueError as ve:
+                return error_response(str(ve))
+            if new_n < 1 or new_n > 1000:
+                return error_response("new_num_installments must be between 1 and 1000")
+            first_due = parse_date(str(data.get("first_due_date") or ""))
+            if not first_due:
+                return error_response("first_due_date is required (YYYY-MM-DD)")
+
+            remaining = outstanding - principal_amount
+            base = remaining // new_n
+            for k in range(1, new_n + 1):
+                p_k = base if k < new_n else remaining - base * (new_n - 1)
+                new_schedule.append({
+                    "number": k,
+                    "due_date": _get_due_date(first_due, loan.installment_type, k - 1),
+                    "principal": p_k,
+                    "interest": new_interest,
+                    "total": p_k + new_interest,
+                })
 
         customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
         wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
         if not wallet:
             return error_response("No wallet found for this organisation", 500)
 
-        principal = round(float(loan.balance_amount or 0))
-        amount = principal + interest_amount
-        if amount <= 0:
-            return error_response("Closure amount must be greater than zero")
-
-        # Close every unpaid installment
-        open_installments = db.query(LoanInstallment).filter(
-            LoanInstallment.loan_id == loan_id,
-            LoanInstallment.status.in_(["PENDING", "PARTIAL"]),
-        ).all()
-        for inst in open_installments:
-            inst.status = "CLOSED"
-            inst.balance_amount = 0
-
         old_loan_status = loan.status
+        all_installments = db.query(LoanInstallment).filter(LoanInstallment.loan_id == loan_id).all()
+        max_number = max([i.installment_number for i in all_installments] or [0])
+        paid_count = sum(1 for i in all_installments if i.status == "PAID")
+
+        # Supersede every unpaid installment
+        for inst in all_installments:
+            if inst.status in ("PENDING", "PARTIAL"):
+                inst.status = "CLOSED"
+                inst.balance_amount = 0
+
         loan.total_paid = round(float(loan.total_paid or 0) + amount, 2)
-        loan.balance_amount = 0
-        loan.status = "CLOSED"
+        loan.balance_amount = outstanding - principal_amount
+
+        if is_full:
+            loan.status = "CLOSED"
+            tag = FORECLOSE_REMARK_TAG
+            history_remark = "Loan foreclosed"
+        else:
+            for row in new_schedule:
+                db.add(LoanInstallment(
+                    installment_id=str(uuid.uuid4()),
+                    loan_id=loan_id,
+                    installment_number=max_number + row["number"],
+                    due_date=row["due_date"],
+                    principal_amount=row["principal"],
+                    interest_amount=row["interest"],
+                    penalty_amount=0,
+                    total_amount=row["total"],
+                    paid_amount=0,
+                    balance_amount=row["total"],
+                    status="PENDING",
+                    paid_date=None,
+                ))
+            loan.num_installments = paid_count + len(new_schedule)
+            loan.installment_amount = new_schedule[0]["total"]
+            loan.due_date = new_schedule[-1]["due_date"]
+            loan.total_payable = round(float(loan.total_paid or 0) + sum(r["total"] for r in new_schedule), 2)
+            if loan.status == "OVERDUE" and loan.due_date >= txn_date:
+                loan.status = "ACTIVE"
+            tag = PART_PAY_REMARK_TAG
+            history_remark = "Principal part-payment; schedule revised"
 
         wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + amount, 2)
         wallet.interest_balance = round(float(wallet.interest_balance or 0) + interest_amount, 2)
 
-        txn_remarks = f"{FORECLOSE_REMARK_TAG} - {remarks}" if remarks else FORECLOSE_REMARK_TAG
+        txn_remarks = f"{tag} - {remarks}" if remarks else tag
         txn = Transaction(
             transaction_id=str(uuid.uuid4()),
             loan_id=loan_id,
@@ -356,25 +443,30 @@ def foreclose_loan():
             remarks=txn_remarks[:225],
         )
         db.add(txn)
-        db.add(LoanStatusHistory(
-            id=str(uuid.uuid4()),
-            loan_id=loan_id,
-            old_status=old_loan_status,
-            new_status="CLOSED",
-            changed_by=current["user_id"],
-            remarks="Loan foreclosed",
-        ))
+        if loan.status != old_loan_status or is_full:
+            db.add(LoanStatusHistory(
+                id=str(uuid.uuid4()),
+                loan_id=loan_id,
+                old_status=old_loan_status,
+                new_status=loan.status,
+                changed_by=current["user_id"],
+                remarks=history_remark,
+            ))
         db.commit()
 
         txn_data = model_to_dict(txn)
         txn_data["customer_name"] = customer.name if customer else None
         txn_data["loan_status"] = loan.status
-        txn_data["principal_amount"] = principal
+        txn_data["principal_amount"] = principal_amount
         txn_data["interest_amount"] = interest_amount
+        txn_data["remaining_principal"] = round(float(loan.balance_amount or 0))
         txn_data["wallet_invest_balance"]    = round(float(wallet.invest_balance), 2)
         txn_data["wallet_rotation_balance"]  = round(float(wallet.rotation_balance), 2)
         txn_data["wallet_interest_balance"]  = round(float(wallet.interest_balance), 2)
-        return success_response(data=txn_data, message="Loan closed successfully"), 201
+        return success_response(
+            data=txn_data,
+            message="Loan closed successfully" if is_full else "Part-payment recorded and schedule updated",
+        ), 201
 
     except Exception as exc:
         db.rollback()
