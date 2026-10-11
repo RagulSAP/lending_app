@@ -14,6 +14,7 @@ from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, model_to_dict, parse_date
+from core_functions.timeutil import today_ist
 
 wallet_bp = Blueprint("wallet", __name__, url_prefix="/api/wallet")
 
@@ -113,7 +114,7 @@ def topup_wallet():
 
     partner_id = data.get("partner_id") or None
     txn_date_str = data.get("transaction_date")
-    txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
+    txn_date = parse_date(str(txn_date_str)) if txn_date_str else today_ist()
     if not txn_date:
         return error_response("transaction_date must be YYYY-MM-DD")
 
@@ -193,7 +194,7 @@ def withdraw():
     partner_id = data.get("partner_id") or None
 
     txn_date_str = data.get("transaction_date")
-    txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
+    txn_date = parse_date(str(txn_date_str)) if txn_date_str else today_ist()
     if not txn_date:
         return error_response("transaction_date must be YYYY-MM-DD")
 

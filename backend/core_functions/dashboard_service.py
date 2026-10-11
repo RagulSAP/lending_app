@@ -7,11 +7,12 @@ from sqlalchemy import func, distinct, case, update, and_
 from models import Customer, Loan, LoanInstallment, Transaction, Wallet, User, Organization
 from config import Config
 from core_functions.loan_calc import _add_months
+from core_functions.timeutil import today_ist
 
 
 def mark_overdue_loans(db, org_id: str) -> int:
     """Mark ACTIVE loans as OVERDUE when their due_date has passed. Returns count updated."""
-    today = date.today()
+    today = today_ist()
     result = (
         db.query(Loan)
         .filter(
@@ -48,7 +49,7 @@ def get_admin_manager_dashboard(db, org_id: str) -> dict:
     Full operational dashboard for ADMIN, MANAGER, and ACCOUNTANT roles.
     All figures are scoped to org_id.
     """
-    today = date.today()
+    today = today_ist()
     week_start = _week_start(today)
     month_start = _month_start(today)
 
@@ -256,7 +257,7 @@ def get_collector_dashboard(db, org_id: str, user_id: str,
     Dashboard scoped to a single collector's own activity.
     date_from / date_to (date objects) narrow the "period" aggregates.
     """
-    today = date.today()
+    today = today_ist()
     month_start = _month_start(today)
 
     base_filters = [

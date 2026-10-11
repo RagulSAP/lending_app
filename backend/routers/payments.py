@@ -14,6 +14,7 @@ from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
 from core_functions.responses import success_response, error_response, model_to_dict, parse_date
 from core_functions.loan_calc import _get_due_date
+from core_functions.timeutil import today_ist
 
 payments_bp = Blueprint("payments", __name__, url_prefix="/api/payments")
 
@@ -90,7 +91,7 @@ def collect_payment():
             return error_response("new_interest_amount must be greater than zero")
 
     txn_date_str = data.get("transaction_date")
-    txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
+    txn_date = parse_date(str(txn_date_str)) if txn_date_str else today_ist()
     if not txn_date:
         return error_response("transaction_date must be in YYYY-MM-DD format")
 
@@ -317,7 +318,7 @@ def principal_payment():
         return error_response(str(ve))
 
     txn_date_str = data.get("transaction_date")
-    txn_date = parse_date(str(txn_date_str)) if txn_date_str else date.today()
+    txn_date = parse_date(str(txn_date_str)) if txn_date_str else today_ist()
     if not txn_date:
         return error_response("transaction_date must be in YYYY-MM-DD format")
 
