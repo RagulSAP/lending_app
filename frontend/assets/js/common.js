@@ -235,10 +235,11 @@ document.addEventListener('wheel', function (e) {
   }
 
   function formatCurrency(n) {
-    if (n === null || n === undefined || n === '') return '₹ 0.00';
+    if (n === null || n === undefined || n === '') return '₹ 0';
     const num = parseFloat(n);
-    if (isNaN(num)) return '₹ 0.00';
-    return '₹ ' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (isNaN(num)) return '₹ 0';
+    const rounded = Math.round(num * 100) / 100;
+    return '₹ ' + rounded.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
 
   function formatDate(d) {

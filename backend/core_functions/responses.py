@@ -29,7 +29,7 @@ def error_response(message, status_code=400):
 def serialize_value(val):
     """Convert a single value to a JSON-serializable type."""
     if isinstance(val, Decimal):
-        return float(val)
+        return round(float(val), 2)
     if isinstance(val, (datetime, date)):
         return val.isoformat()
     return val

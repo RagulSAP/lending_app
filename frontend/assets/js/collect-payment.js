@@ -791,23 +791,25 @@
   // ---------------------------------------------------------------------------
   // Export helpers
   // ---------------------------------------------------------------------------
+  function r2(v) { return Math.round((parseFloat(v) || 0) * 100) / 100; }
+
   function buildLoanSummaryRows() {
     const l = selectedLoan;
     const c = selectedCustomer;
-    const totalPayable = l.total_payable || (parseFloat(l.installment_amount) * parseInt(l.num_installments));
+    const totalPayable = l.total_payable || (r2(l.installment_amount) * parseInt(l.num_installments));
     return [
       ['Customer Name', c ? c.name : ''],
       ['Phone', c ? c.phone : ''],
       ['City', c ? (c.city || '') : ''],
       [],
       ['Loan ID', l.loan_id],
-      ['Disbursed Amount', parseFloat(l.disbursement_amount) || 0],
+      ['Disbursed Amount', r2(l.disbursement_amount)],
       ['Installment Type', l.installment_type],
       ['No. of Installments', l.num_installments],
-      ['Installment Amount', parseFloat(l.installment_amount) || 0],
-      ['Total Payable', parseFloat(totalPayable) || 0],
-      ['Total Paid', parseFloat(l.total_paid) || 0],
-      ['Balance Amount', parseFloat(l.balance_amount) || 0],
+      ['Installment Amount', r2(l.installment_amount)],
+      ['Total Payable', r2(totalPayable)],
+      ['Total Paid', r2(l.total_paid)],
+      ['Balance Amount', r2(l.balance_amount)],
       ['Status', l.status],
       ['Disbursement Date', l.disbursement_date || ''],
     ];
@@ -815,13 +817,13 @@
 
   function buildInstallmentRows() {
     return installments.map(inst => {
-      const balance = parseFloat(inst.balance_amount || 0) ||
-        ((parseFloat(inst.total_amount) || 0) - (parseFloat(inst.paid_amount) || 0));
+      const balance = r2(inst.balance_amount) ||
+        Math.round((r2(inst.total_amount) - r2(inst.paid_amount)) * 100) / 100;
       return [
         inst.installment_number,
         inst.due_date || '',
-        parseFloat(inst.total_amount) || 0,
-        parseFloat(inst.paid_amount) || 0,
+        r2(inst.total_amount),
+        r2(inst.paid_amount),
         balance,
         inst.paid_date || '',
         inst.status,
@@ -879,8 +881,8 @@
 
   // PDF-safe currency: jsPDF default font has no Rupee glyph, use "Rs." instead
   function pdfAmt(val) {
-    const n = parseFloat(val) || 0;
-    return 'Rs. ' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const n = Math.round((parseFloat(val) || 0) * 100) / 100;
+    return 'Rs. ' + n.toLocaleString('en-IN', { maximumFractionDigits: 2 });
   }
 
   // Status fill colors for PDF cells
