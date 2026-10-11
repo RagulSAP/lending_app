@@ -35,73 +35,74 @@
     await loadAll();
   }
 
+  function balanceCard(id, label, icon, gradient) {
+    return `
+      <div style="background:${gradient};border-radius:10px;padding:10px 14px;color:#fff;box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="bi ${icon}" style="font-size:16px;"></i>
+        </div>
+        <div style="min-width:0;">
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+          <div id="${id}" style="font-size:clamp(14px,3.6vw,18px);font-weight:700;line-height:1.2;">—</div>
+        </div>
+      </div>`;
+  }
+
+  function miniStat(id, label, icon, chipClass, color) {
+    return `
+      <div style="background:var(--card-bg);border-radius:10px;padding:8px 12px;border:1px solid var(--border);box-shadow:var(--shadow-sm);display:flex;align-items:center;gap:10px;">
+        <div class="${chipClass}" style="width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="bi ${icon}" style="font-size:14px;color:${color};"></i>
+        </div>
+        <div style="min-width:0;">
+          <div id="${id}" style="font-size:clamp(12px,3.4vw,15px);font-weight:700;color:var(--text-primary);line-height:1.2;">—</div>
+          <div style="font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</div>
+        </div>
+      </div>`;
+  }
+
   function renderPage() {
     document.getElementById('page-content').innerHTML = `
-      <div class="page-header d-flex align-items-center justify-content-end flex-wrap gap-2">
-        <div class="d-flex flex-wrap gap-2">
-          <button type="button" class="btn btn-outline-secondary" id="partners-btn">
-            <i class="bi bi-people me-1"></i>${t('wallet.partners')}<span id="partners-count" style="display:none;margin-left:6px;background:rgba(0,0,0,.12);border-radius:10px;padding:0 7px;font-size:11px;font-weight:700;"></span>
-          </button>
-          <button type="button" class="btn btn-outline-warning" id="withdraw-btn">
-            <i class="bi bi-box-arrow-up me-1"></i>${t('wallet.withdraw')}
-          </button>
-          <button type="button" class="btn btn-primary" id="topup-btn">
-            <i class="bi bi-plus-circle me-1"></i>${t('wallet.topup')}
-          </button>
-        </div>
+      <div class="wallet-compact">
+      <div class="d-flex align-items-center justify-content-end flex-wrap gap-2 mb-3">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="partners-btn">
+          <i class="bi bi-people me-1"></i>${t('wallet.partners')}<span id="partners-count" style="display:none;margin-left:6px;background:rgba(0,0,0,.12);border-radius:10px;padding:0 7px;font-size:11px;font-weight:700;"></span>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-warning" id="withdraw-btn">
+          <i class="bi bi-box-arrow-up me-1"></i>${t('wallet.withdraw')}
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" id="topup-btn">
+          <i class="bi bi-plus-circle me-1"></i>${t('wallet.topup')}
+        </button>
       </div>
 
-      <!-- Balance + stats cards -->
-      <div class="row g-3 mb-4" id="stats-row">
-        <div class="col-6 col-md-4">
-          <div class="card text-center" style="background:linear-gradient(135deg,#2563EB,#7C3AED);color:#fff;border:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.invest_balance')}</div>
-            <div id="stat-invest-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
+      <!-- Balances + partner split-up -->
+      <div class="row g-3 mb-3">
+        <div class="col-lg-8">
+          <div class="row g-2 mb-2">
+            <div class="col-12 col-md-4">${balanceCard('stat-invest-balance',   t('wallet.invest_balance'),   'bi-bank',       'linear-gradient(135deg,#2563EB,#7C3AED)')}</div>
+            <div class="col-12 col-md-4">${balanceCard('stat-rotation-balance', t('wallet.rotation_balance'), 'bi-arrow-repeat', 'linear-gradient(135deg,#7C3AED,#A855F7)')}</div>
+            <div class="col-12 col-md-4">${balanceCard('stat-interest-balance', t('wallet.interest_balance'), 'bi-graph-up-arrow', 'linear-gradient(135deg,#16A34A,#059669)')}</div>
+          </div>
+          <div class="row g-2">
+            <div class="col-12 col-md-4">${miniStat('stat-disburse', t('wallet.total_disbursed'), 'bi-box-arrow-up-right', 'dash-chip-red',    '#DC2626')}</div>
+            <div class="col-12 col-md-4">${miniStat('stat-collect',  t('wallet.total_collected'), 'bi-cash-stack',          'dash-chip-blue',   '#2563EB')}</div>
+            <div class="col-12 col-md-4">${miniStat('stat-withdraw', t('wallet.total_withdrawn'), 'bi-box-arrow-up',        'dash-chip-amber',  '#D97706')}</div>
           </div>
         </div>
-        <div class="col-6 col-md-4">
-          <div class="card text-center" style="background:linear-gradient(135deg,#7C3AED,#A855F7);color:#fff;border:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.rotation_balance')}</div>
-            <div id="stat-rotation-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
+        <div class="col-lg-4">
+          <div class="card h-100" style="display:flex;flex-direction:column;">
+            <div class="card-header-flex" style="margin-bottom:6px;">
+              <h6 class="card-title" style="font-size:13px;"><i class="bi bi-pie-chart me-2 text-primary"></i>Partner Split-up</h6>
+            </div>
+            <div id="partner-split-empty" class="d-none" style="flex:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:#64748B;text-align:center;">
+              No partner contributions yet.
+            </div>
+            <div id="partner-split-wrap" style="flex:1;display:flex;align-items:center;gap:14px;min-height:0;">
+              <div style="position:relative;width:118px;height:118px;flex-shrink:0;"><canvas id="partner-split-chart"></canvas></div>
+              <div id="partner-split-legend" style="flex:1;min-width:0;max-height:118px;overflow-y:auto;display:flex;flex-direction:column;gap:5px;"></div>
+            </div>
           </div>
-        </div>
-        <div class="col-6 col-md-4">
-          <div class="card text-center" style="background:linear-gradient(135deg,#16A34A,#059669);color:#fff;border:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;opacity:.85;margin-bottom:4px;">${t('wallet.interest_balance')}</div>
-            <div id="stat-interest-balance" style="font-size:clamp(14px,4.5vw,22px);font-weight:700;">—</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4">
-          <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_disbursed')}</div>
-            <div id="stat-disburse" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#DC2626;">—</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4">
-          <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_collected')}</div>
-            <div id="stat-collect" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#2563EB;">—</div>
-          </div>
-        </div>
-        <div class="col-6 col-md-4">
-          <div class="card text-center">
-            <div style="font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${t('wallet.total_withdrawn')}</div>
-            <div id="stat-withdraw" style="font-size:clamp(13px,4vw,18px);font-weight:700;color:#D97706;">—</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Partner split-up -->
-      <div class="card mb-4">
-        <div class="card-header-flex">
-          <h6 class="card-title"><i class="bi bi-pie-chart me-2 text-primary"></i>Partner Split-up</h6>
-          <span style="font-size:12px;color:#64748B;">Capital contributed by each partner</span>
-        </div>
-        <div id="partner-split-empty" class="d-none" style="padding:24px 16px;text-align:center;font-size:13px;color:#64748B;">
-          <i class="bi bi-pie-chart" style="font-size:28px;display:block;margin-bottom:8px;opacity:.4;"></i>No partner contributions yet.
-        </div>
-        <div id="partner-split-wrap" style="position:relative;height:240px;padding:8px 16px;">
-          <canvas id="partner-split-chart"></canvas>
         </div>
       </div>
 
@@ -162,6 +163,7 @@
             <tbody id="txn-tbody"></tbody>
           </table>
         </div>
+      </div>
       </div>`;
 
     document.getElementById('topup-btn').addEventListener('click', openTopupModal);
@@ -264,46 +266,28 @@
     const canvas = document.getElementById('partner-split-chart');
     const wrap = document.getElementById('partner-split-wrap');
     const empty = document.getElementById('partner-split-empty');
+    const legend = document.getElementById('partner-split-legend');
     if (!canvas || typeof Chart === 'undefined') return;
     if (partnerSplitChart) { partnerSplitChart.destroy(); partnerSplitChart = null; }
     if (!partnerSplitData.length) {
-      wrap.classList.add('d-none');
+      wrap.style.display = 'none';
       empty.classList.remove('d-none');
       return;
     }
-    wrap.classList.remove('d-none');
+    wrap.style.display = 'flex';
     empty.classList.add('d-none');
-    const dark = document.body.getAttribute('data-theme') === 'dark';
-    const textColor = dark ? '#E6EDF3' : '#0F172A';
     const colors = partnerSplitData.map((_, i) => SPLIT_COLORS[i % SPLIT_COLORS.length]);
     partnerSplitChart = new Chart(canvas.getContext('2d'), {
       type: 'pie',
       data: {
         labels: partnerSplitData.map(p => p.name),
-        datasets: [{ data: partnerSplitData.map(p => p.amount), backgroundColor: colors, borderWidth: 0, hoverOffset: 6 }],
+        datasets: [{ data: partnerSplitData.map(p => p.amount), backgroundColor: colors, borderWidth: 0, hoverOffset: 4 }],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: {
-            position: 'right',
-            labels: {
-              font: { size: 12, family: 'Inter' },
-              padding: 12,
-              usePointStyle: true,
-              pointStyle: 'circle',
-              color: textColor,
-              generateLabels: () => partnerSplitData.map((p, i) => ({
-                text: `${p.name} — ${formatCurrency(p.amount)} (${p.percent}%)`,
-                fillStyle: colors[i],
-                strokeStyle: colors[i],
-                fontColor: textColor,
-                pointStyle: 'circle',
-                index: i,
-              })),
-            },
-          },
+          legend: { display: false },
           tooltip: {
             callbacks: {
               label: ctx => ` ${ctx.label}: ${formatCurrency(ctx.parsed)} (${partnerSplitData[ctx.dataIndex].percent}%)`,
@@ -312,6 +296,14 @@
         },
       },
     });
+    const esc = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    legend.innerHTML = partnerSplitData.map((p, i) => `
+      <div style="display:flex;align-items:center;gap:7px;font-size:12px;line-height:1.3;">
+        <span style="width:9px;height:9px;border-radius:50%;background:${colors[i]};flex-shrink:0;"></span>
+        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text-primary);" title="${esc(p.name)}">${esc(p.name)}</span>
+        <span style="font-weight:600;color:var(--text-primary);">${formatCurrency(p.amount)}</span>
+        <span style="color:var(--text-secondary);min-width:38px;text-align:right;">${p.percent}%</span>
+      </div>`).join('');
   }
 
   new MutationObserver(() => buildPartnerSplitChart())

@@ -1167,3 +1167,8 @@ body[data-theme="dark"] {
 }
 .theme-switch input:checked + .theme-switch-slider { background: var(--primary); }
 .theme-switch input:checked + .theme-switch-slider::before { transform: translateX(18px); }
+
+/* WALLET PAGE — compact layout */
+.wallet-compact .card { padding: 12px 14px; }
+.wallet-compact .card-header-flex { margin-bottom: 10px; gap: 8px; }
+.wallet-compact .table td, .wallet-compact .table th { padding: 7px 10px; font-size: 12.5px; }
