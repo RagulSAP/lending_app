@@ -447,9 +447,16 @@
     errEl.classList.add('d-none');
     const idType = document.getElementById('f-id-type').value;
 
-    if (!photoFile) { errEl.textContent = 'Please upload customer photo.'; errEl.classList.remove('d-none'); return; }
-    if (!idType) { errEl.textContent = 'Please select ID proof type.'; errEl.classList.remove('d-none'); return; }
-    if (!idProofFile) { errEl.textContent = 'Please upload ID proof document.'; errEl.classList.remove('d-none'); return; }
+    const missing = [];
+    if (!photoFile) missing.push('Customer photo not uploaded');
+    if (!idType) missing.push('ID proof type not selected');
+    if (!idProofFile) missing.push('ID proof document not uploaded');
+    if (missing.length) {
+      const list = missing.map(m => `<li style="margin-bottom:4px;">${m}</li>`).join('');
+      showAlert('<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Missing Information',
+        `<p style="margin-bottom:8px;">Please complete the following before submitting:</p><ul style="padding-left:20px;margin:0;">${list}</ul>`);
+      return;
+    }
 
     // Pre-validate wallet before creating customer + loan
     const loanSectionEl = document.getElementById('loan-section');
@@ -458,10 +465,10 @@
       const lAmount = parseFloat(lAmtEl.value) || 0;
       const lWalletBal = lAmtEl._walletBalance || 0;
       if (lAmount > 0 && lAmount > lWalletBal) {
-        errEl.textContent = lWalletBal <= 0
+        const msg = lWalletBal <= 0
           ? 'Wallet is empty. Please top up the wallet before assigning a loan.'
-          : `Loan amount exceeds wallet balance (${formatCurrency(lWalletBal)}).`;
-        errEl.classList.remove('d-none');
+          : `Loan amount (${formatCurrency(lAmount)}) exceeds wallet balance (${formatCurrency(lWalletBal)}).`;
+        showAlert('<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Insufficient Balance', msg);
         return;
       }
     }

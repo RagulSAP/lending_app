@@ -318,6 +318,33 @@ try {
     });
   }
 
+  function showAlert(title, message) {
+    let modal = document.getElementById('alert-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'alert-modal';
+      modal.className = 'modal fade';
+      modal.tabIndex = -1;
+      modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header border-0 pb-0">
+              <h6 class="modal-title fw-600" id="alert-modal-title"></h6>
+            </div>
+            <div class="modal-body pt-1"><div id="alert-modal-body" style="font-size:14px;"></div></div>
+            <div class="modal-footer border-0 pt-0">
+              <button type="button" class="btn btn-sm btn-primary" data-bs-dismiss="modal">OK</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+    }
+    document.getElementById('alert-modal-title').textContent = title;
+    document.getElementById('alert-modal-body').innerHTML = message;
+    new bootstrap.Modal(modal).show();
+  }
+  window.showAlert = showAlert;
+
   function initAutoLogout() {
     const INACTIVE_MS  = 60 * 60 * 1000; // 1 hour
     const WARN_BEFORE  =  5 * 60 * 1000; // warn 5 min before
