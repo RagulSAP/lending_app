@@ -11,6 +11,8 @@
   let photoModal = null;
   let ePhotoFile = null;
   let eIdFile = null;
+  let editingCustomer = null;
+  let deleteModal = null;
 
   async function init() {
     await initPage(t('cust.title'), [1, 2, 3, 4, 5]);
@@ -242,6 +244,10 @@
               </div>
             </div>
             <div class="modal-footer">
+              <div class="me-auto d-flex gap-2 d-none" id="edit-admin-actions">
+                <button type="button" class="btn btn-outline-warning" id="edit-toggle-btn"></button>
+                <button type="button" class="btn btn-outline-danger" id="edit-delete-btn"><i class="bi bi-trash me-1"></i>${t('common.delete')}</button>
+              </div>
               <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
               <button type="button" class="btn btn-primary" id="save-edit-btn">
                 <span id="save-edit-txt"><i class="bi bi-check-lg me-1"></i>${t('common.save')}</span>
@@ -265,6 +271,8 @@
     document.getElementById('e-pan').addEventListener('input', function () { this.value = this.value.toUpperCase().slice(0, 10); });
     document.getElementById('save-edit-btn').addEventListener('click', saveCustomerEdit);
 
+    document.getElementById('edit-toggle-btn').addEventListener('click', toggleStatusFromEdit);
+    document.getElementById('edit-delete-btn').addEventListener('click', openDeleteModal);
     document.getElementById('e-photo-btn').addEventListener('click', () => document.getElementById('e-photo-input').click());
     document.getElementById('e-id-btn').addEventListener('click', () => document.getElementById('e-id-input').click());
     document.getElementById('e-photo-input').addEventListener('change', function () { handleEditFile(this, 'photo'); });
@@ -392,7 +400,6 @@
     const city = document.getElementById('f-city').value.trim();
     const status = document.getElementById('f-status').value;
     const canEdit = [ROLES.ADMIN, ROLES.MANAGER].includes(currentUser.role_id);
-    const isAdmin = currentUser.role_id === ROLES.ADMIN;
     try {
       showLoading();
       const res = await api.get('/api/customers', { search, city, status, page: currentPage, per_page: perPage });
@@ -425,13 +432,6 @@
                 <button type="button" class="btn btn-sm btn-outline-primary" onclick="openEditModal('${c.customer_id}')" title="${t('common.edit')}">
                   <i class="bi bi-pencil"></i>
                 </button>
-                ${isAdmin ? `
-                <button type="button" class="btn btn-sm ${c.status === 'ACTIVE' ? 'btn-warning' : 'btn-success'}" onclick="toggleStatus('${c.customer_id}','${c.status}')" title="${c.status === 'ACTIVE' ? t('common.deactivate') : t('common.activate')}">
-                  <i class="bi ${c.status === 'ACTIVE' ? 'bi-pause-fill' : 'bi-play-fill'}"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteCustomer('${c.customer_id}','${c.name.replace(/'/g, "\\'")}')" title="${t('common.delete')}">
-                  <i class="bi bi-trash"></i>
-                </button>` : ''}
               </div>
             </td>` : '';
           const nextDueCell = c.next_due_date
@@ -608,6 +608,16 @@
       document.getElementById('e-pan').value = c.pan || '';
       sel.value = c.user_id || '';
 
+      editingCustomer = c;
+      const adminBox = document.getElementById('edit-admin-actions');
+      adminBox.classList.toggle('d-none', currentUser.role_id !== ROLES.ADMIN);
+      const isActive = (c.status || 'ACTIVE') === 'ACTIVE';
+      const toggleBtn = document.getElementById('edit-toggle-btn');
+      toggleBtn.className = `btn ${isActive ? 'btn-outline-warning' : 'btn-outline-success'}`;
+      toggleBtn.innerHTML = isActive
+        ? `<i class="bi bi-pause-fill me-1"></i>${t('common.deactivate')}`
+        : `<i class="bi bi-play-fill me-1"></i>${t('common.activate')}`;
+
       resetEditFiles();
       document.getElementById('e-id-type').value = c.id_proof_type || '';
       const safeName = (c.name || 'Customer').replace(/[^\w\- ]/g, '').trim() || 'Customer';
@@ -727,30 +737,133 @@
     errEl.classList.remove('d-none');
   }
 
-  window.toggleStatus = async function (customerId, currentStatus) {
-    const newStatus = currentStatus === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
-    const ok = await confirmDialog(newStatus === 'ACTIVE' ? t('cust.activate_confirm') : t('cust.deactivate_confirm'));
-    if (!ok) return;
-    try {
-      await api.patch(`/api/customers/${customerId}/status`, { status: newStatus });
-      showToast('Customer status updated', 'success');
-      await loadCustomers();
-    } catch (err) {
-      showToast('Failed: ' + err.message, 'danger');
-    }
-  };
+  function hideEditThen(fn) {
+    const el = document.getElementById('edit-customer-modal');
+    el.addEventListener('hidden.bs.modal', fn, { once: true });
+    editModal.hide();
+  }
 
-  window.deleteCustomer = async function (customerId, name) {
-    const ok = await confirmDialog(`Delete customer "${name}"? This action cannot be undone.`);
-    if (!ok) return;
+  async function toggleStatusFromEdit() {
+    if (!editingCustomer) return;
+    const newStatus = (editingCustomer.status || 'ACTIVE') === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    const customerId = editingCustomer.customer_id;
+    hideEditThen(async () => {
+      const ok = await confirmDialog(newStatus === 'ACTIVE' ? t('cust.activate_confirm') : t('cust.deactivate_confirm'));
+      if (!ok) return;
+      try {
+        await api.patch(`/api/customers/${customerId}/status`, { status: newStatus });
+        showToast('Customer status updated', 'success');
+        await loadCustomers();
+      } catch (err) {
+        showToast('Failed: ' + err.message, 'danger');
+      }
+    });
+  }
+
+  function injectDeleteModal() {
+    if (document.getElementById('delete-customer-modal')) return;
+    const el = document.createElement('div');
+    el.innerHTML = `
+      <div class="modal fade" id="delete-customer-modal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" style="font-size:16px;font-weight:600;">
+                <i class="bi bi-trash-fill me-2 text-danger"></i>Delete Customer
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div id="del-error" class="alert alert-danger d-none" style="font-size:13px;"></div>
+              <p style="font-size:14px;margin-bottom:12px;">You are about to permanently delete <strong id="del-name"></strong>. This cannot be undone.</p>
+              <div id="del-loan-info" class="d-none" style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:12px;margin-bottom:12px;font-size:13px;">
+                <div><span id="del-loan-count"></span> active loan(s) will be removed.</div>
+                <div class="mt-1">Outstanding amount: <strong id="del-outstanding" style="color:#DC2626;"></strong></div>
+                <div class="mt-1" style="color:#92400E;">This outstanding amount will be added back to the Rotation balance.</div>
+              </div>
+              <label class="form-label" for="del-password">Enter your password to confirm</label>
+              <input type="password" class="form-control" id="del-password" placeholder="Your password" autocomplete="new-password">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">${t('common.cancel')}</button>
+              <button type="button" class="btn btn-danger" id="del-confirm-btn" disabled>
+                <span id="del-confirm-txt"><i class="bi bi-trash me-1"></i>Delete Customer</span>
+                <span id="del-confirm-load" class="d-none"><span class="spinner-border spinner-border-sm me-2"></span>Deleting...</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(el.firstElementChild);
+    document.getElementById('del-password').addEventListener('input', function () {
+      document.getElementById('del-confirm-btn').disabled = !this.value;
+    });
+    document.getElementById('del-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.value) confirmDeleteCustomer();
+    });
+    document.getElementById('del-confirm-btn').addEventListener('click', confirmDeleteCustomer);
+    deleteModal = new bootstrap.Modal(document.getElementById('delete-customer-modal'));
+  }
+
+  function openDeleteModal() {
+    if (!editingCustomer) return;
+    const customer = editingCustomer;
+    hideEditThen(async () => {
+      injectDeleteModal();
+      document.getElementById('del-name').textContent = customer.name;
+      document.getElementById('del-error').classList.add('d-none');
+      document.getElementById('del-loan-info').classList.add('d-none');
+      const pw = document.getElementById('del-password');
+      pw.value = '';
+      document.getElementById('del-confirm-btn').disabled = true;
+      document.getElementById('del-confirm-txt').classList.remove('d-none');
+      document.getElementById('del-confirm-load').classList.add('d-none');
+      try {
+        showLoading();
+        const res = await api.get(`/api/customers/${customer.customer_id}/delete-summary`);
+        const d = res.data;
+        if (d.active_loans > 0) {
+          document.getElementById('del-loan-count').textContent = d.active_loans;
+          document.getElementById('del-outstanding').textContent = formatCurrency(d.outstanding_amount);
+          document.getElementById('del-loan-info').classList.remove('d-none');
+        }
+        deleteModal.show();
+        document.getElementById('delete-customer-modal').addEventListener('shown.bs.modal', () => pw.focus(), { once: true });
+      } catch (err) {
+        showToast('Failed to load customer details: ' + err.message, 'danger');
+      } finally {
+        hideLoading();
+      }
+    });
+  }
+
+  async function confirmDeleteCustomer() {
+    const password = document.getElementById('del-password').value;
+    if (!password || !editingCustomer) return;
+    const btn = document.getElementById('del-confirm-btn');
+    const errEl = document.getElementById('del-error');
+    errEl.classList.add('d-none');
+    btn.disabled = true;
+    document.getElementById('del-confirm-txt').classList.add('d-none');
+    document.getElementById('del-confirm-load').classList.remove('d-none');
     try {
-      await api.delete(`/api/customers/${customerId}`);
-      showToast('Customer deleted', 'success');
+      const res = await api.delete(`/api/customers/${editingCustomer.customer_id}`, { password });
+      deleteModal.hide();
+      const returned = res.data && res.data.outstanding_returned;
+      showToast(returned > 0
+        ? `Customer deleted. ${formatCurrency(returned)} added to rotation balance.`
+        : 'Customer deleted', 'success');
+      editingCustomer = null;
       await loadCustomers();
     } catch (err) {
-      showToast('Failed: ' + err.message, 'danger');
+      errEl.textContent = err.message;
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      document.getElementById('del-confirm-txt').classList.remove('d-none');
+      document.getElementById('del-confirm-load').classList.add('d-none');
+      document.getElementById('del-password').select();
     }
-  };
+  }
 
   init();
 })();

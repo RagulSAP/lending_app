@@ -7,8 +7,8 @@ import uuid
 from flask import Blueprint, request
 
 from database import SessionLocal
-from models import Customer, Loan, LoanInstallment, User
-from sqlalchemy import func, and_, case
+from models import Customer, Loan, LoanInstallment, LoanStatusHistory, Transaction, User, Wallet
+from sqlalchemy import func, and_, case, or_
 from config import Config
 from core_functions.rbac import require_roles
 from core_functions.auth import get_current_user_info
@@ -564,12 +564,13 @@ def update_customer_status(customer_id):
 # DELETE /{customer_id}
 # ---------------------------------------------------------------------------
 
-@customers_bp.route("/<string:customer_id>", methods=["DELETE"])
+@customers_bp.route("/<string:customer_id>/delete-summary", methods=["GET"])
 @require_roles(Config.ROLE_ADMIN)
-def delete_customer(customer_id):
+def customer_delete_summary(customer_id):
     """
-    DELETE /api/customers/{customer_id}
-    ADMIN only. Also removes associated KYC files from disk.
+    GET /api/customers/{customer_id}/delete-summary
+    ADMIN only. Returns the open loans and outstanding principal that would be
+    returned to the rotation balance if this customer were deleted.
     """
     current = get_current_user_info()
     db = SessionLocal()
@@ -581,13 +582,86 @@ def delete_customer(customer_id):
         if not customer:
             return error_response("Customer not found", 404)
 
-        # Check for active/overdue loans
-        active_loan = db.query(Loan).filter(
+        loans = db.query(Loan).filter(
             Loan.customer_id == customer_id,
             Loan.status.in_(["ACTIVE", "OVERDUE"]),
+        ).all()
+        outstanding = round(sum(float(l.balance_amount or 0) for l in loans))
+        return success_response(data={
+            "customer_name": customer.name,
+            "active_loans": len(loans),
+            "outstanding_amount": outstanding,
+        })
+    finally:
+        db.close()
+
+
+@customers_bp.route("/<string:customer_id>", methods=["DELETE"])
+@require_roles(Config.ROLE_ADMIN)
+def delete_customer(customer_id):
+    """
+    DELETE /api/customers/{customer_id}
+    ADMIN only. Body: {password} — the current user's password.
+    Outstanding principal of active/overdue loans is credited back to the
+    wallet rotation balance. The customer's loans and installments are removed;
+    past transactions are kept (detached from the customer) so wallet history
+    and reports stay intact. Also removes associated KYC files from disk.
+    """
+    current = get_current_user_info()
+    data = request.get_json(silent=True) or {}
+    password = data.get("password") or ""
+    if not password:
+        return error_response("Password is required to delete a customer")
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.user_id == current["user_id"]).first()
+        if not user or user.password != password:
+            return error_response("Incorrect password", 400)
+
+        customer = db.query(Customer).filter(
+            Customer.customer_id == customer_id,
+            Customer.org_id == current["org_id"],
         ).first()
-        if active_loan:
-            return error_response("Cannot delete customer with active or overdue loans", 400)
+        if not customer:
+            return error_response("Customer not found", 404)
+
+        loans = db.query(Loan).filter(Loan.customer_id == customer_id).all()
+        loan_ids = [l.loan_id for l in loans]
+        outstanding = round(sum(
+            float(l.balance_amount or 0) for l in loans if l.status in ("ACTIVE", "OVERDUE")
+        ))
+
+        if outstanding > 0:
+            wallet = db.query(Wallet).filter(Wallet.org_id == current["org_id"]).first()
+            if not wallet:
+                return error_response("Wallet not found for this organization", 400)
+            wallet.rotation_balance = round(float(wallet.rotation_balance or 0) + outstanding, 2)
+
+        # Keep transaction history; detach it from the rows being removed
+        note = f"[Deleted customer: {customer.name}]"
+        txn_filter = [Transaction.customer_id == customer_id]
+        if loan_ids:
+            txn_filter.append(Transaction.loan_id.in_(loan_ids))
+        for txn in db.query(Transaction).filter(Transaction.org_id == current["org_id"]).filter(
+            or_(*txn_filter)
+        ).all():
+            txn.customer_id = None
+            txn.loan_id = None
+            txn.installment_id = None
+            txn.remarks = f"{txn.remarks} {note}"[:225] if txn.remarks else note[:225]
+        db.flush()
+
+        if loan_ids:
+            db.query(LoanStatusHistory).filter(
+                LoanStatusHistory.loan_id.in_(loan_ids)
+            ).delete(synchronize_session=False)
+            db.query(LoanInstallment).filter(
+                LoanInstallment.loan_id.in_(loan_ids)
+            ).delete(synchronize_session=False)
+            db.query(Loan).filter(
+                Loan.loan_id.in_(loan_ids)
+            ).delete(synchronize_session=False)
 
         photo_path = customer.photo
         id_proof_path = customer.id_proof
@@ -599,7 +673,10 @@ def delete_customer(customer_id):
         delete_kyc_file(photo_path)
         delete_kyc_file(id_proof_path)
 
-        return success_response(message="Customer deleted successfully")
+        return success_response(
+            data={"outstanding_returned": outstanding},
+            message="Customer deleted successfully",
+        )
     except Exception as exc:
         db.rollback()
         return error_response(f"Database error: {exc}", 500)
