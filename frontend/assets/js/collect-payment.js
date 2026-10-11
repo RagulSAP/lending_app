@@ -12,7 +12,7 @@
   let pendingClosePayload = null;
   let newInterestTouched = false;
   let closeMode = false;
-  let cfNewIntTouched = false;
+  let cfNewAmtTouched = false;
   let cfNewNTouched = false;
   let cfCtx = null;
   let pendingCloseKind = 'IO_PRINCIPAL';
@@ -181,30 +181,23 @@
                 <div id="cf-error" class="alert alert-danger d-none mb-3" style="font-size:13px;"></div>
                 <div id="cf-info" class="alert alert-secondary" style="font-size:13px;"></div>
                 <div class="row g-3">
-                  <div class="col-md-4">
+                  <div class="col-md-6">
                     <label class="form-label">Outstanding Principal</label>
                     <div class="input-group">
                       <span class="input-group-text">&#8377;</span>
                       <input type="text" class="form-control" id="cf-outstanding" readonly>
                     </div>
                   </div>
-                  <div class="col-md-4">
+                  <div class="col-md-6">
                     <label class="form-label">Principal Repayment <span class="text-danger">*</span></label>
                     <div class="input-group">
                       <span class="input-group-text">&#8377;</span>
                       <input type="number" class="form-control" id="cf-principal-pay" min="1" step="1">
                     </div>
                   </div>
-                  <div class="col-md-4">
-                    <label class="form-label">Interest to Collect Now <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                      <span class="input-group-text">&#8377;</span>
-                      <input type="number" class="form-control" id="cf-interest" min="0" step="1">
-                    </div>
-                  </div>
                   <div class="col-12">
                     <div class="p-2 rounded text-center loan-stat-green">
-                      <div style="font-size:11px;color:var(--text-secondary);">Amount Received Now (Principal + Interest)</div>
+                      <div style="font-size:11px;color:var(--text-secondary);">Amount Received Now</div>
                       <div class="fw-600" id="cf-total" style="font-size:18px;color:#16a34a;"></div>
                     </div>
                   </div>
@@ -220,10 +213,10 @@
                         <input type="number" class="form-control" id="cf-new-n" min="1" step="1">
                       </div>
                       <div class="col-md-4">
-                        <label class="form-label">Interest per Installment <span class="text-danger">*</span></label>
+                        <label class="form-label">Amount per Installment <span class="text-danger">*</span></label>
                         <div class="input-group">
                           <span class="input-group-text">&#8377;</span>
-                          <input type="number" class="form-control" id="cf-new-int" min="0" step="1">
+                          <input type="number" class="form-control" id="cf-new-amt" min="1" step="1">
                         </div>
                       </div>
                       <div class="col-md-4">
@@ -290,10 +283,10 @@
     document.getElementById('pm-new-interest').addEventListener('input', () => { newInterestTouched = true; });
     document.getElementById('pm-foreclose-btn').addEventListener('click', () => setCloseMode(!closeMode));
     document.getElementById('pm-close-submit-btn').addEventListener('click', submitClosure);
-    ['cf-principal-pay', 'cf-interest', 'cf-new-n', 'cf-new-int', 'cf-first-due'].forEach(id => {
+    ['cf-principal-pay', 'cf-new-n', 'cf-new-amt', 'cf-first-due'].forEach(id => {
       document.getElementById(id).addEventListener('input', refreshCloseForm);
     });
-    document.getElementById('cf-new-int').addEventListener('input', () => { cfNewIntTouched = true; });
+    document.getElementById('cf-new-amt').addEventListener('input', () => { cfNewAmtTouched = true; });
     document.getElementById('cf-new-n').addEventListener('input', () => { cfNewNTouched = true; });
     injectCloseLoanModal();
   }
@@ -332,39 +325,30 @@
     const today = new Date().toISOString().split('T')[0];
     const outstanding = Math.round(parseFloat(l.balance_amount) || 0);
     const open = installments.filter(i => ['PENDING', 'PARTIAL'].includes(i.status));
-    let accrued = 0;
-    let pending = 0;
-    open.forEach(i => {
-      const total = parseFloat(i.total_amount) || 0;
-      const bal = parseFloat(i.balance_amount) || 0;
-      const share = total > 0 ? (parseFloat(i.interest_amount) || 0) * bal / total : 0;
-      pending += share;
-      if (String(i.due_date).slice(0, 10) <= today) accrued += share;
-    });
+    const avgTotal = open.length
+      ? open.reduce((sum, i) => sum + (parseFloat(i.total_amount) || 0), 0) / open.length
+      : (parseFloat(l.installment_amount) || 0);
     const firstOpenDue = open.length ? String(open[0].due_date).slice(0, 10) : today;
     cfCtx = {
       outstanding,
       openCount: Math.max(open.length, 1),
-      avgInterest: open.length ? pending / open.length : 0,
+      avgTotal,
       firstDue: firstOpenDue >= today ? firstOpenDue : today,
     };
-    cfNewIntTouched = false;
+    cfNewAmtTouched = false;
     cfNewNTouched = false;
 
     document.getElementById('cf-outstanding').value = outstanding.toLocaleString('en-IN');
     document.getElementById('cf-principal-pay').value = outstanding;
     document.getElementById('cf-principal-pay').max = outstanding;
-    document.getElementById('cf-interest').value = Math.round(accrued);
     document.getElementById('cf-first-due').value = cfCtx.firstDue;
     document.getElementById('cf-date').value = today;
     document.getElementById('cf-remarks').value = '';
     document.getElementById('cf-mode').value = 'CASH';
     document.getElementById('cf-error').classList.add('d-none');
     document.getElementById('cf-info').innerHTML =
-      `${open.length} installment(s) are still open. Interest accrued up to today: <strong>${formatCurrency(Math.round(accrued))}</strong> &nbsp;·&nbsp; ` +
-      `Interest in the remaining schedule: <strong>${formatCurrency(Math.round(pending))}</strong>.<br>` +
-      'Repay the full principal to close the loan, or a smaller amount to continue with a revised schedule. ' +
-      'Interest to collect is pre-filled with the accrued amount; change it to give a discount or add charges.';
+      `${open.length} installment(s) are still open (about <strong>${formatCurrency(Math.round(avgTotal))}</strong> each). ` +
+      'Repay the full principal to close the loan, or a smaller amount to continue with a revised installment schedule.';
     refreshCloseForm();
   }
 
@@ -378,19 +362,18 @@
     return {
       outstanding,
       principalPay,
-      interest: num('cf-interest'),
       partial: principalPay > 0 && principalPay < outstanding,
       full: principalPay === outstanding,
       remaining: outstanding - principalPay,
       newN: Math.floor(num('cf-new-n')),
-      newInt: num('cf-new-int'),
+      newAmt: num('cf-new-amt'),
       firstDue: document.getElementById('cf-first-due').value,
     };
   }
 
   function buildNewSchedule(f) {
     const rows = [];
-    if (!(f.newN >= 1) || !f.firstDue || f.remaining <= 0) return rows;
+    if (!(f.newN >= 1) || !(f.newAmt >= 1) || !f.firstDue || f.remaining <= 0) return rows;
     const base = Math.floor(f.remaining / f.newN);
     for (let k = 1; k <= f.newN; k++) {
       const p = k < f.newN ? base : f.remaining - base * (f.newN - 1);
@@ -398,8 +381,8 @@
         number: k,
         due: toIso(addPeriod(f.firstDue, selectedLoan.installment_type, k - 1)),
         principal: p,
-        interest: f.newInt,
-        total: p + f.newInt,
+        interest: f.newAmt - p,
+        total: f.newAmt,
       });
     }
     return rows;
@@ -409,25 +392,30 @@
     if (!cfCtx) return;
     const f = readCloseForm();
     const valid = f.principalPay > 0 && f.principalPay <= f.outstanding;
-    document.getElementById('cf-total').textContent =
-      formatCurrency(valid ? f.principalPay + Math.max(f.interest, 0) : 0);
+    document.getElementById('cf-total').textContent = formatCurrency(valid ? f.principalPay : 0);
 
     document.getElementById('cf-reschedule').classList.toggle('d-none', !f.partial);
     const submitBtn = document.getElementById('pm-close-submit-btn');
     if (f.partial) {
       document.getElementById('cf-remaining').textContent = formatCurrency(f.remaining);
       if (!cfNewNTouched) document.getElementById('cf-new-n').value = cfCtx.openCount;
-      if (!cfNewIntTouched) {
-        document.getElementById('cf-new-int').value = Math.round(cfCtx.avgInterest * f.remaining / f.outstanding);
+      if (!cfNewAmtTouched) {
+        document.getElementById('cf-new-amt').value = Math.round(cfCtx.avgTotal * f.remaining / f.outstanding);
       }
       const g = readCloseForm();
       const rows = buildNewSchedule(g);
       document.getElementById('cf-preview').innerHTML = rows.length
         ? rows.map(r => `<tr><td>${r.number}</td><td>${formatDate(r.due)}</td><td>${formatCurrency(r.principal)}</td><td>${formatCurrency(r.interest)}</td><td><strong>${formatCurrency(r.total)}</strong></td></tr>`).join('')
         : '<tr><td colspan="5" class="text-center" style="color:var(--text-secondary);">Enter the installment details</td></tr>';
+      const last = rows.length ? rows[rows.length - 1] : null;
+      const totalInterest = rows.reduce((sum, r) => sum + r.interest, 0);
       document.getElementById('cf-new-hint').textContent = rows.length
-        ? `${rows.length} installment(s) of about ${formatCurrency(rows[0].total)} each (principal ${formatCurrency(rows[0].principal)} + interest ${formatCurrency(rows[0].interest)}). The last installment absorbs any rounding.`
+        ? `${rows.length} installment(s) of ${formatCurrency(g.newAmt)} each = ${formatCurrency(g.newAmt * rows.length)} total, including ${formatCurrency(totalInterest)} interest. The last installment's principal absorbs rounding.`
         : '';
+      if (last && last.interest < 0) {
+        document.getElementById('cf-new-hint').textContent =
+          `Amount per installment is too low: it must cover at least ${formatCurrency(last.principal)} of principal.`;
+      }
       submitBtn.className = 'btn btn-primary';
       submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Record Part-Payment';
     } else {
@@ -445,14 +433,12 @@
 
     if (!Number.isInteger(f.principalPay) || f.principalPay < 1) return fail('Principal repayment must be a whole number of at least 1.');
     if (f.principalPay > f.outstanding) return fail(`Principal repayment cannot exceed the outstanding principal (${formatCurrency(f.outstanding)}).`);
-    if (!Number.isInteger(f.interest) || f.interest < 0) return fail('Interest must be a whole number (0 or more).');
     if (!date) return fail('Payment date is required.');
 
     const payload = {
       loan_id: selectedLoan.loan_id,
       principal_amount: f.principalPay,
-      interest_amount: f.interest,
-      amount: f.principalPay + f.interest,
+      amount: f.principalPay,
       payment_mode: document.getElementById('cf-mode').value,
       remarks: document.getElementById('cf-remarks').value.trim(),
       transaction_date: date,
@@ -460,12 +446,16 @@
 
     if (f.partial) {
       if (!Number.isInteger(f.newN) || f.newN < 1) return fail('Enter the number of remaining installments (at least 1).');
-      if (!Number.isInteger(f.newInt) || f.newInt < 0) return fail('Interest per installment must be a whole number (0 or more).');
+      if (!Number.isInteger(f.newAmt) || f.newAmt < 1) return fail('Amount per installment must be a whole number of at least 1.');
       if (!f.firstDue) return fail('First due date is required.');
+      const rows = buildNewSchedule(f);
+      if (rows.some(r => r.interest < 0)) {
+        return fail(`Amount per installment is too low: it must cover at least ${formatCurrency(rows[rows.length - 1].principal)} of principal.`);
+      }
       payload.new_num_installments = f.newN;
-      payload.new_interest_per_installment = f.newInt;
+      payload.new_installment_amount = f.newAmt;
       payload.first_due_date = f.firstDue;
-      payload.schedule = buildNewSchedule(f);
+      payload.schedule = rows;
       payload.remaining_principal = f.remaining;
       openCloseConfirm(payload, 'PART_PAY');
     } else {
@@ -598,20 +588,16 @@
       const first = payload.schedule[0];
       rows = common.concat([
         row('Outstanding Principal', formatCurrency(payload.principal_amount + payload.remaining_principal)),
-        row('Principal Repaid Now', formatCurrency(payload.principal_amount)),
-        row('Interest Collected Now', formatCurrency(payload.interest_amount)),
-        row('Amount Received Now', `<span style="color:#16a34a;">${formatCurrency(payload.amount)}</span>`),
+        row('Principal Repaid Now', `<span style="color:#16a34a;">${formatCurrency(payload.principal_amount)}</span>`),
         row('Remaining Principal', `<span style="color:#DC2626;">${formatCurrency(payload.remaining_principal)}</span>`),
         row('Open Installments Replaced', openCount),
-        row('Revised Schedule', `${payload.schedule.length} × ${formatCurrency(first.total)} (principal ${formatCurrency(first.principal)} + interest ${formatCurrency(first.interest)})`),
+        row('Revised Schedule', `${payload.schedule.length} × ${formatCurrency(first.total)}`),
         row('First Due Date', formatDate(payload.first_due_date)),
       ], tail);
     } else if (pendingCloseKind === 'FORECLOSE') {
       rows = common.concat([
         row('Open Installments', `${openCount} (will be closed)`),
-        row('Outstanding Principal', formatCurrency(payload.principal_amount)),
-        row('Interest Collected Now', formatCurrency(payload.interest_amount)),
-        row('Closure Amount', `<span style="color:#DC2626;">${formatCurrency(payload.amount)}</span>`),
+        row('Closure Amount (Principal)', `<span style="color:#DC2626;">${formatCurrency(payload.principal_amount)}</span>`),
         row('Balance After Closure', formatCurrency(0)),
       ], tail);
     } else {

@@ -270,15 +270,15 @@ def principal_payment():
     Principal-with-interest loans only. The customer repays some or all of the
     outstanding principal, optionally together with an interest amount.
 
-    Body: {loan_id, principal_amount, interest_amount, payment_mode, transaction_date,
-           remarks, confirm_close, new_num_installments, new_interest_per_installment,
-           first_due_date}
+    Body: {loan_id, principal_amount, payment_mode, transaction_date, remarks,
+           confirm_close, new_num_installments, new_installment_amount, first_due_date}
 
     - principal_amount == outstanding principal (or omitted): the loan is closed
       (foreclosure) and every unpaid installment is closed. confirm_close is required.
     - principal_amount < outstanding principal: the unpaid installments are replaced
       by a new schedule of new_num_installments installments for the remaining
-      principal, each carrying new_interest_per_installment, starting on first_due_date.
+      principal. Each installment collects new_installment_amount (principal share
+      plus interest), starting on first_due_date.
     """
     current = get_current_user_info()
     data = request.get_json(silent=True)
@@ -355,7 +355,7 @@ def principal_payment():
         if not is_full:
             try:
                 new_n = _whole("new_num_installments", data.get("new_num_installments"))
-                new_interest = _whole("new_interest_per_installment", data.get("new_interest_per_installment"), default=0)
+                new_amount = _whole("new_installment_amount", data.get("new_installment_amount"))
             except ValueError as ve:
                 return error_response(str(ve))
             if new_n < 1 or new_n > 1000:
@@ -366,14 +366,19 @@ def principal_payment():
 
             remaining = outstanding - principal_amount
             base = remaining // new_n
+            last_principal = remaining - base * (new_n - 1)
+            if new_amount < 1 or new_amount < last_principal:
+                return error_response(
+                    f"Amount per installment must be at least {max(last_principal, 1):,} to cover the remaining principal"
+                )
             for k in range(1, new_n + 1):
-                p_k = base if k < new_n else remaining - base * (new_n - 1)
+                p_k = base if k < new_n else last_principal
                 new_schedule.append({
                     "number": k,
                     "due_date": _get_due_date(first_due, loan.installment_type, k - 1),
                     "principal": p_k,
-                    "interest": new_interest,
-                    "total": p_k + new_interest,
+                    "interest": new_amount - p_k,
+                    "total": new_amount,
                 })
 
         customer = db.query(Customer).filter(Customer.customer_id == loan.customer_id).first()
