@@ -19,10 +19,18 @@ REPORT_HEADERS = {
     "loans":           ["Loan ID", "Customer", "Disbursed", "Rate %", "Interest Type",
                         "Installment Type", "Total Payable", "Total Paid", "Balance", "Status"],
     "expenses":        ["Date", "Category", "Amount", "Entered By", "Remark"],
-    "topup":           ["Date", "Amount", "Done By", "Remarks"],
-    "wallet-transfer": ["Date", "Amount", "Done By", "Remarks"],
-    "withdrawal":      ["Date", "Amount", "Done By", "Remarks"],
+    "topup":           ["Date", "Amount", "Done By", "Partner", "Remarks"],
+    "wallet-transfer": ["Date", "Amount", "Done By", "Partner", "Remarks"],
+    "withdrawal":      ["Date", "Amount", "Done By", "Partner", "Remarks"],
 }
+
+REPORT_TITLES = {
+    "topup": "Wallet Top-Up",
+}
+
+
+def _report_title(report_type):
+    return REPORT_TITLES.get(report_type) or report_type.capitalize()
 
 
 def _txn_row(r):
@@ -67,6 +75,7 @@ def _wallet_activity_row(r):
         r.get("transaction_date", ""),
         r.get("amount", ""),
         r.get("collected_by", ""),
+        r.get("partner_name", ""),
         r.get("remarks", ""),
     ]
 
@@ -325,7 +334,7 @@ def export_to_excel(report_type: str, records: list, filters_label: str = "") ->
 
     wb = Workbook()
     ws = wb.active
-    ws.title = report_type.capitalize()
+    ws.title = _report_title(report_type)
 
     header_font = Font(bold=True, color=_WHITE)
     header_fill = PatternFill("solid", fgColor=_NAVY)
@@ -333,7 +342,7 @@ def export_to_excel(report_type: str, records: list, filters_label: str = "") ->
     center = Alignment(horizontal="center", vertical="center")
 
     # Title block
-    ws.append([f"{report_type.upper()} REPORT"])
+    ws.append([f"{_report_title(report_type).upper()} REPORT"])
     ws.cell(ws.max_row, 1).font = Font(bold=True, size=14)
     if filters_label:
         ws.append([filters_label])
@@ -393,7 +402,7 @@ def export_to_pdf(report_type: str, records: list, filters_label: str = "") -> i
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph(f"{report_type.upper()} REPORT", styles["Title"]))
+    elements.append(Paragraph(f"{_report_title(report_type).upper()} REPORT", styles["Title"]))
     if filters_label:
         elements.append(Paragraph(filters_label, styles["Normal"]))
     elements.append(

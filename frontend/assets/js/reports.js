@@ -326,9 +326,9 @@
           </div>
           <div class="table-container">
             <table class="table">
-              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>Remarks</th></tr></thead>
+              <thead><tr><th>#</th><th>${t('rep.col_date')}</th><th>${t('rep.col_amount')}</th><th>${t('rep.col_done_by')}</th><th>${t('wallet.partner')}</th><th>Remarks</th></tr></thead>
               <tbody id="tu-rep-tbody">
-                <tr><td colspan="5" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
+                <tr><td colspan="6" class="table-empty"><i class="bi bi-search"></i>${t('rep.initial')}</td></tr>
               </tbody>
             </table>
           </div>
@@ -429,7 +429,7 @@
       } else if (tab === 'topup') {
         params.date_from = document.getElementById('tu-rep-from').value;
         params.date_to   = document.getElementById('tu-rep-to').value;
-        tbodyId = 'tu-rep-tbody'; colCount = 5; pagId = 'tu-rep-pag'; countId = 'tu-rep-count';
+        tbodyId = 'tu-rep-tbody'; colCount = 6; pagId = 'tu-rep-pag'; countId = 'tu-rep-count';
       } else {  // withdrawal
         params.date_from = document.getElementById('wd-rep-from').value;
         params.date_to   = document.getElementById('wd-rep-to').value;
@@ -511,6 +511,7 @@
           <td>${formatDate(r.transaction_date)}</td>
           <td class="text-success fw-600">${formatCurrency(r.amount)}</td>
           <td>${r.collected_by || '-'}</td>
+          <td>${r.partner_name ? `<span class="fw-600">${r.partner_name}</span>` : '<span style="color:#CBD5E1;">—</span>'}</td>
           <td style="max-width:220px;word-break:break-word;white-space:normal;">${r.remarks || '-'}</td>
         </tr>`).join('');
       } else {
@@ -587,7 +588,7 @@
       }
       showToast('Preparing ' + type.toUpperCase() + ' export...', 'info');
       const ext = type === 'excel' ? 'xlsx' : 'pdf';
-      const filename = report + '_report_' + new Date().toISOString().split('T')[0] + '.' + ext;
+      const filename = (report === 'topup' ? 'wallet_topup' : report) + '_report_' + new Date().toISOString().split('T')[0] + '.' + ext;
       await api.download('/api/reports/export', params, filename);
     } catch (err) {
       showToast('Export failed: ' + err.message, 'danger');
